@@ -1,0 +1,16 @@
+.os_rss_feed_results {
+  display: block;
+  padding: 6px;
+  margin: 10px 0;
+  font-size: 1.2em;
+  border: 10px solid #ebebe9;
+}
+
+.os_rss_feed_results h4 {
+  margin-bottom: 11px;
+  text-transform: uppercase;
+}
+
+.empty-selection {
+  color: red;
+}

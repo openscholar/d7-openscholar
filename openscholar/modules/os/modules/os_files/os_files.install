@@ -1,0 +1,1076 @@
+<?php
+
+/**
+ * @file
+ * OS Files install module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function os_files_install() {
+  _os_files_clean_up_fields();
+
+  _os_files_update_add_description_field();
+}
+
+/**
+ * Implements hook_schema_alter().
+ */
+function os_files_schema_alter(&$schema) {
+  if (isset($schema['file_managed']['fields']['uri'])) {
+    $schema['file_managed']['fields']['uri']['type'] = 'varchar';
+    $schema['file_managed']['fields']['uri']['length'] = 1024;
+  }
+  if (isset($schema['file_managed']['fields']['origname'])) {
+    $schema['file_managed']['fields']['origname']['type'] = 'varchar';
+    $schema['file_managed']['fields']['origname']['length'] = 1024;
+  }
+}
+
+/**
+ * Corrects files that are not in the correct directory
+ */
+function os_files_update_7001(&$sandbox) {
+
+  // use queries to reduce memory footprint
+  $q = db_select('file_managed', 'fm');
+  $q->join('og_membership', 'ogm', 'ogm.etid = fm.fid AND entity_type = \'file\'');
+  $q->join('purl', 'p', 'p.id = ogm.gid AND provider = \'spaces_og\'');
+
+  $union1 = db_select('file_managed', 'fm');
+  $union1->join('file_usage', 'fu', 'fu.fid = fm.fid AND fu.type = \'node\'');
+  $union1->join('purl', 'p', 'p.id = fu.id AND provider = \'spaces_og\'');
+
+  $union2 = db_select('file_managed', 'fm');
+  $union2->join('file_usage', 'fu', 'fu.fid = fm.fid AND fu.type = \'node\'');
+  $union2->join('og_membership', 'ogm', 'ogm.etid = fu.id AND entity_type = \'node\'');
+  $union2->join('purl', 'p', 'p.id = ogm.gid AND provider = \'spaces_og\'');
+
+
+  $union3 = db_select('file_managed', 'fm');
+  $union3->join('file_usage', 'fu', 'fu.fid = fm.fid AND fu.type = \'file\'');
+  $union3->join('file_usage', 'fu2', 'fu2.fid = fu.fid AND fu2.type = \'node\'');
+  $union3->join('og_membership', 'ogm', 'ogm.etid = fu2.id AND entity_type = \'node\'');
+  $union3->join('purl', 'p', 'p.id = ogm.gid AND provider = \'spaces_og\'');
+
+  // limit testing to a single vsite
+  //$q->condition('ogm.gid', 3633);
+  //$union1->condition('ogm.gid', 3633);
+  //$union2->condition('ogm.gid', 3633);
+  //$union3->condition('ogm.gid', 3633);
+
+
+  if (!isset($sandbox['progress'])) {
+    $q->fields('fm', array('fid'))
+      ->where('fm.uri LIKE \'public://%\'')
+      ->where('fm.uri NOT LIKE CONCAT(\'%\', p.value, \'/%\')');
+    $union1->fields('fm', array('fid'))
+      ->where('fm.uri LIKE \'public://%\'')
+      ->where('fm.uri NOT LIKE CONCAT(\'%\', p.value, \'/%\')');
+    $union2->fields('fm', array('fid'))
+      ->where('fm.uri LIKE \'public://%\'')
+      ->where('fm.uri NOT LIKE CONCAT(\'%\', p.value, \'/%\')');
+    $union3->fields('fm', array('fid'))
+      ->where('fm.uri LIKE \'public://%\'')
+      ->where('fm.uri NOT LIKE CONCAT(\'%\', p.value, \'/%\')');
+    $q->union($union1)
+      ->union($union2)
+      ->union($union3);
+    $r = $q->execute();
+
+    $fids = $r->fetchAll(PDO::FETCH_OBJ);
+    $sandbox['dataset'] = array();
+    foreach ($fids as $fid) {
+      $sandbox['dataset'][] = $fid->fid;
+    }
+    sort($sandbox['dataset']);
+
+    $sandbox['progress'] = 0;
+    $sandbox['skip'] = array();
+    $sandbox['limit'] = 10;
+    $sandbox['max'] = count($sandbox['dataset']);
+    $sandbox['warnings'] = array();
+  }
+
+  // if a file with the same name exists in the target directory, but does not have the same filesize or mimetype,
+  // we can't handle it automatically. It will need to be fixed manually.
+  // So we skip it for the time being
+  //$q->range(0, $sandbox['limit']);
+  //if (count($sandbox['skip'])) {
+  //  $q->condition('fm.fid', $sandbox['skip'], 'NOT IN');
+  //}
+
+  //$r = $q->execute();
+  // the Traversable behavior stopped working, so fetchAll as an array
+  //$rows = $r->fetchAll(PDO::FETCH_OBJ);
+
+  $fids = array_slice($sandbox['dataset'], $sandbox['progress'], $sandbox['limit']);
+  $union1->fields('fm', array('fid', 'filename', 'uri'))
+          ->fields('p', array('id', 'value'))
+          ->condition('fm.fid', $fids);
+  $union2->fields('fm', array('fid', 'filename', 'uri'))
+          ->fields('p', array('id', 'value'))
+          ->condition('fm.fid', $fids);
+  $union3->fields('fm', array('fid', 'filename', 'uri'))
+          ->fields('p', array('id', 'value'))
+          ->condition('fm.fid', $fids);
+  $r = $q->fields('fm', array('fid', 'filename', 'uri'))
+         ->fields('p', array('id', 'value'))
+         ->condition('fm.fid', $fids)
+         ->union($union1)
+         ->union($union2)
+         ->union($union3)
+         ->execute();
+  $rows = $r->fetchAll(PDO::FETCH_OBJ);
+
+  foreach ($rows as $row) {
+    // put together the filename
+    $pathinfo = pathinfo($row->uri);
+    $matches = array();
+
+    // if the filename is an actual filename, and not a sentence, then it should match the
+    // filename in the uri parameter
+    $filename_info = pathinfo($row->filename);
+    if (isset($filename_info['extension']) && $filename_info['extension'] == $pathinfo['extension']) {
+      $orig_filename = $filename_info['filename'];
+    }
+    else {
+      $orig_filename = trim(str_replace('_0|||', '', $pathinfo['filename'].'|||'), '|');
+    }
+    $target_dir = 'public://'.$row->value.'/files/';
+    $filename = $target_dir.$orig_filename.'.'.$pathinfo['extension'];
+
+    // change the file's uri
+    $file = file_load($row->fid);
+    $to_save = false;
+    if (empty($file->og_group_ref)) {
+      $file->og_group_ref[LANGUAGE_NONE][0]['target_id'] = $row->id;
+      $to_save = true;
+    }
+    file_prepare_directory($target_dir, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $file_move_type = FILE_EXISTS_REPLACE;
+
+    if (!file_exists($file->uri)) {
+      $sandbox['warnings'][] = t('File @file (@fid) not found.', array('@file' => $file->uri, '@fid' => $file->fid));
+      $sandbox['progress']++;
+      continue;
+    }
+
+    // check to see if the file already exists at target destination
+    // this means there's a duplicate row in the files table for this file
+    $qf = db_select('file_managed', 'fm')
+      ->fields('fm')
+      ->condition('uri', $filename)
+      ->condition('filemime', $file->filemime)
+      ->condition('filesize', $file->filesize)
+      ->condition('fm.fid', $file->fid, '!=');
+    $qf->leftJoin('file_usage', 'fu', 'fm.fid = fu.fid');
+    $qf = $qf->fields('fu', array('id', 'type'))
+             ->execute();
+
+    // if we find a match, update the in-use file with data from the match
+    if ($rf = $qf->fetch(PDO::FETCH_OBJ)) {
+      $q2 = db_select('file_usage', 'fu')
+        ->fields('fu')
+        ->condition('fid', $row->fid)
+        ->execute();
+      $r2 = $q2->fetch(PDO::FETCH_OBJ);
+      // duplicate file has no file_usage entry. we should delete it
+      // file we want to move is already there, so we don't need to move it again
+      if (is_null($rf->id)) {
+        if ($file->timestamp > $rf->timestamp) {
+          $file->timestamp = $rf->timestamp;
+          $file->filename = $rf->filename;
+        }
+        $to_save = true;
+        db_delete('file_managed')->condition('fid', $rf->fid)->execute();
+        file_unmanaged_delete($file->uri);
+        $file->uri = $filename = $rf->uri;
+      }
+      elseif ($r2 === FALSE) {
+        // this file has no file usage entry
+        // and the file in the right place does. just get rid of this file
+        db_delete('file_managed')->condition('fid', $file->fid)->execute();
+        file_unmanaged_delete($file->uri);
+        $sandbox['progress']++;
+        continue;  // no file_usage, so we have no way of knowing of any nodes that need the filename replaced
+      }
+      elseif (($r2->id != $rf->id || $r2->type != $rf->type)) {
+        // this is probably a duplicate that is not safe to just delete
+        $file_move_type = FILE_EXISTS_RENAME;
+      }
+      else {
+        // these 2 files have the same file_usage entry
+        // one of them is valid, the other is not
+        $real = null;
+        $fake = null;
+        $dup = file_load($rf->fid);
+        $entity = entity_load($rf->type, array($rf->id));
+
+        // find the which file is real and which is fake, to be remove from the db
+        foreach ($entity[$rf->id] as $k => $f) {
+          if (!is_array($f) || !isset($f[LANGUAGE_NONE])) continue;
+
+          foreach ($f[LANGUAGE_NONE] as $item) {
+            if (isset($item['fid'])) {
+              if ($item['fid'] == $file->fid) {
+                $real = $file;
+                $fake = $dup;
+              }
+              elseif ($item['fid'] == $rf->fid) {
+                $real = $dup;
+                $fake = $file;
+              }
+            }
+            elseif (isset($item['format'])) {
+              $fids = array();
+              $matches = array();
+              $pattern = '|"fid":"([\d]+)"|';
+              if (preg_match_all($pattern, $item['value'], $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $m) {
+                  $fids[$m[1]] = $m[1];
+                }
+                if (isset($fids[$file->fid])) {
+                  $real = $file;
+                  $fake = $dup;
+                }
+                elseif (isset($fids[$dup->fid])) {
+                  $real = $dup;
+                  $fake = $file;
+                }
+              }
+              elseif (strpos($item['value'], file_uri_scheme($file->uri).'/'.file_uri_target($file->uri)) !== FALSE) {
+                $real = $file;
+                $fake = $dup;
+              }
+              elseif (strpos($item['value'], file_uri_scheme($dup->uri).'/'.file_uri_target($dup->uri)) !== FALSE) {
+                $real = $dup;
+                $fake = $file;
+              }
+              // this is a file link entered manually into the wysiwyg
+              // delete the one with the higher fid, and we'll rewrite the node body from there
+              else {
+                if ($file->fid > $dup->fid) {
+                  $real = $dup;
+                  $fake = $file;
+                }
+                else {
+                  $real = $file;
+                  $fake = $dup;
+                }
+              }
+            }
+          }
+        }
+
+        if (!is_null($fake)) {
+          file_delete($fake, TRUE);
+          entity_get_controller('file')->resetCache();
+          $file = $real;
+        }
+        else {
+          $sandbox['warnings'][] = t('Unable to find either @fid1 or @fid2 in @e_type @eid', array('@fid1' => $file->fid, '@fid2' => $dup->fid, '@e_type' => $rf->type, '@eid' => $rf->id));
+          error_log(t('Unable to find either @fid1 or @fid2 in @e_type @eid', array('@fid1' => $file->fid, '@fid2' => $dup->fid, '@e_type' => $rf->type, '@eid' => $rf->id)));
+          $sandbox['progress']++;
+          continue;
+        }
+      }
+    }
+    else {
+      // no match. A different file with the same name exists.
+      // Just rename it
+      $file_move_type = FILE_EXISTS_RENAME;
+    }
+    if ($to_save) {
+      file_save($file);
+    }
+
+    // if the file doesn't already exist
+    if ($file->uri != $filename) {
+      try {
+        $file = @file_move($file, $filename, $file_move_type);
+      }
+      catch (PDOException $e) {
+        error_log($e);
+        error_log(print_r($file,1));
+      }
+      if (!$file) {
+        $sandbox['warnings'][] = t('Could not move file @source (@fid) to @dest.', array('@source' => $row->uri, '@fid' => $row->fid, '@dest' => 'public://'.$row->value.'/files/'.$orig_filename.'.'.$pathinfo['extension']));
+        error_log(t('Could not move file @source (@fid) to @dest.', array('@source' => $row->uri, '@fid' => $row->fid, '@dest' => 'public://'.$row->value.'/files/'.$orig_filename.'.'.$pathinfo['extension'])));
+        $sandbox['progress']++;
+        continue;
+      }
+    }
+
+    // reset the cache to keep memory manageable
+    entity_get_controller('file')->resetCache();
+
+    // look for nodes that have the old file path in the body
+    $q = db_select('file_usage', 'fu')
+        ->fields('fu', array('id'))
+        ->fields('fdb', array('revision_id'))
+        ->condition('fid', $row->fid)
+        ->condition('type', 'node');
+        $q->join('field_data_body', 'fdb', 'fdb.entity_id = fu.id');
+        $q->leftJoin('biblio', 'b', 'b.nid = fu.id AND b.vid = fdb.revision_id');
+        $q->fields('fdb', array('bundle', 'body_value'))
+          ->fields('b', array('biblio_notes', 'biblio_abst_e', 'biblio_full_text'))
+          ->where('fdb.body_value != \'\' OR b.biblio_notes IS NOT NULL OR b.biblio_abst_e IS NOT NULL OR b.biblio_full_text != 0');
+    $nodes = $q->execute();
+
+    foreach ($nodes as $node) {
+      // get all these links
+      // they should be replaced by media tags
+      // but media tags aren't that good yet
+      // so just replace the path and add an attribute so we can find them easily later
+      if (strlen($node->body_value)) {
+        preg_match_all('|<a [^>]*href=\"([^\"]*'.$orig_filename.'[^\"]*)\"[^>]*>(.*)<\/a>|U', $node->body_value, $matches, PREG_SET_ORDER);
+        foreach ($matches as $m) {
+          // add the fid so we can find this easily later
+          $node->body_value = str_replace($m[1].'"', file_create_url($file->uri).'" data-fid="'.$file->fid.'"', $node->body_value);
+        }
+
+        db_update('field_data_body')
+          ->fields(array('body_value' => $node->body_value))
+          ->condition('entity_id', $node->id)
+          ->condition('revision_id', $node->revision_id)
+          ->execute();
+      }
+
+      $biblio_save = false;
+      if (isset($node->biblio_notes) && strlen($node->biblio_notes)) {
+        preg_match_all('|<a [^>]*href=\"([^\"]*'.$orig_filename.'[^\"]*)\"[^>]*>(.*)<\/a>|U', $node->biblio_notes, $matches, PREG_SET_ORDER);
+        foreach ($matches as $m) {
+          // add the fid so we can find this easily later
+          $node->biblio_notes = str_replace($m[1].'"', file_create_url($file->uri).'" data-fid="'.$file->fid.'"', $node->biblio_notes);
+          $biblio_save = true;
+        }
+      }
+
+      if (isset($node->biblio_abst_e) && strlen($node->biblio_abst_e)) {
+        preg_match_all('|<a [^>]*href=\"([^\"]*'.$orig_filename.'[^\"]*)\"[^>]*>(.*)<\/a>|U', $node->biblio_abst_e, $matches, PREG_SET_ORDER);
+        foreach ($matches as $m) {
+          // add the fid so we can find this easily later
+          $node->biblio_abst_e = str_replace($m[1].'"', file_create_url($file->uri).'" data-fid="'.$file->fid.'"', $node->biblio_abst_e);
+          $biblio_save = true;
+        }
+      }
+
+      if (isset($node->biblio_full_text) && strlen($node->biblio_full_text)) {
+        preg_match_all('|<a [^>]*href=\"([^\"]*'.$orig_filename.'[^\"]*)\"[^>]*>(.*)<\/a>|U', $node->biblio_full_text, $matches, PREG_SET_ORDER);
+        foreach ($matches as $m) {
+          // add the fid so we can find this easily later
+          $node->biblio_full_text = str_replace($m[1].'"', file_create_url($file->uri).'" data-fid="'.$file->fid.'"', $node->biblio_full_text);
+          $biblio_save = true;
+        }
+      }
+
+      if ($biblio_save) {
+        db_update('biblio')
+          ->fields(array(
+            'biblio_notes' => $node->biblio_notes,
+            'biblio_abst_e' => $node->biblio_abst_e,
+            'biblio_full_text' => $node->biblio_full_text,
+          ))
+          ->condition('nid', $node->id)
+          ->condition('vid', $node->revision_id)
+          ->execute();
+      }
+    }
+
+    //error_log('File '.$file->fid.' moved from '.$old_file->uri.' to '.$target_dir);
+    $sandbox['progress']++;
+  }
+
+  error_log(t('Processed @num of @max files. @percent% complete. Last processed: @last', array('@num' => $sandbox['progress'], '@max' => $sandbox['max'], '@last' => $row->fid, '@percent' => floor((($sandbox['progress']/$sandbox['max'])*100)))));
+
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress']/$sandbox['max']);
+  if ($sandbox['#finished'] >= 1) {
+    return t('Fixed @num files.<br>', array('@num' => $sandbox['progress'])). implode('<br>', $sandbox['warnings']);
+  }
+}
+
+/**
+ * Hide the OG audience field when editing the node.
+ */
+function os_files_update_7002() {
+  $entities = entity_get_info();
+
+  foreach ($entities as $entity => $info) {
+    foreach (array_keys($info['bundles']) as $bundle) {
+      $instance = field_info_instance($entity, OG_AUDIENCE_FIELD, $bundle);
+
+      if (!empty($instance)) {
+        $instance['settings']['behaviors']['prepopulate']['action_on_edit'] = TRUE;
+        field_update_instance($instance);
+      }
+    }
+  }
+}
+
+/**
+ * Sets up proper bundle handling for executable file type
+ */
+function os_files_update_7003(&$ctx) {
+  field_attach_create_bundle('file', 'executable');
+}
+
+/**
+ * Updates existing files to have the new file type if their mimetypes match
+ */
+function os_files_update_7004(&$sb) {
+
+  $q = db_select('file_managed', 'fm')
+    ->fields('fm', array('fid'))
+    ->condition('filemime', array(
+      'application/x-msdos-program',
+      'application/zip',
+      'application/octet-stream'));
+
+  if (!isset($sb['progress'])) {
+    $sb['count'] = $q->countQuery()->execute()->fetchField();
+    $sb['progress'] = 0;
+    $sb['limit'] = 50;
+    $sb['fixed'] = 0;
+    if ($sb['count'] == 0) {
+      $sb['#finished'] = 1;
+      return t('No files need correcting.');
+    }
+  }
+
+  $rs = $q->range($sb['progress'], $sb['limit'])->execute();
+  foreach ($rs as $r) {
+    $file = file_load($r->fid);
+    $type = file_get_type($file);
+    if ($type != $file->type) {
+      $file->type = $type;
+      file_save($file);
+      $sb['fixed']++;
+    }
+    $sb['progress']++;
+  }
+
+  $sb['#finished'] = $sb['progress']/$sb['count'];
+  if ($sb['#finished'] >= 1) {
+    return t('Set @num files to the executable type.', array('@num' => $sb['fixed']));
+  }
+}
+
+/**
+  * Remove file reference to file which no longer exists.
+  */
+function os_files_update_7005(&$sandbox) {
+  $file_fields = os_files_file_fields();
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    // Get the total amounts of nodes.
+    $query = new entityFieldQuery();
+    $sandbox['max'] = $query
+      ->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', '', '!=')
+      ->propertyCondition('type', 'NULL', '!=')
+      ->propertyOrderBy('nid')
+      ->count()
+      ->execute();
+  }
+
+  // Run through the nodes.
+  $nid = empty($sandbox['nid']) ? 0 : $sandbox['nid'];
+  $batch = 250;
+
+  $query = new entityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('nid', $nid, '>=')
+    ->propertyCondition('type', '', '!=')
+    ->propertyCondition('type', 'NULL', '!=')
+    ->propertyOrderBy('nid')
+    ->range(0, $batch)
+    ->execute();
+
+  $nodes = node_load_multiple(array_keys($result['node']));
+  foreach ($nodes as $node) {
+    $changed = FALSE;
+    $deleted_files = 0;
+    foreach ($file_fields as $file_field) {
+
+      if (empty($node->{$file_field}[LANGUAGE_NONE])) {
+        continue;
+      }
+
+      foreach ($node->{$file_field}[LANGUAGE_NONE] as $delta => $value) {
+        $file_info = @file_load($value['fid']);
+
+        if (empty($file_info)) {
+          unset($node->{$file_field}[LANGUAGE_NONE][$delta]);
+          $deleted_files++;
+          $changed = TRUE;
+        }
+      }
+    }
+
+    // The node has changed, saving him.
+    if ($changed) {
+      node_save($node);
+    }
+
+    $sandbox['progress']++;
+    $sandbox['nid'] = $node->nid;
+  }
+
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+
+  return t('Deleting references to no longer existed file has performed successfully.');
+}
+
+/**
+ * Enables colorbox inline so attached videos will display in colorbox.
+ */
+function os_files_update_7006(&$sandbox) {
+  variable_set('colorbox_inline', 1);
+}
+
+/**
+ * Reverts file types and file displays
+ */
+function os_files_update_7007(&$sandbox) {
+  ctools_include('export');
+  $types = ctools_export_crud_load_all('file_type');
+  foreach ($types as $t => $o) {
+    ctools_export_crud_delete('file_type', $t);
+  }
+
+  $displays = ctools_export_crud_load_all('file_display');
+  foreach ($displays as $t => $o) {
+    ctools_export_crud_delete('file_display', $t);
+  }
+
+  return t('File Types and Displays have been reverted.');
+}
+
+/**
+ * Runs through every file and fixes their spaces and file_usage information
+ */
+function os_files_update_7008(&$sb) {
+  module_load_include('inc', 'os_files', 'os_files.install_helpers');
+  $q = db_select('node', 'n')
+    ->fields('n', array('nid'));
+
+  if (!isset($sb['progress'])) {
+    $sb['count'] = $q->countQuery()->execute()->fetchField();
+    $sb['progress'] = 0;
+    $sb['limit'] = 20;
+    $sb['error'] = false;
+  }
+
+  $rs = $q->range($sb['progress'], $sb['limit'])->execute();
+
+  foreach ($rs as $obj) {
+    $nid = $obj->nid;
+    try {
+      $node = node_load($nid);
+
+      // Update file_usage
+      $eids = _os_files_install_find_files($node);
+      db_delete('file_usage')
+        ->condition('id', $nid)
+        ->condition('module', 'imagefield_crop', '<>')
+        ->condition('module', 'os_boxes', '<>')
+        ->condition('type', 'node')
+        ->execute();
+
+      foreach ($eids as $module => $ids) {
+        foreach ($ids as $id => $count) {
+          $file = file_load($id);
+          if ($file) {
+            file_usage_add($file, $module, 'node', $nid, $count);
+
+            // Update group membership if necessary
+            if (module_exists('vsite') && $space = _os_files_install_find_new_space($file, $node)) {
+              $file->{OG_AUDIENCE_FIELD}[LANGUAGE_NONE][0]['target_id'] = $space;
+              file_save($file);
+            }
+          }
+        }
+      }
+    }
+    catch (Exception $e) {
+      $sb['error'] = true;
+      error_log('Exception running updates: '.$e->getCode().' - '.$e->getMessage());
+    }
+    $sb['progress']++;
+  }
+
+  $sb['#finished'] = $sb['progress']/$sb['count'];
+  if ($sb['#finished'] >= 1) {
+    db_query('DELETE FROM {file_usage} WHERE type LIKE \'file\' AND module != \'imagefield_crop\'')->execute();
+    db_query('DELETE FROM {file_usage} WHERE type LIKE \'node\' AND id NOT IN (SELECT nid FROM node)')->execute();
+
+    $message = t('File usage has been corrected for all files');
+    if ($sb['error']) {
+      $message .= '<br />' . t('There was an error running this update. Please consult the error log for more information');
+    }
+
+    return $message;
+  }
+}
+
+/**
+ * Adds a generic description field to all file types
+ */
+function os_files_update_7009($sb) {
+  _os_files_update_add_description_field();
+}
+
+/**
+ * Adds a generic description field to all file types
+ */
+function _os_files_update_add_description_field() {
+  $entities = entity_get_info();
+
+  foreach ($entities['file']['bundles'] as $type => $info) {
+    os_files_add_fields($type);
+  }
+}
+
+/**
+ * Move values from Media Description to os_files_description
+ */
+function os_files_update_7010(&$sb) {
+
+  $q = db_select('field_data_media_description', 'mt')
+    ->fields('mt');
+
+  if (!isset($sb['progress'])) {
+    $sb['progress'] = 0;
+    $sb['total'] = $q->countQuery()->execute()->fetchField();
+    if ($sb['total'] == 0) {
+      return t('No data to move from Media description to OS Files Description.');
+    }
+    $sb['limit'] = 50;
+  }
+
+  $q = $q->range($sb['progress'], $sb['limit'])
+    ->execute();
+
+  foreach ($q as $r) {
+    $r->os_file_description_value = $r->media_description_value;
+    $r->os_file_description_format = $r->media_description_format;
+    drupal_write_record('field_data_os_file_description', $r);
+    $sb['progress']++;
+  }
+
+  $sb['#finished'] = $sb['progress']/$sb['total'];
+  if ($sb['#finished'] >= 1) {
+    return t('Moved data from Media description to OS Files Description.');
+  }
+}
+
+/**
+ * Migrates Media Title to filename for all files used in Image Galleries
+ */
+function os_files_update_7011(&$sb) {
+  $q = db_select('field_data_media_gallery_file', 'mgf')
+    ->fields('mgf', array('media_gallery_file_fid'));
+
+  if (!isset($sb['progress'])) {
+    $sb['progress'] = 0;
+    $sb['count'] = $q->countQuery()->execute()->fetchField();
+    if ($sb['count'] == 0) {
+      return t('No Media Titles to migrate.');
+    }
+    $sb['limit'] = 50;
+  }
+
+  $q = $q->range($sb['progress'], $sb['limit'])
+     ->execute();
+
+  foreach ($q as $r) {
+    $title = db_select('field_data_media_title', 'mt')
+      ->fields('mt', array('media_title_value'))
+      ->condition('entity_type', 'file')
+      ->condition('entity_id', $r->media_gallery_file_fid)
+      ->execute()
+      ->fetchField();
+
+    db_update('file_managed')
+      ->fields(array('filename' => $title))
+      ->condition('fid', $r->media_gallery_file_fid)
+      ->execute();
+
+    $sb['progress']++;
+  }
+
+  $sb['#finished'] = $sb['progress']/$sb['count'];
+  if ($sb['#finished'] >= 1) {
+    return t('Migrated Media Titles.');
+  }
+}
+
+/**
+ * Revert file types and file displays to defaults.
+ */
+function os_files_update_7012($sb) {
+  return os_files_update_7007($sb);
+}
+
+/**
+ * Replace usages of media_description with os_files_description
+ */
+function os_files_update_7013($sb) {
+  $info = entity_get_info('file');
+  foreach ($info['bundles'] as $b => $t) {
+    if ($b == 'undefined') {
+      continue;
+    }
+
+    $md = field_read_instance('file', 'media_description', $b);
+    $osd = field_read_instance('file', 'os_file_description', $b);
+
+    if ($md && $osd) {
+      $osd['display'] += $md['display'];
+      $md['display'] = array();
+  
+      field_update_instance($md);
+      field_update_instance($osd);
+    }
+  }
+}
+
+/**
+ * Remove Description field's character limit
+ */
+function os_files_update_7014($sb) {
+  // Using standard API functions doesn't work for some reason
+  // The changes just refused to take
+  // so I have to do it this way
+  $q = db_select('field_config', 'fc')
+     ->fields('fc')
+     ->condition('field_name', 'os_file_description')
+    ->execute();
+
+  foreach ($q as $r) {
+    $r->data = unserialize($r->data);
+    unset($r->data['settings']['max_length']);
+    drupal_write_record('field_config', $r, array('id'));
+  }
+}
+
+/**
+ * Change file description teaser length
+ */
+function os_files_update_7015() {
+  $entity_info = entity_get_info('file');
+  foreach ($entity_info['bundles'] as $bundle_name => $bundle) {
+    $instance_info = field_info_instance('file', 'os_file_description', $bundle_name);
+    $instance_info['display']['teaser']['settings']['trim_length'] = variable_get('os_files_teaser_length', 160);
+    field_update_instance($instance_info);
+  }
+}
+
+/**
+ * Remove erroneous desscription fields
+ */
+function os_files_update_7016() {
+  $info = entity_get_info('file');
+  $instances = field_info_instances('file');
+
+  $bad = array_diff_key($instances, $info['bundles']);
+
+  foreach ($bad as $k => $fields) {
+    foreach ($fields as $f => $def) {
+      field_delete_instance($def);
+    }
+  }
+}
+
+/**
+ * Add RTF files to Document file type.
+ * Added in OS3.15
+ */
+function os_files_update_7017() {
+  ctools_include('export');
+  $types = ctools_export_crud_load_all('file_type');
+  foreach ($types as $t => $o) {
+    ctools_export_crud_delete('file_type', $t);
+  }
+
+  return t('RTF files can now be uploaded to OpenScholar sites.');
+}
+
+/**
+ * Add various Microsoft Office template files to the Document file type
+ * Added in OS 3.17
+ */
+function os_files_update_7018() {
+  ctools_include('export');
+  $types = ctools_export_crud_load_all('file_type');
+  foreach ($types as $t => $o) {
+    ctools_export_crud_delete('file_type', $t);
+  }
+
+  return t('Microsoft Office template files can now be uploaded to OpenScholar sites.');
+
+}
+
+/**
+ * Add csv files to Document file type
+ * Added in 3.20
+ */
+function os_files_update_7019() {
+  ctools_include('export');
+  ctools_export_crud_delete('file_type', 'document');
+}
+
+/**
+ * Update files extensions and add the SAS to Document file types.
+ */
+function os_files_update_7020() {
+  $feature = array('field_instance');
+  $revert = array(
+    'os_biocv' => $feature,
+    'os_blog' => $feature,
+    'os_booklets' => $feature,
+    'os_classes' => $feature,
+    'os_events' => $feature,
+    'os_faq' => $feature,
+    'os_news' => $feature,
+    'os_pages' => $feature,
+    'os_presentations' => $feature,
+    'os_publications' => $feature,
+    'os_software' => $feature,
+  );
+  features_revert($revert);
+
+  ctools_include('export');
+  ctools_export_crud_delete('file_type', 'document');
+}
+
+/**
+ * Adds the Icon file type for *.ico files
+ */
+function os_files_update_7021() {
+  ctools_include('export');
+  $file_type = ctools_export_crud_load('file_type', 'icon');
+  ctools_export_crud_save('file_type', $file_type);
+  field_attach_create_bundle('file', 'icon'); // do this manually for reasons
+  ctools_export_crud_delete('file_type', 'image');
+
+  $count = db_update('file_managed')
+    ->condition('filemime', array(
+      'image/ico',
+      'application/ico',
+      'application/x-ico',
+      'image/vnd.microsoft.icon',
+    ))
+    ->fields(array(
+      'type' => 'icon'
+    ))
+    ->execute();
+
+  return t('Changed @n files to use the Icon bundle.');
+}
+
+/**
+ * Changes name of Description field to Image Caption for images.
+ */
+function os_files_update_7022() {
+  $instance = field_info_instance('file', 'os_file_description', 'image');
+  $instance['label'] = 'Image Caption';
+  field_update_instance($instance);
+  return t('Label for File Image Description field changed to Image Caption');
+}
+
+/**
+ * Adds .rar to Executable file type.
+ */
+function os_files_update_7023() {
+  ctools_include('export');
+  ctools_export_crud_delete('file_type', 'executable');
+}
+
+/**
+ * Adds new mimetypes to Icon file type.
+ */
+function os_files_update_7024() {
+  ctools_include('export');
+  ctools_export_crud_delete('file_type', 'icon');
+}
+
+/**
+ * Converts embedded media URLs with http.
+ */
+function os_files_update_7025() {
+  $results = db_query("SELECT f.entity_id, f.revision_id, f.field_html_code_value FROM field_data_field_html_code f WHERE field_html_code_value LIKE '%http://%'");
+  foreach ($results as $result) {
+    $output = str_replace('http://', '//', $result->field_html_code_value);
+    if (strcmp($output, $result->field_html_code_value) !== 0) {
+      db_update('field_data_field_html_code')
+        ->fields(array('field_html_code_value' => $output))
+        ->condition('entity_id', $result->entity_id, '=')
+        ->condition('revision_id', $result->revision_id, '=')
+        ->execute();
+    }
+  }
+}
+
+/**
+ * Flush image cache.
+ */
+function os_files_update_7026() {
+  image_style_flush(image_style_load('os_files_xxlarge'));
+}
+
+/**
+ * Ensure images have all the correct settings for their displays
+ */
+function os_files_update_7027() {
+  $types = file_type_get_all_types ();
+  foreach ($types as $bundle => $info) {
+    $osd = field_read_instance ('file', 'os_file_description', $bundle);
+    $osd['display'] = array (
+      'default' => array (
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array (),
+        'type' => 'text_default',
+        'weight' => 0,
+      ),
+      'media_gallery_block_thumbnail' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'media_gallery_detail' => array (
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array (),
+        'type' => 'text_default',
+        'weight' => 1,
+      ),
+      'media_gallery_lightbox' => array (
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array (),
+        'type' => 'text_default',
+        'weight' => 1,
+      ),
+      'media_gallery_thumbnail' => array (
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array (),
+        'type' => 'text_default',
+        'weight' => 1,
+      ),
+      'os_files_large' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_link' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_link_icon' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_med' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_small' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_thumbnail' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_title' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_xlarge' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'os_files_xxlarge' => array (
+        'label' => 'above',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'preview' => array (
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array (),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'teaser' => array (
+        'label' => 'hidden',
+        'module' => 'text',
+        'settings' => array (
+          'trim_length' => 160,
+        ),
+        'type' => 'text_summary_or_trimmed',
+        'weight' => 0,
+      ),
+    );
+
+    field_update_instance ($osd);
+  }
+}
+
+/**
+ * Increase file_managed uri and origname length to 1024.
+ */
+function os_files_update_7031() {
+  if (db_table_exists('file_managed') && db_field_exists('file_managed', 'uri')) {
+    $schema_uri = array(
+      'description' => 'The URI to access the file (either local or remote).',
+      'type' => 'varchar',
+      'length' => 1024,
+      'not null' => TRUE,
+      'default' => '',
+      'binary' => TRUE,
+    );
+    // Delete rows where uri is null.
+    db_delete('file_managed')
+      ->condition('uri', NULL, 'IS NULL')
+      ->execute();
+    db_drop_index('file_managed', 'uri');
+    db_change_field('file_managed', 'uri', 'uri', $schema_uri);
+    db_add_index('file_managed', 'uri', array('uri'));
+    drupal_set_message("Table file_managed uri length successfully modified to 1024.");
+  }
+  if (db_table_exists('file_managed') && db_field_exists('file_managed', 'origname')) {
+    $schema_origname = array(
+      'description' => 'Original name of the file.',
+      'type' => 'varchar',
+      'length' => 1024,
+      'not null' => TRUE,
+      'default' => '',
+    );
+    db_change_field('file_managed', 'origname', 'origname', $schema_origname);
+    drupal_set_message("Table file_managed origname length successfully modified to 1024.");
+  }
+}

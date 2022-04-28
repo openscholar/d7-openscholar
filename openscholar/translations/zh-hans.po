@@ -1,0 +1,98 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  openscholar.info: n/a
+#  openscholar.profile: n/a
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OpenScholar-7.x\n"
+"POT-Creation-Date: 2013-09-13 09:55-0400\n"
+"PO-Revision-Date: 2013-09-13 10:38-0500\n"
+"Last-Translator: \n"
+"Language-Team:  <support@openscholar.harvard.edu>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 1.5.7\n"
+"Language: en\n"
+
+#: openscholar.info:0
+msgid "OpenScholar"
+msgstr "OpenScholar"
+
+#: openscholar.info:0
+msgid ""
+"A full-featured site-creation package designed for the academic community. A "
+"single OpenScholar installation can host thousands of personal or project "
+"sites."
+msgstr ""
+"一个全功能的网站创建包，专为学术界设计。一次安装OpenScholar可以承载数以千计的"
+"个人、项目以及组织网站。"
+
+#: openscholar.profile:11
+msgid "Choose environment"
+msgstr "选择环境"
+
+#: openscholar.profile:17;100
+msgid "Installation type"
+msgstr "安装类型"
+
+#: openscholar.profile:24
+msgid "Install supplemental modules"
+msgstr "安装补充模块"
+
+#: openscholar.profile:31;185
+msgid "Importing content"
+msgstr "内容正在导入中"
+
+#: openscholar.profile:42
+msgid "Finished"
+msgstr "完成"
+
+#: openscholar.profile:51
+msgid "Production Deployment"
+msgstr "生产部署"
+
+#: openscholar.profile:52
+msgid "Development"
+msgstr "开发"
+
+#: openscholar.profile:56
+msgid "Select a flavor"
+msgstr "选择类型"
+
+#: openscholar.profile:64
+msgid "Add dummy content"
+msgstr "导入示例内容"
+
+#: openscholar.profile:65
+msgid "If checked, dummy content will be added to your openscholar site."
+msgstr "如果选中，示例内容将被添加到您的OpenScholar网站。"
+
+#: openscholar.profile:76
+msgid "Next"
+msgstr "继续"
+
+#: openscholar.profile:95
+msgid "Single site install"
+msgstr "一个网站"
+
+#: openscholar.profile:96
+msgid "Multi-tenant install"
+msgstr "多个网站（推荐）"
+
+#: openscholar.profile:108
+msgid "Submit"
+msgstr "提交"
+
+#: openscholar.profile:181
+msgid "Importing content."
+msgstr "内容正在导入中。"
+
+#: openscholar.profile:196
+msgid "Importing @class"
+msgstr "@class正在导入中"

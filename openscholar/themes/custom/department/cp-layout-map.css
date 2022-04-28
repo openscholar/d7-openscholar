@@ -1,0 +1,99 @@
+#scholarlayout-container .scholarlayout-widgets-list {
+  width: 202px;
+  height: 121px;
+  top: 0;
+  left: 0;
+  }
+
+#scholarlayout-container #scholarlayout-header-main,
+#scholarlayout-container #scholarlayout-content-main {
+  width: 428px;
+  left: 209px;
+  }
+
+#scholarlayout-container #scholarlayout-header-right,
+#scholarlayout-container #scholarlayout-right {
+  left: auto;
+  right: 0;
+  }
+
+.front#scholarlayout-container #scholarlayout-left,
+.front#scholarlayout-container #scholarlayout-right {
+ display: none;
+  }
+
+#scholarlayout-container #scholarlayout-content-main{
+  top: 170px;
+  height: 344px;
+}
+
+#scholarlayout-container #scholarlayout-navbar,
+#scholarlayout-container #scholarlayout-footer {
+  width: 846px;
+  height:36px;
+  top: 128px;
+  }
+
+ #scholarlayout-container #scholarlayout-footer {
+  bottom: 0;
+  top: auto;
+  left: 0;
+  }
+
+/*
+ * do not display these blocks when not on the front
+ */  
+#scholarlayout-container #scholarlayout-content-top,
+#scholarlayout-container #scholarlayout-content-bottom,
+#scholarlayout-container #scholarlayout-content-left,
+#scholarlayout-container #scholarlayout-content-right{
+  display: none;
+  }
+  
+/*
+ * Front page only in layout
+ */
+.front #scholarlayout-container #scholarlayout-content-main{
+  display: none;
+  }
+
+.front#scholarlayout-container #scholarlayout-content-left,
+.front#scholarlayout-container #scholarlayout-content-right,
+.front#scholarlayout-container #scholarlayout-content-bottom {
+	display: block;
+  top: 253px;
+  height: 262px;
+  width: 277px;  
+  }
+  
+.front#scholarlayout-container #scholarlayout-content-left{
+  left: 0;
+  }
+  
+.front#scholarlayout-container #scholarlayout-content-right{
+  left: 285px;
+  }
+
+.front#scholarlayout-container #scholarlayout-content-top{
+	display: block;
+  width: 845px;
+  left: 0;
+  }
+  
+
+.front#scholarlayout-container #scholarlayout-content-bottom {
+	display: block;
+
+  left: 0;
+  }
+
+.front#scholarlayout-container #scholarlayout-content-top{
+  top: 170px;
+  height: 76px;
+  }
+  
+.front#scholarlayout-container.front #scholarlayout-content-bottom{
+ top: 253px;
+  height: 262px;
+   left: 568px;
+  }  

@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css?family=Josefin+Sans:400,400i,700');
+
+.not-front .field-name-body,
+#content-column p,
+.cke_editable *,
+#content-column li,
+body *,
+#content-column li,
+.region-header-third ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#menu-bar ul a,
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu .menuparent a,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.page-search #content-column p,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.view-os-events .views-field-colorbox,
+.field-name-body h2,
+.field-name-body h3,
+.field-name-body h4 {
+	font-family: 'Josefin Sans', Helvetica, sans-serif;
+}
+.node-type-person #content-column .node-person h1.node-title,
+.block-title,h1#page-title {
+	text-transform:uppercase;
+}
+
+
+.ui-widget-content a,
+.region-header-third ul.nice-menu a,
+a,
+a:visited {
+	color: #0479a8;
+}
+.breadcrumb span,
+#footer a,
+.node-type-page .breadcrumb, .breadcrumb, .breadcrumb a  {
+	color: #fff;
+}
+
+
+a.rslides_nav {
+    background-color: #0479a8;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+	background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat scroll 2px -441px #0479a8;
+}
+#layout_16_9_side .slide {
+background: #c5050c;
+	background: -moz-linear-gradient(top, #c5050c 0%, #ab1616 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #c5050c), color-stop(100%, #ab1616));
+	background: -webkit-linear-gradient(top, #c5050c 0%, #ab1616 100%);
+	background: -o-linear-gradient(top, #c5050c 0%, #ad1616 100%);
+	background: -ms-linear-gradient(top, #c5050c 0%, #ad1616 100%);
+	background: linear-gradient(to bottom, #c5050c 0%, #ab1616 100%);
+	filter: progid: DXImageTransform.Microsoft.gradient(startColorstr='#c5050c', endColorstr='#ab1616', GradientType=0);
+}
+.branding-left {
+  
+margin: -3px 0 0 -28px;
+   
+}
+.not-front #columns {
+  
+    background-image: url(../images/standard-body-gradient.png?s1234);
+  
+  
+}
+.more-link:after {
+ 
+    background-image: none;
+ 
+}

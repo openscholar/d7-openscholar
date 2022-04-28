@@ -1,0 +1,7 @@
+name        = Black and Grey
+description = Black and Grey version of the aglet theme
+screenshot = screenshot.png
+
+css[]   = black_grey.css
+conditional-stylesheets[if lte IE 7][all][]  = black_grey-ie.css
+

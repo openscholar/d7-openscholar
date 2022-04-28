@@ -1,0 +1,40 @@
+<?php
+
+function restful_messages_library() {
+  $libs = array();
+
+  $libs['messages'] = array(
+    'title' => 'Restful Messages',
+    'version' => '1.0',
+    'js' => array(
+      drupal_get_path('module', 'restful_messages') . '/messages.module.js' => array()
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+    )
+  );
+
+  return $libs;
+}
+
+function restful_messages_page_build(&$page) {
+  if (user_is_logged_in()) {
+    os_common_angular_apps('Messages');
+    drupal_add_library('restful_messages', 'messages');
+    $page['page_bottom']['messages'] = array(
+      '#markup' => '<div id="messages" ng-controller="messageController" ng-if="messages">
+  <div class="close-button" ng-click="close()"></div>
+  <div class="error" ng-if="messages.errors.length">
+    <ul>
+        <li ng-repeat="m in messages.errors">{{m}}</li>
+    </ul>
+  </div>
+  <div class="status" ng-if="messages.status.length">
+    <ul>
+        <li ng-repeat="m in messages.status">{{m}}</li>
+    </ul>
+  </div>
+</div>',
+    );
+  }
+}

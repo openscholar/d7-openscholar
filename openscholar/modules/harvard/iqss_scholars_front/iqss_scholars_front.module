@@ -1,0 +1,110 @@
+<?php
+include_once('iqss_scholars_front.features.inc');
+
+/**
+ * implementation of hook_context_default_contexts_alter
+ */
+function iqss_scholars_front_context_default_contexts_alter(&$contexts){
+  // add some extra blocks/boxes to the 'sitewide_front'
+  if (isset($contexts['os_sitewide_front'])) {
+    $fp_blocks = &$contexts['os_sitewide_front']->reactions['block']['blocks'];
+
+    $fp_blocks['boxes-iqss_scholars_fp_headertext'] = array(
+        'module' => 'boxes',
+        'delta' => 'iqss_scholars_fp_headertext',
+        'weight' => 10,
+        'region' => 'header_second',
+    );
+
+    $fp_blocks['boxes-iqss_scholars_fp_infoblock'] = array(
+        'module' => 'boxes',
+        'delta' => 'iqss_scholars_fp_infoblock',
+        'weight' => 10,
+        'region' => 'content_top',
+    );
+
+    $fp_blocks['boxes-iqss_scholars_fp_logoblock'] = array(
+        'module' => 'boxes',
+        'delta' => 'iqss_scholars_fp_logoblock',
+        'weight' => 10,
+        'region' => 'header_first',
+    );
+
+    $fp_blocks['boxes-iqss_scholars_fp_learnmore'] = array(
+        'module' => 'boxes',
+        'delta' => 'iqss_scholars_fp_learnmore',
+        'weight' => 100,
+        'region' => 'sidebar_second',
+    );
+	
+	$fp_blocks['boxes-iqss_scholars_fp_hwp_option'] = array(
+        'module' => 'boxes',
+        'delta' => 'iqss_scholars_fp_hwp_option',
+        'weight' => 102,
+        'region' => 'sidebar_second',
+    );
+
+    $fp_blocks['boxes-iqss_scholars_fp_stats'] = array(
+        'module' => 'os_stats',
+        'delta' => 'os_stats',
+        'weight' => 10,
+        'region' => 'footer',
+    );
+
+    $fp_blocks['boxes-iqss_scholars_fp_copyright'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_scholars_fp_copyright',
+      'weight' => 100,
+      'region' => 'branding_footer',
+    );
+
+    $fp_blocks['boxes-iqss_scholars_learnmore_toggle'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_scholars_learnmore_toggle',
+      'weight' => -40,
+      'region' => 'footer',
+    );
+
+    $fp_blocks['views-os_websites-block'] = array(
+      'module' => 'views',
+      'delta' => 'os_websites-block',
+      'region' => 'content_bottom',
+      'weight' => '-9',
+    );
+    $fp_blocks['views-os_activity-block_1'] = array(
+      'module' => 'views',
+      'delta' => 'os_activity-block_1',
+      'region' => 'footer',
+      'weight' => '-30',
+    );
+
+  }
+
+  // Add extra boxes to the os_sitewide context
+  if (isset($contexts['os_sitewide'])) {
+    $fp_blocks = &$contexts['os_sitewide']->reactions['block']['blocks'];
+
+    $fp_blocks['boxes-iqss_scholars_fixed_header'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_scholars_fixed_header',
+      'region' => 'header_top',
+      'weight' => '-10',
+    );
+  }
+}
+
+/**
+ * Implements hook_os_widget_alter().
+ */
+function iqss_scholars_front_os_widget_alter(&$widget) {
+  //Keep the default box instances that this module provides from getting used sitewide
+  if($widget['module'] == 'boxes' && function_exists('iqss_scholars_front_default_box')){
+    static $fp_boxes;
+    //Front Page Boxes
+    if(!isset($fp_boxes)) $fp_boxes =  iqss_scholars_front_default_box();
+
+		if(isset($fp_boxes[$widget['delta']])){
+		  $widget['hidden'] = true;
+		}
+  }
+}

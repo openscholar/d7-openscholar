@@ -1,0 +1,5 @@
+name = Sage - Arial Font Treatment
+description = A Sage Version of the scholor-theme-03 theme without page titles and arial/larger font treatment
+screenshot = screenshot.png
+
+css[] = sage_type_treat.css

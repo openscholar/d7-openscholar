@@ -1,0 +1,22 @@
+diff --git a/modules/CiteProc/CSL.inc b/modules/CiteProc/CSL.inc
+index e46836c..09f552a 100644
+--- a/modules/CiteProc/CSL.inc
++++ b/modules/CiteProc/CSL.inc
+@@ -1105,7 +1105,6 @@ class csl_text extends csl_format {
+ 
+   function render($data = NULL, $mode = NULL) {
+     $text = '';
+-
+     switch ($this->source) {
+       case 'variable':
+         if (!isset($data->{$this->variable}) || empty($data->{$this->variable})) return;
+@@ -1176,7 +1175,8 @@ class csl_label extends csl_format {
+     }
+     if (empty($text)) {
+     foreach ($variables as $variable) {
+-      if (($term = $this->citeproc->get_locale('term', $variable, $form, $plural))) {
++      $t = (array)$data;
++      if (isset($t[$this->citeproc->map_field($variable)]) && ($term = $this->citeproc->get_locale('term', $variable, $form, $plural))) {
+         $text = $term;
+         break;
+       }

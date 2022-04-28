@@ -1,0 +1,6 @@
+name = Golden Accents
+description = A gold accents version of the Vibrant theme
+screenshot = screenshot.png
+
+css[] = golden_accents.css
+css[] = responsive.golden_accents.css

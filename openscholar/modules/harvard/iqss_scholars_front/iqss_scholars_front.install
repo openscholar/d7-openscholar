@@ -1,0 +1,283 @@
+<?php
+/**
+ * Implements hook_install().
+ * Set the default theme to the scholars_harvard theme.
+ */
+function iqss_scholars_front_install() {
+  // Set the default theme.
+  variable_set('theme_default','scholars_harvard');
+  if(module_exists('mollom')) {
+    // Install the mollom forms.
+    iqss_scholars_front_init_mollom_forms();
+  }
+}
+
+/**
+ * Insert the forms we want to protect into the Mollom_forms table.
+ */
+function iqss_scholars_front_update_7001(&$sandbox){
+  if(module_exists('mollom')) {
+    // Init mollom forms.
+    $res = iqss_scholars_front_init_mollom_forms();
+    return t('Forms successfully inserted into Mollom table.');
+  }
+}
+
+/**
+ * Repair files lost during migrate
+ */
+function iqss_scholars_front_update_7002(&$sandbox) {
+  $files = _iqss_scholars_front_fix_files();
+  return t('Updated @num files.', array('@num'=>$files));
+}
+
+/**
+ * Enable the os_pinserver_auth module.
+ */
+function iqss_scholars_front_update_7003(&$sandbox) {
+  module_enable(array('os_pinserver_auth'));
+
+  //Pinserver should take over registration
+  variable_set('os_pinserver_registration', TRUE);
+}
+
+/**
+ * Revert boxes
+ */
+function iqss_scholars_front_update_7004() {
+  features_revert(array('iqss_scholars_front' => array('box')));
+}
+
+/**
+ * Init mollom to protect the following forms.
+ */
+function iqss_scholars_front_init_mollom_forms(){
+
+  $fields =  '(form_id,entity,bundle,mode,checks,discard,moderation,enabled_fields,strictness,module)';
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_biblio_form',':entity'=>'comment',':bundle'=>'comment_node_biblio',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_bio_form',':entity'=>'comment',':bundle'=>'comment_node_bio',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_blog_form',':entity'=>'comment',':bundle'=>'comment_node_blog',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_book_form',':entity'=>'comment',':bundle'=>'comment_node_book',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_class_form',':entity'=>'comment',':bundle'=>'comment_node_class',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_class_material_form',':entity'=>'comment',':bundle'=>'comment_node_class_material',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_cv_form',':entity'=>'comment',':bundle'=>'comment_node_cv',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_department_form',':entity'=>'comment',':bundle'=>'comment_node_department',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_event_form',':entity'=>'comment',':bundle'=>'comment_node_event',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_feed_form',':entity'=>'comment',':bundle'=>'comment_node_feed',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_link_form',':entity'=>'comment',':bundle'=>'comment_node_link',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_media_gallery_form',':entity'=>'comment',':bundle'=>'comment_node_media_gallery',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_news_form',':entity'=>'comment',':bundle'=>'comment_node_news',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_page_form',':entity'=>'comment',':bundle'=>'comment_node_page',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_personal_form',':entity'=>'comment',':bundle'=>'comment_node_personal',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_person_form',':entity'=>'comment',':bundle'=>'comment_node_person',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_presentation_form',':entity'=>'comment',':bundle'=>'comment_node_presentation',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_project_form',':entity'=>'comment',':bundle'=>'comment_node_project',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_software_project_form',':entity'=>'comment',':bundle'=>'comment_node_software_project',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_software_release_form',':entity'=>'comment',':bundle'=>'comment_node_software_release',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'contact_personal_form',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:7:"message";}',':strictness'=>'normal',':module'=>'contact'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'contact_site_form',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:7:"message";}',':strictness'=>'normal',':module'=>'contact'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'user_pass',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:0:{}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:0:{}',':strictness'=>'normal',':module'=>'user'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'user_register_form',':entity'=>'user',':bundle'=>'user',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:31:"field_first_name][und][0][value";i:1;s:30:"field_last_name][und][0][value";}',':strictness'=>'normal',':module'=>'user'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'vsite_contact_mail_owner',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:0:{}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:0:{}',':strictness'=>'normal',':module'=>'vsite'));
+
+  $res[] = array(
+    'success' => true,
+    'query' => 'Installed mollom forms',
+  );
+
+  return $res;
+}
+
+
+//emergency file fix.  put this in update hook when ready to run for reals
+function _iqss_scholars_front_fix_files() {
+  $os_migrate_database =  variable_get('os_migrate_database', '');
+  $options['target'] = $os_migrate_database;
+  $db = Database::getConnection($options['target'], $os_migrate_database);
+  $basedir = variable_get('os_migrate_files', FALSE) . '/';
+  $finished = variable_get('os_file_fix_finished', 0);
+  $error_fids = variable_get('os_file_fix_errors', array());
+
+  //missing files
+  $query = $db->select('upload', 'u')
+  ->condition('list', 0)
+  ->fields('u', array('nid','fid'))
+  ->orderBy('fid')
+  ;//->range($finished, 20000);
+
+  //paths to files
+  $query->join('files', 'f', 'u.fid = f.fid');
+  $query->fields('f', array('filepath','filename'));
+
+  //any aliases they may have been given
+  $query->join('url_alias', 'ua', 'ua.src = CONCAT(:path,u.fid)', array(':path' => 'filefield_paths/alias/'));
+  $query->fields('ua', array('dst)'));
+
+  //and the vsite they reside in
+  $query->join('og_ancestry', 'oga', 'u.nid = oga.nid');
+  $query->join('purl', 'purl', 'purl.id = oga.group_nid');
+  $query->condition('purl.provider', 'spaces_og');
+  $query->addField('purl', 'value', 'vsite');
+  $query->addField('oga', 'group_nid', 'vsite_id');
+
+  //get uid.  only use current revision
+  $query->join('node', 'n', 'n.vid = u.vid');
+  $query->fields('n', array('uid'));
+  //$query->condition('n.vid', 'u.vid');
+
+  $result = $query->execute();
+  while ($file = $result->fetchObject()) {
+    //get paths to source file and destination file
+    $filepath = "$basedir/$file->filepath";
+    $destpath = '';
+    $dest_split = explode('/', $file->filepath);
+    while ($fragment = array_pop($dest_split)) {
+      if ($fragment == 'files' || $fragment == $file->vsite) {
+        break;
+      } else {
+        $destpath = '/' . $fragment. $destpath;
+      }
+    }
+    $destpath = $file->vsite . '/files' . $destpath;
+
+
+    //prepare destination path
+    $destdir = 'public://' . dirname($destpath);
+    file_prepare_directory($destdir, FILE_CREATE_DIRECTORY);
+
+    //copy file
+
+    $fh = fopen($filepath, 'r');
+    if (is_readable($filepath) && ($saved = file_save_data($fh, 'public://' . $destpath))) {
+      //print 'saved: ' . $filepath . "\n";
+      file_usage_add($saved, 'file', 'node', $file->nid);
+
+      //add uid
+      $saved->uid = $file->uid;
+      file_save($saved);
+
+      //add group nid
+      $entity = entity_metadata_wrapper('file', $saved);
+      $entity->og_group_ref = array($file->vsite_id);
+      $entity->save();
+
+      //update nodes with this file's path in them
+      _iqss_scholars_front_update_paths_in_node($file, $saved);
+    } else {
+      $error_fids[] = $file->fid;
+      print 'Error on ' . $filepath . ' ';
+      if (isset($saved) && $saved === FALSE) {
+        print 'Could not save file.\n';
+      } else {
+        print 'File not found.\n';
+      }
+    }
+    fclose($fh);
+    $finished++;
+  }
+
+  variable_set('os_file_fix_finished', $finished);
+  variable_set('os_file_fix_errors', $error_fids);
+
+  return $finished;
+}
+
+function _iqss_scholars_front_update_paths_in_node($info, $savedfile) {
+  $node_body = db_select('field_data_body', 'fdb')
+  ->condition('entity_type', 'node')
+  ->condition('entity_id', $info->nid)
+  ->fields('fdb')
+  ->execute();
+
+  if ($node_body->rowCount() == 0) {
+    //print 'unexpected number of node bodies.  investigate: ' . $info->nid;
+    print t('No rows found for @nid.  Orphaned files.', array('@nid'=>$info->nid)) . "\n";
+    return FALSE;
+  }
+  //trim public, vsite name from new path.  those should be automatic.
+
+  $newpath = str_replace('public://', '', $savedfile->uri);
+  $full_path = '/'.$newpath;
+  if (strpos($newpath, $info->vsite) === 0) {
+    $newpath = str_replace($info->vsite, '', $newpath);
+  }
+  $newpath = ltrim($newpath, '/');
+  //$newpath = file_create_url($savedfile->uri);
+
+  //<a href="http://gking.harvard.edu/files/smooth/appendixe.pdf">
+  //possible matches:
+  // filefieldpath dst
+  // filefieldpath dst without vsite prefix ... view-source:http://gking.harvard.edu/judgeit/inst/doc/judgeit.pdf / gking/judgeit/inst/doc/judgeit.pdf
+  // filepath
+  // filepath (minus huge prefix)
+  // filepath (minus huge prefix and vsite)
+  // same for scholar (as opposed to scholar.iq)
+  $candidates = array();
+
+
+  $candidates[] = $info->dst;
+  $candidates[] = str_replace($info->vsite.'/', '', $info->dst);
+  $candidates[] = $info->filepath;
+  $filepath = str_replace('sites/scholar.iq.harvard.edu/files/', '', $info->filepath);
+  $candidates[] = $filepath;
+  $candidates[] = str_replace($info->vsite.'/', '', $filepath);
+  $filepath = str_replace('sites/scholar.harvard.edu/files/', '', $info->filepath);
+  $candidates[] = $filepath;
+  $candidates[] = str_replace($info->vsite.'/', '', $filepath);
+
+  # filename, ../filename, files/filename
+  $candidates[] = 'files/'.$info->filename;
+  $candidates[] = $info->filename;
+
+    //gking has some href="../file.pdf"
+    //replace these candidates with entire file path, not just fragment
+  $file = array_pop(explode('/', $info->dst));
+  $full_candidates = array();
+  $full_candidates[] = '../' . $file;
+  $full_candidates[] = '../'.$info->filename;
+
+  $candidates = array_unique($candidates);
+
+  while ($row = $node_body->fetchObject()) {
+    $newbody = $row->body_value;
+    $replaced = false;
+
+    //replace entire string (just ../filenames) with entire path.
+    foreach($full_candidates as $oldpath) {
+    	if (stripos($newbody, ltrim($oldpath, '/')) !== FALSE) {
+	      $newbody = str_ireplace(ltrim($oldpath, '/'), $full_path, $newbody);
+	      $replaced = true;
+      	break;
+    	}
+    }
+
+    //replace partial with partial
+    if (!$replaced) {
+	    foreach($candidates as $oldpath) {
+	    	if (stripos($newbody, ltrim($oldpath, '/')) !== FALSE) {
+		      $newbody = str_ireplace(ltrim($oldpath, '/'), $newpath, $newbody);
+		      $replaced = true;
+	      	break;
+	    	}
+	    }
+    }
+
+    //only update when changes took place
+    if ($replaced) {
+      $update = db_update('field_data_body');
+
+      //add a condition for each field from original row
+      foreach ($row as $field => $value) {
+        if ($field != 'body_value') {
+          $update->condition($field, $value);
+        }
+      }
+      $update->fields(array('body_value' => $newbody));
+      $exec = $update->execute();
+    } else {
+      print t('Could not find @path on @node.  Tried: @arr', array('@path' => $newpath, '@node' => $info->nid, '@arr' => implode(', ', $candidates))) . "\n\n";
+    }
+  }
+}
+
+

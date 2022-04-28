@@ -1,0 +1,5 @@
+name = Orange
+description = Orange version of the clean blue theme
+screenshot = screenshot.png
+
+css[] = orange.css

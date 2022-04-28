@@ -1,0 +1,150 @@
+@import url(https://fonts.googleapis.com/css?family=Montserrat);
+@import url(https://fonts.googleapis.com/css?family=Cardo);
+/*
+All Nav: Montserrat
+All Body Copy: Cardo
+*/
+
+body {
+   
+    font-size: 15px;
+}
+#page {
+    background: #f9f9f9;
+    
+}
+h1#page-title {
+    line-height: 1.3;
+}
+#columns a,
+#columns a:visited {
+    color: #222;
+    text-decoration: underline !important;
+}
+a.os-swipe-large,
+a.os-swipe-small {
+    background-color: #222;
+    text-decoration: none !important;
+}
+
+#columns .slide-copy a,
+#columns .block-boxes-os_taxonomy_fbt a,
+#columns .section-nav a:link,
+#columns .section-nav a:visited {
+    text-decoration: none !important;
+}
+body,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+.boxes-box-content h2,
+.section-nav a,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+.block-boxes-os_taxonomy_fbt.navigation,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation,
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2,
+h2.block-title,
+.region-header-third ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#menu-bar ul.nice-menu a,
+.cke_editable * {
+    font-family: 'Cardo', sans-serif, Georgia, serif !important;
+}
+#footer ul.menu a,
+#footer ul.menu li ul li a,
+.block-boxes-os_taxonomy_fbt a,
+.section-nav a:link,
+.section-nav a:visited,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a {
+    font-family: 'Montserrat', helvetica !important;
+}
+#menu-bar,
+#header,
+.region-header-third ul.nice-menu a {
+    color: #FFF;
+}
+#menu-bar,
+#header,
+#menu-bar ul.nice-menu ul {
+    background: #444;
+}
+#menu-bar ul.nice-menu .menuparent a:before {
+    background-position: 0 -566px;
+    /* White Arrow */
+}
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background-color: #343434;
+}
+.section-nav .menu-depth-1 > a {
+    background: #1ebfb3 !important;
+}
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a {
+    background-color: #ccc !important;
+}
+.sidebar .block,
+.front #content-column .block,
+#content-column .block.block-boxes-os_boxes_columns .block,
+.node-person .block-inner,
+.comment-wrapper {
+    border-top: 3px solid #1ebfb3;
+}
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a {
+    color: #FFF;
+    text-decoration: none;
+}
+a.rslides_nav {
+    background-color: #75c5bc;
+}
+#footer {
+    background: #FFF;
+    border-top: 3px solid #75c5bc;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    background: url('/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png') no-repeat 2px -441px #1ebfb3;
+    height: 34px;
+}
+#columns .accordion ul.nice-menu li,
+#columns .os-custom-menu ul.nice-menu li,
+#columns #block-os-primary-menu ul.nice-menu li,
+#columns #block-os-secondary-menu ul.nice-menu li,
+#columns .os-custom-menu ul.menu li,
+#columns #block-os-primary-menu ul.menu li,
+#columns #block-os-secondary-menu ul.menu li {
+    background-color: #FFF !important;
+}
+#columns .accordion ul.nice-menu li a,
+#columns .os-custom-menu ul.nice-menu li a,
+#columns #block-os-primary-menu ul.nice-menu li a,
+#columns #block-os-secondary-menu ul.nice-menu li a,
+#columns .os-custom-menu ul.menu li a,
+#columns #block-os-primary-menu ul.menu li a,
+#columns #block-os-secondary-menu ul.menu li a {
+    border-bottom: 1px solid #ebe3df !important;
+    font-family: 'Montserrat', helvetica !important;
+}
+.event-start .event-start {
+    background-image: none;
+    background-color: #fff;
+    border-top: 3px solid #ccc;
+   }

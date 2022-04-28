@@ -1,0 +1,11 @@
+name = OpenScholar: Mailchimp
+description = Subscribes users to Mailchimp mailing lists.
+core = 7.x
+package = OpenScholar
+version = 7.x-beta1
+dependencies[] = boxes
+features[box][] = os_box_mailchimp
+features[ctools][] = boxes:box:1
+features[features_api][] = api:2
+files[] = plugins/os_mailchimp_box.inc
+files[] = MCAPI.class.php

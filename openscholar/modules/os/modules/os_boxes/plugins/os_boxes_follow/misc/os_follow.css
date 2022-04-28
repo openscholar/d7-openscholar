@@ -1,0 +1,64 @@
+.follow-icon {
+	background-image: url('follow_icons.png');
+	width: 38px;
+	height: 38px;
+	text-indent: -999em;
+	display: inline-block;
+	padding: 0;
+}
+
+.follow-me-links li {
+	display: inline-block;
+}
+
+.follow-me-links-vertical li {
+	display: block;
+	padding: 3px;
+}
+
+.block-boxes-os_boxes_follow .item-list ul li {
+  height: 38px;
+  line-height: 38px;
+}
+
+.service-name-span {
+	vertical-align: middle;
+	padding-left: 5px;
+}
+
+.form-item-link-to-add .add_new {
+	padding: 6px 11px;
+	border: 1px outset gray;
+	background-color: lightgray;
+}
+
+/* WHEN PLACED IN A HEADER REGION */
+#header-container .block-boxes-os_boxes_follow .item-list ul li {
+  display: inline;
+}
+
+#header-container .follow-icon {
+	text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+#header-container .service-name-span {
+  margin-right: 10px; /* LTR */
+}
+
+#header-container ul li:last-child .service-name-span {
+  margin-right: 0; /* LTR */
+}
+
+.rss-feed-icon {
+  margin-left: 5px; /* LTR */
+}
+
+.rss-follow-icon {
+  display: inline-block;
+  height: 28px;
+  width: 24px;
+  vertical-align: middle;
+}

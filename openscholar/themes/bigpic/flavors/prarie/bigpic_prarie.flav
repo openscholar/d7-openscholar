@@ -1,0 +1,5 @@
+name = Prarie
+description = A version of the Big Pic theme featuring prarie scene
+screenshot = screenshot.png
+
+css[] = prarie.css

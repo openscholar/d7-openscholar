@@ -1,0 +1,708 @@
+<?php
+/**
+ * @file
+ * Code for the OS Slideshow feature.
+ */
+
+include_once 'os_slideshow.features.inc';
+
+/**
+ * Implements hook_boxes_plugins().
+ */
+function os_slideshow_boxes_plugins() {
+  $info = array();
+  $path = drupal_get_path('module', 'os_slideshow') . '/plugins';
+
+  $info['os_slideshow_box'] = array(
+    'title' => 'Slideshow',
+    'description' => 'Slideshow',
+    'tags' => array('Media'),
+    'handler' => array(
+      'class' => 'os_slideshow_box',
+      'file' => 'os_slideshow_box.inc',
+      'path' => $path,
+      'parent' => 'os_boxes_default'
+    )
+  );
+
+  return $info;
+}
+
+/**
+ * Implelements hook_boxes_plugins_alter
+ *
+ * Removes deprecated gallery slideshow from the new widgets list
+ */
+function os_slideshow_boxes_plugins_alter(&$plugins) {
+  $plugins['os_boxes_slideshow']['factory'] = false;
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_slideshow_vsite_og_node_type_info() {
+  return array('slideshow_slide' => 'group content');
+}
+
+/**
+ * Implements hook_library().
+ *
+ * @author minorOffense <mwinstone@coldfrontlabs.ca>
+ */
+function os_slideshow_library() {
+  $libraries['flexslider'] = array(
+    'title' => 'FlexSlider',
+    'website' => 'http://flex.madebymufffin.com/',
+    'version' => '1.8',
+    'js' => array(libraries_get_path('flexslider') . '/jquery.flexslider-min.js' => array(),),
+    //'css' => array(libraries_get_path('flexslider') . '/flexslider.css' => array('type' => 'file','media' => 'screen')),
+  );
+
+  $libraries['responsiveslides'] = array(
+    'title' => 'ResponsiveSlides.js',
+    'website' => 'https://github.com/viljamis/ResponsiveSlides.js',
+    'version' => '1.53',
+    // Not original version. patched by HappyCog!
+    'js' => array(libraries_get_path('responsiveslides') . '/responsiveslides.js' => array(),),
+    //'css' => array(libraries_get_path('responsiveslides') . '/responsiveslides.css' => array('type' => 'file','media' => 'screen')),
+  );
+  return $libraries;
+}
+
+/**
+ * Implements hook_form_FORMID_alter
+ *
+ * Attaches widget delta to form so it'll be available during node save
+ */
+function os_slideshow_form_slideshow_slide_node_form_alter(&$form, &$state, $form_id) {
+
+  $form['field_image']['#suffix'] = t('Images must meet the minimum size requirements defined below. Unintended crop results are likely caused by undersized images.
+    Minimum image size requirements:<br>
+    <ul>
+      <li>Wide slideshow style = 985px x 335px
+      <li>Standard slideshow styles = 985px x 555px
+    </ul>
+    <i>(acceptable file formats: png, jpg and gif)</i>
+');
+
+  $widget = (isset($_GET['widget'])) ? $_GET['widget'] : @$state['values']['widget'];
+  if ($widget) {
+    $form['widget'] = array('#type' => 'value', '#value' => $widget);
+  }
+
+  // Remove sticky. Pull published out of vertical tab.
+  $form['options']['sticky']['#type'] = 'hidden';
+  // Only one item, so no need for the fieldset.
+  unset($form['options']['#type']);
+  unset($form['options']['#group']);
+
+  //Hide additional settings that are no longer grouped as such
+  foreach (array('revision_information', 'author', 'comment_settings', 'path', 'metatags', 'actions_top') as $elem) {
+    $form[$elem]['#access'] = FALSE;
+  }
+
+  // Hide title. it will be automatically generated later.
+  $form['title']['#access'] = FALSE;
+  $form['title']['#required'] = FALSE;
+
+  // Remove preview, diff buttons.
+  foreach (array('preview', 'preview_changes') as $action) {
+    if (isset($form['actions'][$action])) {
+      unset($form['actions'][$action]);
+    }
+  }
+
+  // When adding a new slide hide the actions top button.
+  hide($form['actions_top']);
+
+  // Add autocomplete search field for "Link"
+  $form['field_link'][LANGUAGE_NONE][0] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link'),
+    '#description' => 'You may provide a link for each slide in your slideshow.',
+    '#autocomplete_path' => 'vsite/autocomplete/node',
+    '#default_value' => (isset($form['#node']->field_link[LANGUAGE_NONE][0]['url']) ? $form['#node']->field_link[LANGUAGE_NONE][0]['url'] : ""),
+  );
+}
+
+/**
+ * Implements hook_imagefield_crop_instance_alter
+ *
+ * See: http://drupal.org/node/1915510#comment-7058848
+ *
+ * Changes the imagefield_crop widget to use our custom ratio.
+ */
+function os_slideshow_imagefield_crop_instance_alter(&$instance, $context) {
+  if (isset($context['form']) && strpos($context['form']['#id'], 'slideshow-slide-node-form') === 0) {
+    $widget = $context['form']['widget']['#value'];
+  }
+  elseif (isset($context['entity']) && isset($context['entity']->widget)) {
+    $widget = $context['entity']->widget;
+  }
+
+  if (isset($widget) && $box = boxes_box_load($widget)) {
+    $layout = $box->options['layout'];
+    $layouts = _os_slideshow_layouts();
+    $ratio = current($layouts[$layout]['ratio']);
+    $content_sizes = _os_slideshow_region_size(NULL, 'content');
+    $w = (is_array($content_sizes) && count($content_sizes)) ? current($content_sizes) : 1000;
+    $h = intval(round($w/$ratio, 0));
+
+    $instance['widget']['settings']['resolution'] = "${w}x${h}";
+  }
+}
+
+/**
+ * Implements hook_node_insert().
+ *
+ * When a slideshow_slide is created, add its nid to the widget it was created for.
+ */
+function os_slideshow_node_insert($node) {
+  if ($node->type != 'slideshow_slide') {
+    return;
+  }
+  if (!isset($node->widget)) {
+    return;
+  }
+  os_slideshow_handle_slide_update($node->nid, $node->widget, 'insert');
+}
+
+/**
+ * Utility function to keep widget updated when a slide is inserted/deleted.
+ *
+ * @param $nid
+ *   Relevant node id.
+ * @param $widget
+ *   Relevant widget id.
+ * @param $action
+ *   Either 'insert' or 'delete'.
+ */
+function os_slideshow_handle_slide_update($nid, $widget, $action) {
+  // Load the box.
+  if (module_exists('spaces') && $space = spaces_get_space()) {
+    $box = $space->controllers->boxes->get($widget);
+  }
+  else {
+    $box = boxes_box_load($widget);
+  }
+
+  if (!$box) {
+    // Couldn't find any box related.
+    return;
+  }
+
+  if ($action == 'insert') {
+    // Array reduce's anon function gets the highest weight of all the slides,
+    // so the newly inserted one can come last.
+    $box->options['nodes'][$nid] = array(
+      'nid' => $nid,
+      'weight' => 1 + array_reduce($box->options['nodes'], create_function('$val, $next', 'return ($next["weight"]>$val) ? $next["weight"] : $val;'), 0),
+    );
+  }
+  elseif ($action == 'delete') {
+    unset($box->options['nodes'][$nid]);
+  }
+
+  // Save the box after changes.
+  if (isset($space)) {
+    $space->controllers->boxes->set($box->delta, $box);
+  }
+  else {
+    $box->save();
+  }
+}
+
+/**
+ * Implements hook_node_presave
+ *
+ * Creates title since title was removed from form.
+ */
+function os_slideshow_node_presave($node) {
+  if ($node->type == 'slideshow_slide') {
+
+    $lang = $node->language;
+    if (($file = file_load($node->field_image[$lang][0]['fid'])) == FALSE) {
+      return;
+    }
+
+    // Set a default title.
+    $node->title = isset($node->field_headline[$lang][0]) ? $node->field_headline[$lang][0]['value'] : $file->filename;
+
+    // make sure no values in the cropbox are null
+    if ($node->field_image[LANGUAGE_NONE][0]['cropbox_height'] == null) {
+      $node->field_image[LANGUAGE_NONE][0]['cropbox_height'] = 200;
+    }
+    if ($node->field_image[LANGUAGE_NONE][0]['cropbox_width'] == null) {
+      $node->field_image[LANGUAGE_NONE][0]['cropbox_width'] = 200;
+    }
+    // Add og_group_ref to attached slide.
+    if (empty($file->og_group_ref)) {
+      $file->og_group_ref = $node->og_group_ref;
+      file_save($file);
+    }
+  }
+}
+
+/**
+ * @function os_slideshow_process_form_nodes
+ *
+ * Form #process function. After form is saved, remove the nids that were deleted.
+ */
+function os_slideshow_process_form_nodes($element, &$state, &$form) {
+  // Bail out while the form is being built.
+  if (empty($state['input'])) {
+    return $element;
+  }
+
+  // Only keep nodes that have been returned from the form.
+  $nodes_left = (isset($state['input']['nodes'])) ? array_keys($state['input']['nodes']) : array();
+  foreach($form['options']['nodes_list']['#value'] as $nid) {
+    if (!in_array($nid, $nodes_left)) {
+      unset($element[$nid]);
+
+      // The node is a slide, if it is being removed from the slideshow, it should
+      // be deleted.
+      node_delete($nid);
+    }
+  }
+
+  return $element;
+}
+
+
+/**
+ * Implements hook_module_implements_alter
+ *
+ * Move our form alter to after url alias's so we can remove that form element.
+ */
+function os_slideshow_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter' && isset($implementations['os_slideshow'])) {
+    unset($implementations['os_slideshow']);
+    $implementations['os_slideshow'] = false;
+  }
+}
+
+/**
+ * Implements hook_image_default_styles().
+ *
+ * Provides styles for each of our cropping ratios.
+ */
+function os_slideshow_image_default_styles() {
+  $styles = array();
+
+  $default_effects = array(
+    'label' => 'Scale and crop',
+    'help' => 'Scale and crop will maintain the aspect-ratio of the original image, then crop the larger dimension. This is most useful for creating perfectly square thumbnails without stretching the image.',
+    'effect callback' => 'image_scale_and_crop_effect',
+    'dimensions callback' => 'image_resize_dimensions',
+    'form callback' => 'image_resize_form',
+    'summary theme' => 'image_resize_summary',
+    'module' => 'image',
+    'name' => 'image_scale_and_crop',
+    'data' => array(),
+    'weight' => '1',
+  );
+
+  // Make a preset for each aspect ratio using each of the widths available.
+  $widths = _os_slideshow_region_size(NULL, 'content');
+  foreach (_os_slideshow_image_aspect_ratios() as $label => $ratio) {
+    foreach ($widths as $w) {
+      $name = 'os_slideshow_' . $label . '_' . $w;
+      $effects = $default_effects;
+      $effects['data']['width'] = $w;
+      $effects['data']['height'] = intval(round($w/$ratio, 0));
+
+      $styles[$name] = array(
+        'name' => $name,
+        'effects' => array($effects),
+      );
+    }
+  }
+
+  return $styles;
+}
+
+/**
+ * Implements hook_theme(),
+ */
+function os_slideshow_theme($existing, $type, $theme, $path) {
+  return array(
+    'os_slideshow_widget_slideshow' => array(
+      'template' => 'os_slideshow_widget_slideshow',
+      'variables' => array(
+        'slides' => NULL,
+        'display_scrollbar' => NULL,
+        'widget_height' => NULL,
+      ),
+    ),
+    'os_slideshow_widget_slide' => array(
+      'template' => 'os_slideshow_widget_slide',
+      'variables' => array(
+        'widget' => NULL,
+      ),
+    ),
+    'os_slideshow_slideshow' => array(
+      'template' => 'os_slideshow_slideshow',
+      'variables' => array(
+        'nodes' => array(),
+        'slides' => NULL,
+        'controls' => NULL,
+        'layout' => NULL,
+      ),
+    ),
+    'os_slideshow_slide' => array(
+      'template' => 'os_slideshow_slide',
+      'variables' => array(
+        'node' => NULL,
+        'headline' => NULL,
+        'description' => NULL,
+        'image' => NULL,
+        'style_name' => 'slideshow_980',
+        'box_delta' => NULL,
+      )
+    ),
+    'os_slideshow_controls' => array(
+      'template' => 'os_slideshow_controls',
+      'variables' => array('node_count' => 0),
+    ),
+  );
+}
+
+/**
+ * Implements hook_preprocess_hook
+ */
+function os_slideshow_preprocess_os_slideshow_slide(&$vars) {
+  $node = &$vars['node'];
+  $lang = $node->language;
+
+  if (empty($node->field_image)) {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper('node', $node);
+
+  $vars['headline'] = $wrapper->field_headline->value();
+  $vars['description'] = $wrapper->field_description->value();
+
+  if ($files = field_get_items('node', $node, 'field_image')) {
+    $file = reset($files);
+  }
+  $img = !empty($node->field_image[$lang]) ? $node->field_image[$lang][0]['uri'] : $node->field_image[LANGUAGE_NONE][0]['uri'];
+  $img_vars = array('path' => $img, 'style_name' => $vars['style_name']);
+
+  if ($items = field_get_items('node', $node, 'field_slideshow_alt_text')) {
+    $item = reset($items);
+  }
+  elseif (isset($file) && $items = field_get_items('file', (object)$file, 'field_file_image_alt_text')) {
+    $item = reset($items);
+  }
+  if (!empty($item)) {
+    $img_vars['alt'] = $item['value'];
+  }
+
+  if ($items = field_get_items('node', $node, 'field_slideshow_title_text')) {
+    $item = reset($items);
+  }
+  elseif (isset($file) && $items = field_get_items('file', (object)$file, 'field_file_image_title_text')) {
+    $item = reset($items);
+  }
+  if (!empty($item)) {
+    $img_vars['title'] = $item['value'];
+  }
+
+  $vars['image'] = theme('image_style', $img_vars);
+  $url = ($node->field_link) ? $node->field_link[$lang][0]['url'] : '';
+  $match = preg_match("/\[(\d+)\]/", $url, $matches);
+
+  if (isset($matches[1])) {
+    $url = "node/" . $matches[1];
+  }
+  if ($url) {
+    foreach (array('headline', 'description', 'image') as $elem) {
+      if (empty($vars[$elem])) {
+        continue;
+      }
+      $vars[$elem] = l($vars[$elem], $url, array('html' => TRUE));
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_hook().
+ */
+function os_slideshow_preprocess_os_slideshow_widget_slideshow(&$vars) {
+  $slide_vars = array();
+  foreach ($vars['slides'] as $key => $slide) {
+    $slide_vars['widget'] = $slide;
+    $vars['slides'][$key] = theme('os_slideshow_widget_slide', $slide_vars);
+  }
+}
+
+/**
+ * Implements hook_preprocess_hook().
+ */
+function os_slideshow_preprocess_os_slideshow_slideshow(&$vars) {
+
+  // Prepare images.
+  $node_ids = $vars['nodes'];
+  $sorted_nodes = array();
+  foreach ($node_ids as $nid => $node) {
+    $sorted_nodes[$nid]['#weight'] = $node['weight'];
+  }
+  uasort($sorted_nodes, 'element_sort');
+
+  // Get slides - image with description
+  $nodes = node_load_multiple(array_keys($sorted_nodes));
+  $vars['slides'] = array();
+  $slide_vars = array('style_name' => _os_slideshow_get_style_name($vars['layout'], $vars['box_delta']));
+  $nids_to_remove = array();
+  foreach (array_keys($sorted_nodes) as $nid) {
+    if (isset($nodes[$nid])) {
+      $node = $nodes[$nid];
+      if ($node->status) {
+        $slide_vars['node'] = $node;
+        $vars['slides'][] = theme('os_slideshow_slide', $slide_vars);
+      }
+      else {
+        // Controls should only know about published images so remove the
+        // unpublished ones
+        unset($nodes[$nid]);
+      }
+    }
+    else {
+      // Node wasn't loaded, hence need to be removed from the widget.
+      $nids_to_remove[] = $nid;
+    }
+  }
+
+  // Get controls.
+  $control_vars = array('node_count' => count($nodes));
+  $vars['controls'] = theme('os_slideshow_controls', $control_vars);
+
+  // Remove missing nodes from the box.
+  os_slideshow_remove_missing_nodes($nids_to_remove, $vars['box_delta']);
+}
+
+/**
+ * Utility function to remove list of nodes from widget.
+ *
+ * @param $nids_to_remove
+ *   Array of nids to remove from the widget.
+ * @param $widget
+ *   Widget id.
+ */
+function os_slideshow_remove_missing_nodes($nids_to_remove, $widget) {
+  foreach ($nids_to_remove as $nid) {
+    os_slideshow_handle_slide_update($nid, $widget, 'delete');
+  }
+}
+
+/**
+ * @function _os_slideshow_get_animation_direction
+ *
+ * Flexslider has a transition effect with a direction argument.  This splits them or sets the arg to null
+ */
+function _os_slideshow_get_animation_direction($effect) {
+  $effects = explode('-', $effect);
+  return (count($effects)>1) ? $effects : array($effect, NULL);
+}
+
+/**
+ * @function _os_slideshow_get_style_name()
+ *
+ * Gets a style for the aspect ratio and region currently being used.
+ */
+function _os_slideshow_get_style_name($layout, $delta) {
+  $layouts = _os_slideshow_layouts();
+  if (!isset($layouts[$layout])) {
+    $layout = current(array_keys($layouts));
+  }
+  $aspect_ratio = current(array_keys($layouts[$layout]['ratio']));
+
+  // Figure out what region the slideshow is in and what other regions are
+  // active so we can determine how wide the slideshow can be.
+  $context_blocks = &drupal_static('context_reaction_block_list');
+  $region = 'content_top';
+  if(!$context_blocks){
+    // Populate $context_blocks.
+    $plugin = context_get_plugin('reaction', 'block');
+    $plugin->block_list($region);
+  }
+
+  foreach ($context_blocks as $reg => $blocks){
+    if(isset($blocks['boxes-'.$delta])){
+      $region = $reg;
+      break;
+    }
+  }
+
+  // Get valid image styles for this aspect ratio.
+  $sizes = array();
+  foreach (os_slideshow_image_default_styles() as $style) {
+    if (strpos($style['name'], 'os_slideshow_'.$aspect_ratio) === 0) {
+      $sizes[$style['effects'][0]['data']['width']] = $style['name'];
+    }
+  }
+
+  // Select the smallest style that's bigger than the current region.
+  ksort($sizes);
+  $size = _os_slideshow_region_size($region);
+  foreach ($sizes as $width => $name) {
+    if ($width >= $size) {
+      break;
+    }
+  }
+
+  return $name;
+}
+
+/**
+ * @function _os_slideshow_region_size
+ *
+ * Returns the max width of a region given the list of regions that are in use.
+ *
+ * If $get_row_widths is provided, calculate and return the widths for that row of regions.
+ */
+function _os_slideshow_region_size($region, $get_row_widths = '') {
+  $full_width = 980;
+
+  $rows = array(
+    'content' => array(
+      // This region.
+      'main' => 'content_top',
+      // Its sidebars.
+      'sides' =>  array('sidebar_first', 'sidebar_second'),
+      // Widest sidebar when one sidebar is shown.
+      'solo_side_width' => 300,
+      // Widest sidebar when both are shown.
+      'pair_side_width' => 250,
+      // Thinnest possible sidebar.
+      'min_side' => 160,
+    ),
+    'headers' => array(
+      'main' => 'header_second',
+      'sides' => array('header_first', 'header_third'),
+      'solo_side_width' => 300,
+      'pair_side_width' => 250,
+      'min_side' => 160,
+    ),
+    'footers' => array(
+      'main' => 'footer',
+      'sides' => array('footer_first', 'footer_third'),
+      'solo_side_width' => .25 * $full_width,
+      'pair_side_width' => .25 * $full_width,
+      'min_side' => .25 * $full_width,
+    )
+  );
+
+  // Page content has extra regions.
+  $rows['content_bottom'] = $rows['content'];
+  $rows['content_bottom']['main'] = 'content_bottom';
+
+  $rows['content_second'] = $rows['content'];
+  $rows['content_second']['main'] = 'content_second';
+
+  $rows['content_first'] = $rows['content'];
+  $rows['content_first']['main'] = 'content_first';
+
+  // Default behavior.
+  if (!$get_row_widths) {
+    $plugin = context_get_plugin('reaction', 'block');
+    foreach($rows as $row) {
+      if ($region != $row['main'] && !in_array($region, $row['sides'])) {
+        continue;
+      }
+
+      // Count the number of active regions.
+      $sides_count = 0;
+      foreach ($row['sides'] as $side){
+        if (count($plugin->block_list($side))) {
+          $sides_count++;
+        }
+      }
+
+      if ($region == $row['main']) {
+        $widths = array($full_width, $full_width - $row['min_side'], $full_width - 2*$row['min_side']);
+        return $widths[$sides_count];
+      } elseif (in_array($region, $row['sides'])) {
+        return ($sides_count > 1) ? $row['pair_side_width'] : $row['solo_side_width'];
+      }
+    }
+
+    //just assume full and let the browser resize.
+    return $full_width;
+  }
+
+  // Or describe the possible widths of one of the rows.
+  if (isset($rows[$get_row_widths])) {
+    $row = $rows[$get_row_widths];
+    return array(
+      $full_width,
+      $full_width - $row['min_side'],
+      $full_width - 2*$row['min_side'],
+      $row['solo_side_width']
+    );
+  }
+
+  return FALSE;
+}
+
+/**
+ * @function _os_slideshow_image_aspect_ratios
+ *
+ * Defines the aspect ratios supported by this module.
+ */
+function _os_slideshow_image_aspect_ratios() {
+  return array(
+    '3:1' => 3/1,
+    '16:9' => 16/9,
+  );
+}
+
+/**
+ * @function _os_slideshow_layouts
+ *
+ * List the available layouts and their ratios.
+ */
+function _os_slideshow_layouts() {
+  return array(
+    '3_1_overlay'  => array('ratio' => array('3:1' => 3/1), 'name' => 'Wide Overlay'),
+    '16_9_overlay' => array('ratio' => array('16:9' => 16/9), 'name' => 'Standard Overlay'),
+    '16_9_below'   => array('ratio' => array('16:9' => 16/9), 'name' => 'Standard Below'),
+    '16_9_side'    => array('ratio' => array('16:9' => 16/9), 'name' => 'Standard Side'),
+ );
+}
+
+
+/**
+ * @function _os_slideshow_add_css()
+ *
+ * Adds this module's css or slideshow css from one of our themes
+ */
+function _os_slideshow_add_css() {
+  ctools_include('themes', 'os');
+  $theme = os_get_themes(os_theme_get(), 'vsite', FALSE);
+  if ($file = @$theme->info['os']['os_slideshow']) {
+    $css_file = drupal_get_path('theme', $theme->name) . $file;
+  }
+  else {
+    $css_file = drupal_get_path('module', 'os_slideshow') . '/os_slideshow.css';
+  }
+  return $css_file;
+}
+
+/**
+ * Implements hook_node_submit
+ *
+ * Convert the returned value from os_pages_autocomplete to a relative URL
+ */
+function os_slideshow_node_submit($node, $form, &$form_state) {
+  if ($node->type != 'slideshow_slide') {
+    return;
+  }
+
+  if (isset($form['field_link'][LANGUAGE_NONE][0]['#value'])) {
+
+    $node->field_link[LANGUAGE_NONE][0]['url'] = $form['field_link'][LANGUAGE_NONE][0]['#value'];
+  }
+}

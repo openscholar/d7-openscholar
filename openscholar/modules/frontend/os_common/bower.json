@@ -1,0 +1,19 @@
+{
+  "name": "os_common",
+  "version": "0.0.1",
+  "homepage": "https://github.com/openscholar/openscholar",
+  "authors": [
+    "Matt Petrovic <mpetrovic@iq.harvard.edu>"
+  ],
+  "description": "A set of common utilities to be used across apps.",
+  "main": "os_common.module",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

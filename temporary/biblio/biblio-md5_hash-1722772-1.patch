@@ -1,0 +1,21 @@
+diff --git a/biblio.module b/biblio.module
+index a637e85..0719cbd 100644
+--- a/biblio.module
++++ b/biblio.module
+@@ -1578,8 +1578,8 @@ function biblio_insert($node) {
+   biblio_insert_contributors($node);
+   biblio_insert_keywords($node);
+   $node->biblio_coins = biblio_coins($node);
+-  drupal_write_record('biblio', $node);
+   $duplicate = biblio_hash($node);
++  drupal_write_record('biblio', $node);
+   if (isset($duplicate) && $duplicate != $node->nid) { // if this is a potential duplcate, write the nids of the pre-existing and new nodes
+     $dup_map = array('vid' => $duplicate, 'did' => $node->nid);
+     drupal_write_record('biblio_duplicates', $dup_map);
+@@ -2228,4 +2228,4 @@ function biblio_ctools_plugin_api() {
+   if ($module == "feeds" && $api == "feeds_importer_default") {
+     return array("version" => 1);
+   }
+-}
+\ No newline at end of file
++}

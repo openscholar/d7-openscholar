@@ -1,0 +1,25 @@
+#extradiv {
+  background-image: url('images/fabric-strip-devil-eye.png');
+  }
+
+body {
+  background-color: #2e2e2e;
+  }
+
+#menu-bar {
+  background: url('images/menu-strip-devil-eye.png') #D9523C;
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color:#833426;
+  }
+
+#menu-bar li a, #menu-bar li a:visited {
+  color: #fae09c;
+  }
+
+#menu-bar li a:hover, #menu-bar li a.active, #menu-bar .active-trail a {
+  background: #e2e594;
+  color: #233130;
+  }

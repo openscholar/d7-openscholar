@@ -1,0 +1,766 @@
+<?php
+
+/**
+ * @file
+ * Integration with OG Vocabulary.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function vsite_vocab_menu() {
+  $items = array();
+
+  $items["cp/build/taxonomy"] = array(
+    'title' => 'Taxonomy',
+    'type' => MENU_NORMAL_ITEM,
+    'weight' => 10,
+    //'page callback' => 'cp_taxonomy',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('taxonomy_overview_vocabularies'),
+    'access arguments' => array('administer taxonomy'),
+    'file' => 'taxonomy.admin.inc',
+    'file path' => drupal_get_path('module', 'taxonomy'),
+    'description' => t('Manage your site\'s vocabularies')
+  );
+
+  $items["cp/build/taxonomy_term/add"] = array(
+    'title' => 'Add vocabulary',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('taxonomy_form_vocabulary'),
+    'access arguments' => array('administer taxonomy'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'taxonomy.admin.inc',
+    'file path' => drupal_get_path('module', 'taxonomy'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function vsite_vocab_admin_paths() {
+  return array(
+    'cp/build/taxonomy/*/add' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function vsite_vocab_entity_info_alter(&$info) {
+  $info['og_vocab']['redirect'] = FALSE;
+}
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * Adding custom paths to the vocabulary actions.
+ */
+function vsite_vocab_menu_alter(&$items) {
+  $path_parts = array('', '/add', '/edit');
+  foreach ($path_parts as $path_part) {
+    $items['cp/build/taxonomy/%taxonomy_vocabulary_machine_name' . $path_part] = $items['admin/structure/taxonomy/%taxonomy_vocabulary_machine_name' . $path_part];
+    $items['cp/build/taxonomy/%taxonomy_vocabulary_machine_name' . $path_part]['access callback'] = 'vsite_og_user_access';
+    $items['cp/build/taxonomy/%taxonomy_vocabulary_machine_name' . $path_part]['access arguments'] = array('administer taxonomy');
+  }
+
+  if (variable_get('og_vocab_term_page_access', FALSE)) {
+    $items['taxonomy/term/%taxonomy_term']['access callback'] = 'vsite_vocab_term_page_access';
+    $items['taxonomy/term/%taxonomy_term']['access arguments'] = array(2);
+
+    $items['taxonomy/term/%taxonomy_term/feed']['access callback'] = 'vsite_vocab_term_page_access';
+    $items['taxonomy/term/%taxonomy_term/feed']['access arguments'] = array(2);
+  }
+
+}
+
+/**
+ * Menu access callback - implementing a custom taxonomy term access,
+ */
+function vsite_vocab_term_page_access($term) {
+  if (!user_access('access content')) {
+    return;
+  }
+
+  if (!$relation = og_vocab_relation_get($term->vid)) {
+    // Term doesn't belong to OG-vocab
+    return TRUE;
+  }
+
+  // Check if user has access to the group.
+  $group = entity_load_single($relation->group_type, $relation->gid);
+  $space = spaces_get_space();
+
+  // If the vocab belongs to a vsite, make sure we are in that vsite.
+  if($relation->group_type == 'node' && (!$space || $space->id != $relation->gid)){
+    return FALSE;
+  }
+
+  return node_access('view', $group);
+}
+
+/**
+ * Implements hook_field_create_instance().
+ *
+ * Add OG vocanulary field to a group-content bundle.
+ */
+function vsite_vocab_field_create_instance($instance) {
+  if (!og_is_group_audience_field($instance['field_name'])) {
+    return;
+  }
+  $og_field = og_fields_info(OG_VOCAB_FIELD);
+  $og_field['instance']['display']['default']['label'] = 'hidden';
+  $og_field['instance']['display']['default']['settings']['concatenate'] = TRUE;
+  og_create_field(OG_VOCAB_FIELD, $instance['entity_type'], $instance['bundle'], $og_field);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for taxonomy_form_vocabulary.
+ *
+ * 1) Limit available bundles to just Public/Private bundles in OS.
+ *
+ * @see og_vocab_form_taxonomy_form_vocabulary_alter().
+ */
+function vsite_vocab_form_taxonomy_form_vocabulary_alter(&$form, $form_state) {
+  if (!isset($form['og_vocab'])) {
+    return;
+  }
+
+  // Hiding elements in the form.
+  ctools_include('dependent');
+  $form['og_vocab']['#access'] = FALSE;
+  $form['machine_name']['#access'] = FALSE;
+  $form['#submit'][] = 'vsite_vocab_form_taxonomy_form_vocabulary_submit';
+
+  if (empty($form_state['vocabulary']->vid)) {
+    // Because we hide the machine name text field, og_vocab validate function
+    // will fail due to the fact that there is no machine name. Reversing the
+    // order of the validation functions will take care of that and enable us to
+    // create OG vocabularies with the same human readable name in other groups.
+    array_unshift($form['machine_name']['#element_validate'], 'vsite_vocab_form_taxonomy_form_vocabulary_validate');
+  }
+
+  // Init variables.
+  $required = FALSE;
+  $widget = 'options_select';
+  $cardinality = FIELD_CARDINALITY_UNLIMITED;
+
+  // Add description for the name.
+  $form['name']['#description'] = t('The vocabulary name. E.g. "Research interests"');
+
+  // Get enabled bundles.
+  $all_bundles = array(
+    'node' => os_get_bundles(array(1,2)),
+    'file' => array_diff_key(os_files_get_bundles(), array('undefined' => 0)),
+  );
+  
+  if (isset($all_bundles['file']['html'])) {
+    $all_bundles['file']['html'] = t('Embedded Media');
+  }
+
+  // Loop through all of the content types and build their checkboxe's.
+  $form['bundles'] = array();
+  $default_bundles = array();
+  foreach ($all_bundles as $entity_type => $bundles) {
+    foreach ($bundles as $bundle => $bundle_label) {
+      $vid = !empty($form['vid']['#value']) ? $form['vid']['#value'] : 0;
+      $og_vocab = og_vocab_load_og_vocab($vid, $entity_type, $bundle, NULL, TRUE);
+      $options[$bundle] = check_plain($bundle_label);
+      if (empty($og_vocab->is_new)) {
+        $default_bundles[$bundle] = TRUE;
+      }
+
+      $required = !$required ? $og_vocab->settings['required'] : $required;
+      $widget = $widget == 'options_select' ? $widget = $og_vocab->settings['widget_type'] : $widget;
+      $cardinality = $cardinality == FIELD_CARDINALITY_UNLIMITED ? $cardinality = $og_vocab->settings['cardinality'] : $cardinality;
+    }
+  } 
+  
+  $form['bundles'] = array(
+    '#type' => 'select',
+    '#multiple' => TRUE,
+    '#title' => t('Content types'),
+    '#options' => array('Posts' => $all_bundles['node'], 'Files' => $all_bundles['file']),
+    '#default_value' => array_keys($default_bundles),
+    '#description' => t('Select the content types to categorize using this vocabulary.'),
+    '#required' => TRUE,
+    '#after_build' => array('os_select2_widget_after_build'),
+    '#cardinality' => '-1',
+    '#attached' => array(
+      'css' => array(
+        libraries_get_path('select2') . '/select2.css',
+        drupal_get_path('module', 'os') . '/css/select2-widget.css',
+      ),
+      'js' => array(
+        libraries_get_path('select2') . '/select2.min.js',
+        drupal_get_path('module', 'os') . '/js/select2-widget.js',
+      ),
+    ),
+  );
+
+  // Adding settings for the OG vocab settings.
+  $form['required'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Required'),
+    '#description' => t('If checked, the post must be tagged / categorized with at least one term from this vocabulary.'),
+    '#default_value' => $required,
+  );
+
+  $form['widget_type_autocomplete'] = array(
+    '#type' => 'radios',
+    '#title' => t('Type'),
+    '#description' => t('Terms may be created in advance or on the fly, when adding / editing a post.'),
+    '#options' => array(
+      'entityreference_autocomplete' => t('Managed'),
+      'entityreference_autocomplete_tags' => t('Tags style'),
+    ),
+    '#default_value' => in_array($widget, array('entityreference_autocomplete', 'entityreference_autocomplete_tags')) ? $widget : 'entityreference_autocomplete',
+  );
+
+  $form['widget_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('Form element type'),
+    '#description' => t('The type of display and how terms are selected when adding / editing a post.'),
+    '#default_value' => in_array($widget, array('entityreference_autocomplete', 'entityreference_autocomplete_tags')) ? 'entityreference_autocomplete' : $widget,
+    '#options' => array(
+      'entityreference_autocomplete' => t('Autocomplete'),
+      'options_select' => t('Select list'),
+      'options_buttons' => t('Check boxes / Radio buttons'),
+      'term_reference_tree' => t('Tree'),
+    ),
+    '#dependency' => array('radio:widget_type_autocomplete' => array('entityreference_autocomplete')),
+
+  );
+
+  $form['cardinality'] = array(
+    '#type' => 'select',
+    '#title' => t('Max number of terms per post'),
+    '#options' => array(FIELD_CARDINALITY_UNLIMITED => t('Unlimited')) + drupal_map_assoc(range(1, 10)),
+    '#default_value' => $cardinality,
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Using the hook_form_alter and not hook_form_FORM_ID_alter due to the
+ * invokes order of the hooks.
+ */
+function vsite_vocab_form_alter(&$form, $form_state, $form_id) {
+  if (!in_array($form_id, array('taxonomy_form_vocabulary', 'taxonomy_overview_terms')) || !$context = og_vocab_is_group_admin_context()) {
+    return;
+  }
+  $form['#submit'][] = 'vsite_vocab_redirect_to_group_vocabularies';
+  $form['#attached']['js'][] = drupal_get_path('module', 'vsite_vocab') . '/js/vsite_vocab.js';
+}
+
+/**
+ * After deleting the group vocabulary, redirect to the taxonomy group admin
+ * page.
+ */
+function vsite_vocab_redirect_to_group_vocabularies($form, &$form_state) {
+  $form_state['redirect'] = 'cp/build/taxonomy';
+
+  if ($form['#form_id'] == 'taxonomy_overview_terms' && !empty($form_state['confirm_reset_alphabetical']) && !empty($form_state['complete form']['machine_name']['#value'])) {
+    // Redirect back to the terms overview, after "Reset alphabetical"
+    // was submitted.
+    $form_state['redirect'] .= '/' . $form_state['complete form']['machine_name']['#value'] . '/list';
+  }
+}
+
+/**
+ * Validate handler; Set the machine name of the vocabulary.
+ */
+function vsite_vocab_form_taxonomy_form_vocabulary_validate($element, &$form_state) {
+  // Manually create the machine name.
+  $machine_name = $form_state['values']['name'];
+  if(module_exists('transliteration')) {
+    $machine_name = transliteration_get($machine_name);
+  }
+  $machine_name = substr(preg_replace('@[^a-z0-9_]+@', '', strtolower($machine_name)), 0, 32);
+  // Avoid empty machine name when transliteration not enabled or fails
+  $machine_name = empty($machine_name) ? variable_get('vsite_vocab_name_default', 'vocab') : $machine_name;
+  // Start iterating over machine names until we hit one that doesn't
+  // exist yet.
+  $i = 1;
+  while (taxonomy_vocabulary_machine_name_load($machine_name)) {
+    $machine_name = substr($machine_name, 0, 32 - strlen($i)) . $i;
+    ++$i;
+  }
+  form_set_value($element, $machine_name, $form_state);
+}
+/**
+ * Implements hook_field_attach_view_alter().
+ */
+function vsite_vocab_field_attach_view_alter(&$output, $context) {
+  if (empty($output[OG_VOCAB_FIELD][0]['#markup'])) {
+    return;
+  }
+  $original = $output[OG_VOCAB_FIELD][0]['#markup'];
+  $trim_terms_length = 94;
+  if (strlen(strip_tags($original)) > $trim_terms_length) {
+    $output[OG_VOCAB_FIELD][0]['#markup'] = '<div class="more">'. t('See also: !terms', array('!terms' => vsite_vocab_html_cut($original, $trim_terms_length))) .'</div>';
+    $output['#attached']['js'][] = drupal_get_path('module', 'os').'/theme/os_toggle.js';
+  }
+  else {
+    $output[OG_VOCAB_FIELD][0]['#markup'] = t('See also: !terms', array('!terms' => $original));
+  }
+}
+
+/**
+ * Implements hook_og_vocab_is_admin_context().
+ */
+function vsite_vocab_og_vocab_is_admin_context() {
+  if (strpos($_GET['q'], 'cp/build/taxonomy') === 0 && $space = spaces_get_space()) {
+    return array('group_type' => 'node', 'gid' => $space->id);
+  }
+}
+
+/**
+ * Custom submit handler: handling the custom form submit of os_vocab.
+ *
+ * The original OG vocabularies set the $og_vocab in the form elements and use
+ * them in his submit handler. OS vocab doesn't use the original form elements,
+ * therefore we implements both of the logics in this submit handler.
+ *
+ * @see og_vocab_form_taxonomy_form_vocabulary_submit().
+ */
+function vsite_vocab_form_taxonomy_form_vocabulary_submit(&$form, &$form_state) {
+  $vid = empty($form_state['vocabulary']->vid) ? 0 : $form_state['vocabulary']->vid;
+  $values = $form_state['values'];
+
+  $all_bundles = array(
+    'node' => os_get_bundles(array(1,2)),
+    'file' => os_files_get_bundles(),
+  );
+
+  foreach ($all_bundles as $entity_type => $bundles) {
+    foreach ($bundles as $bundle => $bundle_label) {
+      $og_vocab = og_vocab_load_og_vocab($vid, $entity_type, $bundle);
+
+      if (empty($og_vocab)) {
+        $og_vocab = og_vocab_create_og_vocab($vid, $entity_type, $bundle);
+      }
+  
+      if ((!isset($values['bundles'][$bundle]) || !($values['bundles'][$bundle])) && empty($og_vocab->is_new)) {
+        $og_vocab->delete();
+        continue;
+      }
+  
+      if (isset($values['bundles'][$bundle]) && $values['bundles'][$bundle]) {
+        $og_vocab->settings['required'] = $values['required'];
+        $og_vocab->settings['cardinality'] = $values['cardinality'];
+        $values['widget_type'] = $values['widget_type_autocomplete'] == 'entityreference_autocomplete' ? $values['widget_type'] : $values['widget_type_autocomplete'];
+        $og_vocab->settings['widget_type'] = $values['widget_type'];
+
+        if ($values['widget_type'] == 'term_reference_tree') {
+          $og_vocab->settings['widget']['start_minimized'] = TRUE;
+        }
+
+        $og_vocab->save();
+      }
+    }
+  }
+
+  // Change the destination of the page after submiting the form.
+  $_GET['destination'] = 'cp/build/taxonomy/';
+}
+
+/**
+ * Override theme_taxonomy_overview_vocabularies() to change the actions path.
+ *
+ * Changing the links path of the vocabulry CRUD operations.
+ *
+ * @see theme_og_vocab_taxonomy_overview_vocabularies().
+ */
+function vsite_vocab_preprocess_taxonomy_overview_vocabularies(&$variables) {
+  foreach (array_keys($variables['form']) as $element_key) {
+    // Each row in the table have an integer key, therefor processing only
+    // integer keys.
+    if (!is_integer($element_key)) {
+      continue;
+    }
+
+    $element = &$variables['form'][$element_key];
+    $element['name']['#title'] = html_entity_decode($element['name']['#title'], ENT_QUOTES | ENT_HTML5);
+    $element['list']['#href'] = 'cp/build/taxonomy/' . $element['#vocabulary']->machine_name;
+    $element['add']['#href'] = 'cp/build/taxonomy/' . $element['#vocabulary']->machine_name . '/add';
+    $element['edit']['#href'] = 'cp/build/taxonomy/' . $element['#vocabulary']->machine_name . '/edit';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function vsite_vocab_form_taxonomy_overview_terms_alter(&$form, $form_state) {
+  if (empty($form['#vocabulary'])) {
+    return;
+  }
+
+  $path = 'cp/build/taxonomy/' . $form['#vocabulary']->machine_name . '/add';
+  $form['#empty_text'] = t('No terms available. <a href="@link">Add term</a>.', array('@link' => url($path)));
+  $form['#submit'][] = 'vsite_vocab_invalidate_entitycache';
+}
+
+/**
+ * When updating the weight of the vocabulary terms we need to invalidate
+ * the entity cache for the taxonomy terms.
+ */
+function vsite_vocab_invalidate_entitycache($form, $form_state) {
+  if (!db_table_exists('cache_entity_taxonomy_term')) {
+    // Entity cache module is disabled.
+    return;
+  }
+  cache_clear_all('*', 'cache_entity_taxonomy_term', TRUE);
+}
+
+/**
+ * Implements hook_field_field_formatter_info_alter().
+ */
+function vsite_vocab_field_formatter_info_alter(&$info) {
+  $info['og_vocab']['module'] = 'vsite_vocab';
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function vsite_vocab_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  return og_vocab_field_formatter_settings_form($field, $instance, $view_mode, $form, $form_state);
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function vsite_vocab_field_formatter_settings_summary($field, $instance, $view_mode) {
+  return og_vocab_field_formatter_settings_summary($field, $instance, $view_mode);
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ *
+ * Implements our own OG vocab field formatter; When a node is tagged to terms
+ * and the user remove the relationship between the vocabulary to the node type
+ * then we don't need to show the terms of the vocab.
+ *
+ * This will also prevent from us to deal with removing the terms when the
+ * relationship is deleted.
+ *
+ * @see og_vocab_field_formatter_view().
+ */
+function vsite_vocab_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  list(,, $bundle) = entity_extract_ids($entity_type, $entity);
+  if (!og_vocab_is_og_vocab_field($entity_type, $field['field_name'], $bundle)) {
+    return array('#markup' => t('OG Vocabulary formatter should be used only on "Entity reference" fields with "OG complex" widgets.'));
+  }
+
+  if (!$items) {
+    return;
+  }
+
+  // When remove a relation between bundle and OG vocab we need to hide the
+  // terms from the vocab.
+  $hide_terms = array();
+  $wrapper = entity_metadata_wrapper($entity_type, $entity);
+  foreach ($wrapper->{OG_VOCAB_FIELD} as $term_wrapper) {
+    if (!$term_wrapper->value()) {
+      // Term was deleted.
+      continue;
+    }
+    if (!og_vocab_load_og_vocab($term_wrapper->vocabulary->getIdentifier(), $wrapper->type(), $wrapper->getBundle())) {
+      $hide_terms[] = $term_wrapper->getIdentifier();
+    }
+  }
+
+  $tids = array();
+  foreach ($items as $item) {
+    if (in_array($item['target_id'], $hide_terms)) {
+      continue;
+    }
+    $tids[] = $item['target_id'];
+  }
+
+  $terms = vsite_vocab_sort_weight_alpha(taxonomy_term_load_multiple($tids));
+  $settings = $display['settings'];
+
+  if ($settings['concatenate']) {
+    $values = array();
+    // Re-build the terms array, as it is now ordered.
+    foreach ($terms as $term) {
+      $values[] = l($term['term'], $term['uri']);
+    }
+    $element[0] = array('#markup' => implode('<span>,</span> ', $values));
+    return $element;
+  }
+
+  // Iterate over each term and group by vocabulary.
+  $data = array();
+  foreach ($terms as $term) {
+    if (empty($data['vocabulary'][$term['vid']])) {
+      $vocab = taxonomy_vocabulary_load($term['vid']);
+      $data['vocabulary'][$term['vid']] = check_plain($vocab->name);
+    }
+    $data['term'][$term['vid']][] = l($term->name, $term['uri']);
+  }
+
+  if (!$data) {
+    return;
+  }
+
+  $element = array();
+  foreach ($data['term'] as $vid => $values) {
+    $element[0][$vid] = array('#theme' => 'item_list', '#items' => $values, '#title' => $data['vocabulary'][$vid]);
+  }
+  return $element;
+}
+
+/**
+ * Return an EntityFieldQuery for the os batch update set; Return a query for
+ * load/count the taxonomy vocabulary.
+ *
+ * @see os_set_update_batch().
+ */
+function _vsite_vocab_update_query($id = NULL) {
+  $query = new EntityFieldQuery();
+
+  $query->entityCondition('entity_type', 'taxonomy_vocabulary');
+
+  if ($id) {
+    $query->propertyCondition('vid', $id, '>=');
+  }
+
+  return $query;
+}
+
+/**
+ * Iterator callback for the os update batch; Fixing the vocabulary name by
+ * removing non-allowed values like dots and spaces.
+ *
+ * @see os_set_update_btach.
+ */
+function _vsite_vocab_name_fix_iterator($vocabulary) {
+  $name = $vocabulary->machine_name;
+  $pattern = '/[^a-zA-Z0-9_]/';
+
+  if (!preg_match('@[^a-z0-9_]+@', $name)) {
+    // The vocabulary name is OK. Return.
+    return;
+  }
+
+  // Delete the old path.
+  path_delete(array(
+    'source' => 'vocab/' . $name,
+  ));
+
+  // Fix the name.
+  $name = preg_replace($pattern, '', strtolower($name));
+
+  if (taxonomy_vocabulary_machine_name_load($name)) {
+    // Create unique name.
+    $i = 1;
+    while (taxonomy_vocabulary_machine_name_load($name)) {
+      $name = substr($name, 0, 32 - strlen($i)) . $i;
+      ++$i;
+    }
+  }
+
+  $vocabulary->machine_name = $name;
+  taxonomy_vocabulary_save($vocabulary);
+}
+
+
+/**
+ * Helper function to sort vsite_vocab terms associated with a node by (in order):
+ *  - vocabulary wieght
+ *  - vocabulary id
+ *  - term weight
+ *  - term name
+ */
+function vsite_vocab_sort_weight_alpha($terms) {
+  $ordered_terms = array();
+
+  foreach ($terms as $tid => $term) {
+    if (isset($term->vid)) {
+      $vocabulary = taxonomy_vocabulary_load($term->vid);
+      $uri = entity_uri('taxonomy_term', $term);
+      $ordered_terms[] = array(
+        'tid' => $term->tid,
+        'term' => $term->name,
+        't_weight' => $term->weight,
+        'v_weight' => $vocabulary->weight,
+        'vid' => $vocabulary->vid,
+        'uri' => $uri['path']
+      );
+    }
+  }
+
+  foreach ($ordered_terms as $term) {
+    $v_weight[$term['tid']] = $term['v_weight'];
+    $vid[$term['tid']] = $term['vid'];
+    $t_weight[$term['tid']] = $term['t_weight'];
+    $t_name[$term['tid']] = $term['term'];
+  }
+  foreach ($t_weight as $tid => $tw) {
+    $t_weight[$tid] = vsite_vocab_revised_weight_by_hierarchy($tid, $tw);
+  }
+  array_multisort($v_weight, SORT_ASC, SORT_NUMERIC, 
+                  $vid, SORT_ASC, SORT_NUMERIC, 
+                  $t_weight, SORT_ASC, SORT_NUMERIC, 
+                  $t_name, SORT_ASC, SORT_STRING,
+                  $ordered_terms);
+  return $ordered_terms;
+}
+
+/**
+ * Helper function to modify term weight  for sorting purpose in case of hierarchy structure
+ *  - term id
+ *  - term actual weight
+ * Terms weights are saved into DB (taxonomy_term_data) only to differentiate terms under same parents
+ * In multilevel hierarchical order it saves like below
+ * T1 (wt-0)
+ * |__T2(wt-0)
+ * |__T3(wt-1)
+ *    |__T4(wt-0)
+ *    |__T5(wt-1)
+ *
+ * To remove the ambiguity terms weight in each level are multiplied by a constant factor and added with the parent terms while displaying
+ *
+ * T1 (wt-0)
+ * |__T2(wt-0.01)
+ * |__T3(wt-0.02)
+ *    |__T4(wt-0.0201)
+ *    |__T5(wt-0.0202)
+ */
+function vsite_vocab_revised_weight_by_hierarchy($tid, $tw) {
+  $parent_terms = taxonomy_get_parents_all($tid);
+  $parents = array_reverse($parent_terms);
+
+  // This factor will multiply for each level of tree structure
+  $factor = 0.01;
+  if (count($parents) > 1) {
+    // In case the term belong to a parent modify its weight
+    $parent_weight = 0;
+    $i = 1;
+    foreach($parents as $ptid => $pterm) {
+      // Increasing term weight for each level of hierarchy
+      $parent_weight = $parent_weight + (pow($factor, $i) * ($pterm->weight + 1));
+      $i++;
+    }
+    $weight = $parents[0]->weight + $parent_weight;
+  } else {
+    // Assigning actual weight in case the term doesn't belog to any parent
+    $weight = $tw;
+  }
+  return $weight;
+}
+
+/**
+ * Helper function to generate terms markup text for more / less toggle
+ *  - markup text
+ *  - lenght of characters will be visible
+ */
+function vsite_vocab_html_cut($text, $max_length)
+{
+    $tags   = array();
+    $result = "";
+
+    $is_open   = false;
+    $grab_open = false;
+    $is_close  = false;
+    $in_double_quotes = false;
+    $in_single_quotes = false;
+    $tag = "";
+
+    $i = 0;
+    $stripped = 0;
+    $stripped_text = strip_tags($text);
+    while ($i < strlen($text) && $stripped < strlen($stripped_text) && $stripped < $max_length) {
+      $symbol  = $text{$i};
+      $result .= $symbol;
+      switch ($symbol) {
+       case '<':
+          $is_open   = true;
+          $grab_open = true;
+          break;
+       case '"':
+         if ($in_double_quotes)
+             $in_double_quotes = false;
+         else
+             $in_double_quotes = true;
+          break;
+        case "'":
+          if ($in_single_quotes)
+              $in_single_quotes = false;
+          else
+              $in_single_quotes = true;
+          break;
+        case '/':
+          if ($is_open && !$in_double_quotes && !$in_single_quotes) {
+            $is_close  = true;
+            $is_open   = false;
+            $grab_open = false;
+          }
+          break;
+        case ' ':
+          if ($is_open)
+              $grab_open = false;
+          else
+              $stripped++;
+          break;
+        case '>':
+          if ($is_open) {
+            $is_open   = false;
+            $grab_open = false;
+            array_push($tags, $tag);
+            $tag = "";
+          }
+          else if ($is_close) {
+            $is_close = false;
+            array_pop($tags);
+            $tag = "";
+          }
+          break;
+        default:
+          if ($grab_open || $is_close)
+              $tag .= $symbol;
+          if (!$is_open && !$is_close)
+              $stripped++;
+      }
+      $i++;
+    }
+
+    if ($tags || (substr(trim($result), -2) == '>,')) {
+      // Get the last term position in case of open tag or end of a term
+      $trim_pos = strrpos($result, '<span>,');
+      $result_trim = substr($result, 0, $trim_pos);
+    } else {
+      $result_trim = $result;
+    }
+    $result = $result_trim . '<span class="morecontent"><span class="morechildren">' . str_replace($result_trim, '', $text) .  '</span></span>';
+    return $result;
+}
+
+/**
+ * Implements hook_block_view_alter().
+ *
+ * Sort the vocab facet by vocab weight.`
+ *
+ * @param $array
+ * @param $block
+ */
+function vsite_vocab_block_view_alter(&$array, $block) {
+  if (isset($array['content']['#facet']) && $array['content']['#facet']['name'] == 'sm_og_vocabulary' &&
+    empty(variable_get('os_search_solr_include_subsites', FALSE)) && empty(variable_get('os_search_solr_search_sites', array()))) {
+    module_load_include('inc', 'vsite_vocab', 'includes/taxonomy');
+    $vocabs = vsite_vocab_get_vocabularies ();
+    $new_content = array();
+    $selected = array_keys($array['content']['sm_og_vocabulary']);
+    foreach ($vocabs as $v) {
+      if (in_array($v->machine_name, $selected)) {
+        $new_content[$v->machine_name] = $array['content']['sm_og_vocabulary'][$v->machine_name];
+      }
+    }
+    $array['content']['sm_og_vocabulary'] = $new_content;
+  }
+}

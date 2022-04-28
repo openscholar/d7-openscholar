@@ -1,0 +1,62 @@
+diff --git a/css/calendar-overlap.css b/css/calendar-overlap.css
+index 1ea9919..8b4171f 100644
+--- a/css/calendar-overlap.css
++++ b/css/calendar-overlap.css
+@@ -64,8 +64,8 @@
+     border-top: 1px solid #CCCCCC;
+ }
+ 
+-.calendar-calendar .week-view #week-header-container,
+-.calendar-calendar .day-view #day-header-container {
++.calendar-calendar .week-view #calendar-week-header-container,
++.calendar-calendar .day-view #calendar-day-header-container {
+   width: 100%;
+   background: #ffffff;
+   border-bottom: 1px solid #CCCCCC;
+@@ -174,7 +174,7 @@
+   margin-top: 10px;
+ }
+ 
+-.calendar-calendar .day-view #header-container td.calendar-time-holder,
++.calendar-calendar .day-view #calendar-header-container td.calendar-time-holder,
+ .calendar-calendar .day-view #multi-day-container td.calendar-time-holder,
+ .calendar-calendar .day-view #single-day-container td.calendar-time-holder {
+   width: 50px;
+@@ -182,13 +182,13 @@
+   border: 0px;
+ }
+ 
+-.calendar-calendar .day-view #header-container td.calendar-day-holder,
++.calendar-calendar .day-view #calendar-header-container td.calendar-day-holder,
+ .calendar-calendar .day-view #multi-day-container td.calendar-day-holder,
+ .calendar-calendar .day-view #single-day-container td.calendar-day-holder {
+   width:95%;
+ }
+ 
+-.calendar-calendar .week-view #header-container td.calendar-time-holder,
++.calendar-calendar .week-view #calendar-header-container td.calendar-time-holder,
+ .calendar-calendar .week-view #multi-day-container td.calendar-time-holder,
+ .calendar-calendar .week-view #single-day-container td.calendar-time-holder {
+   width: 50px;
+@@ -196,7 +196,7 @@
+   border: 0px;
+ }
+ 
+-.calendar-calendar .week-view #header-container td.margin-right {
++.calendar-calendar .week-view #calendar-header-container td.margin-right {
+   width: 10px;
+ }
+ 
+diff --git a/theme/calendar-week-overlap.tpl.php b/theme/calendar-week-overlap.tpl.php
+index 4e91376..1f396ff 100644
+--- a/theme/calendar-week-overlap.tpl.php
++++ b/theme/calendar-week-overlap.tpl.php
+@@ -31,7 +31,7 @@ foreach ($day_names as $key => $value) {
+ ?>
+ 
+ <div class="calendar-calendar"><div class="week-view">
+-  <div id="header-container">
++  <div id="calendar-header-container">
+   <table class="full">
+   <tbody>
+     <tr class="holder"><td class="calendar-time-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder"></td><td class="calendar-day-holder margin-right"></td></tr>

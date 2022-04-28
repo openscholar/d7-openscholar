@@ -1,0 +1,42 @@
+<label for="fe-file-name">Name of file as seen by your site's visitors</label>
+<input id="fe-file-name" type="text" ng-model="file.name" class="form-text" ng-class="{error: invalidName}"/>
+
+<div ng-include="fileEditAddt"></div>
+
+<fieldset class="fieldset">
+<legend class="legend-open-link" ng-click="showAdvSettings =!showAdvSettings">Advanced (change filename, replace file, add a caption, etc.)</legend>
+<div ng-show="showAdvSettings">
+<div ng-show="file.schema == 'public' || file.schema == 'private'">
+    <label for="fe-filepath">File Name</label>
+    <span class="full-url">{{fullPath}}</span>
+    <span class="fe-filepath-wrapper"><input id="fe-filepath" type="text" ng-model="file.filename" class="form-text" ng-class="{error: invalidFileName}"></span>
+    <div ng-show="invalidFileName && file.filename" class="error">This filename cannot contain illegal characters, or a file with this name already exists!</div>
+</div>
+
+<label for="fe-file-description">{{description_label}}</label>
+<textarea id="fe-file-description" ng-model="file.description"></textarea>
+
+<label for="fe-file-timestamp">Uploaded On</label>
+<input id="fe-file-timestamp" type="text" ng-model="date" class="form-text" ng-class="{error: invalidDate}">
+
+<div class="fe-replace-wrapper" ng-show="!file.new && !file.replaced && (file.schema == 'public' || file.schema == 'private')">
+    <label for="fe-file-replace"></label>
+    <button id="fe-file-display-warning" ng-show="!showWarning && !showSuccess" ng-file-select ng-multiple="false" ng-accept="validate($file)" ng-file-change="prepForReplace($files, $event)" accept="{{extension}}">Replace File</button>
+    <div class="description"><em>Warning:</em> replacing the existing file cannot be undone.</div>
+    <div class="fe-replace-message error" ng-show="replaceReject">Selected file does not match extensions!</div>
+<div class="fe-replace-message success" ng-show="replaceSuccess">Successfully replaced file.</div>
+</div>
+
+<taxonomy-widget entity-type="file" terms="file.terms" bundle="{{file.type}}"></taxonomy-widget>
+</div>
+</fieldset>
+
+<div class="control">
+    <button ng-click="save()" ng-disabled="canSave()">Save</button> 
+    <button ng-click="cancel()">Cancel</button>
+</div>
+
+<div class="warning float alert-message" ng-show="showErrorMessages">
+    <span ng-click="closeErrors()" class="error-close">Close</span>
+    <span ng-bind-html="errorMessages"></span>
+</div>

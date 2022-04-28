@@ -1,0 +1,51 @@
+
+.cp-region-header-first {
+     height: 121px;
+     width: 205px;
+}
+
+.cp-region-header-second {
+   width: 205px;
+}
+
+
+.cp-region-menu-bar {
+     height: 145px;
+     margin: 0pt 0pt 0pt 8px;
+     width: 213px;
+}
+
+.cp-region-sidebar-first {
+     left: 429px;
+	 min-height: 36.2em;
+     position: absolute;
+     top: 155px;
+ }
+
+.cp-region-content {
+     left: 0pt;
+     position: absolute;
+     top: 155px;
+     width: 49%;
+}
+
+.cp-region-sidebar-second {
+     min-height: 36.2em;
+     position: absolute;
+     right: 0pt;
+     top: 155px;
+     width: 24.5%;
+}
+
+#edit-actions {
+     left: 0pt;
+     position: absolute;
+
+}
+
+.cp-region-footer-first,
+.cp-region-footer-third,
+.cp-region-footer {
+	margin-top:38em;
+
+}

@@ -1,0 +1,340 @@
+<?php
+/**
+ * @file
+ * Install file of the OS reader module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function os_reader_schema() {
+  $schema = array();
+
+  $schema['os_feed_item'] = array(
+    'description' => 'Base table of the feed item.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary identifier of the entry.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'guid' => array(
+        'description' => 'Unique identifier for the feed item.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'description' => 'the title of the feed item.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'description' => array(
+        'description' => 'The body of the feed item.',
+        'type' => 'blob',
+      ),
+      'created' => array(
+        'description' => 'The timestamp the feed created',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'url' => array(
+        'description' => 'The URL of the news.',
+        'type' => 'blob',
+      ),
+      'type' => array(
+        'description' => 'The type of the entity.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'feed_item',
+      ),
+      'importer_type' => array(
+        'description' => 'The type of the importer.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'news',
+      ),
+      'importer_nid' => array(
+        'description' => 'The feed importer NID',
+        'type' => 'int',
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'importer_type_nid' => array('importer_type', 'importer_nid'),
+      'importer_nid' => array('importer_nid'),
+    ),
+  );
+
+  if (module_exists('entitycache')) {
+    $cache_schema = drupal_get_schema_unprocessed('system', 'cache');
+    $schema["cache_entity_os_feed_item"] = $cache_schema;
+    $schema["cache_entity_os_feed_item"]['description'] = "Cache table used to store OS feed item entity records.";
+  }
+
+  return $schema;
+}
+
+/**
+ * Perform some setup items for the feed / feed_item content types provided by the feeds module
+ */
+function os_reader_install() {
+  // Turn comments off by default.
+  variable_set('comment_feed', COMMENT_NODE_CLOSED);
+  variable_set('comment_feed_item', COMMENT_NODE_CLOSED);
+
+  $og_field = og_fields_info(OG_AUDIENCE_FIELD);
+
+  // Enable Entity reference pre-populate.
+  $og_field['instance']['settings']['behaviors']['prepopulate'] = array(
+    'status' => TRUE,
+    'action' => 'hide',
+    'fallback' => 'hide',
+    'skip_perm' => FALSE,
+    'og_context' => TRUE,
+    'action_on_edit' => TRUE
+  );
+  og_create_field(OG_AUDIENCE_FIELD, 'os_feed_item', 'feed_item', $og_field);
+}
+
+/**
+ * Creating the OS feed item schema.
+ */
+function os_reader_update_7000() {
+  $schema = os_reader_schema();
+  db_create_table('os_feed_item', $schema['os_feed_item']);
+
+  module_enable(array('feeds', 'feeds_xpathparser'));
+}
+/**
+ * Adding an importer type.
+ */
+function os_reader_update_7001() {
+  $schema = os_reader_schema();
+  if (!db_field_exists('os_feed_item', 'importer_type')) {
+    db_add_field('os_feed_item', 'importer_type', $schema['os_feed_item']['fields']['importer_type']);
+  }
+}
+
+/**
+ * Adding field group reference to the feed importer entity.
+ */
+function os_reader_update_7002() {
+  $og_field = og_fields_info(OG_AUDIENCE_FIELD);
+  // Enable Entity reference pre-populate.
+  $og_field['instance']['settings']['behaviors']['prepopulate'] = array(
+    'status' => TRUE,
+    'action' => 'hide',
+    'fallback' => 'hide',
+    'skip_perm' => FALSE,
+    'og_context' => TRUE,
+    'action_on_edit' => TRUE
+  );
+  og_create_field(OG_AUDIENCE_FIELD, 'os_feed_item', 'feed_item', $og_field);
+}
+
+/**
+ * Remove duplicate feed importers items.
+ */
+function os_reader_update_7003(&$sandbox) {
+  if (!isset($sandbox['total'])) {
+    // count all the importers.
+    $sandbox['progress'] = 0;
+
+    $query = new EntityFieldQuery();
+    $sandbox['total'] = $query
+      ->entityCondition('entity_type', 'os_feed_item')
+      ->count()
+      ->execute();
+  }
+  $batch = 750;
+
+  $last_feed = isset($sandbox['feed_id']) ? $sandbox['feed_id'] : 0;
+
+  // Get only the feed items which not yet imported.
+  $query = new EntityFieldQuery();
+  $results = $query
+    ->entityCondition('entity_type', 'os_feed_item')
+    ->propertyOrderBy('id')
+    ->propertyOrderBy('title')
+    ->propertyCondition('id', $last_feed, '>=')
+    ->range(0, $batch)
+    ->execute();
+
+  if (!empty($results['os_feed_item'])) {
+    // We found items to process.
+    $feed_items = os_reader_feed_item_load_multiple(array_keys($results['os_feed_item']));
+    _os_reader_update_7003($feed_items, $sandbox['unique'], $sandbox['feed_id']);
+
+    if (drupal_is_cli()) {
+      // Display message when running the update via drush.
+      $params = array(
+        '@start' => $last_feed,
+        '@end' => $sandbox['feed_id'],
+      );
+      drush_log(dt('Delete feed items between @start to @end', $params), 'success');
+    }
+  }
+
+  // Increase the progress.
+  $sandbox['progress'] += $batch;
+
+  if ($sandbox['progress'] > $sandbox['total']) {
+    // The total results amount is smaller then the amount we processed in a
+    // single batch. After a single batch we can set the finished to true.
+    $sandbox['#finished'] = 1;
+  }
+  else {
+    // Save the last node, increase the node and check if the import finished.
+    $sandbox['#finished'] = ($sandbox['progress'] / $sandbox['total']);
+  }
+}
+
+/**
+ * Helper function; Delete duplicate feeds items and set the unique items as a
+ * group content.
+ *
+ * @param $feed_items
+ *  The loaded feed items objects to process in the current batch.
+ * @param $unique
+ *  The sandbox variable of the current batch.
+ * @param $feed_item_id
+ *  The last feed item id we processed.
+ */
+function _os_reader_update_7003($feed_items, &$unique, &$feed_item_id) {
+  $delete = array();
+
+  foreach ($feed_items as $feed_item) {
+    $wrapper = entity_metadata_wrapper('os_feed_item', $feed_item);
+
+    if (!isset($unique[$feed_item->importer_nid])) {
+      $unique[$feed_item->importer_nid] = array();
+    }
+
+    if (in_array($feed_item->title, $unique[$feed_item->importer_nid])) {
+      // Delete only feed item which are duplicate and not imported.
+      $delete[] = $feed_item->id;
+    }
+    else {
+      // Set the OG group ref field of this feed to the group which the node
+      // importer belong to.
+      $unique[$feed_item->importer_nid][] = $feed_item->title;
+
+      try {
+        $gid = $wrapper->importer_nid->{OG_AUDIENCE_FIELD}->get(0)->getIdentifier();
+        $wrapper->{OG_AUDIENCE_FIELD}->set(array($gid));
+        $wrapper->save();
+      } catch (Exception $e) {
+        $text = 'Group the feed item ' . $feed_item->title . '( ' . $feed_item->id . ') failed due to: ' . $e->getMessage();
+        watchdog('OS importer', $text);
+      }
+    }
+
+    $feed_item_id = $feed_item->id;
+  }
+
+  // Delete all the feeds importers.
+  if ($delete) {
+    // Delete the entities.
+    db_delete('os_feed_item')
+      ->condition('id', $delete, 'IN')
+      ->execute();
+
+    foreach (array('field_vsites_reference', 'field_nodes_reference') as $field) {
+      $field_info = field_info_field($field);
+      $table_name = _field_sql_storage_tablename($field_info);
+      $revision_name = _field_sql_storage_revision_tablename($field_info);
+
+      db_delete($table_name)
+        ->condition('entity_id', $delete, 'IN')
+        ->condition('entity_type', 'os_feed_item')
+        ->execute();
+
+      db_delete($revision_name)
+        ->condition('entity_id', $delete, 'IN')
+        ->condition('entity_type', 'os_feed_item')
+        ->execute();
+    }
+  }
+}
+
+/**
+ * Integrate between the Entity cache module to OS reader module.
+ */
+function os_reader_update_7004() {
+  if (!module_exists('entitycache')) {
+    return;
+  }
+
+  $cache_schema = drupal_get_schema_unprocessed('system', 'cache');
+  $schema["cache_entity_os_feed_item"] = $cache_schema;
+  $schema["cache_entity_os_feed_item"]['description'] = "Cache table used to store OS feed item entity records.";
+
+  db_create_table('cache_entity_os_feed_item', $schema["cache_entity_os_feed_item"]);
+}
+
+/**
+ * Delete duplicate feed items.
+ */
+function os_reader_update_7005(&$sandbox) {
+  os_reader_update_7003($sandbox);
+}
+
+/**
+ * Reset the last importer item we process since the logic for pruning
+ * un-imported items has changed.
+ */
+function os_reader_update_7006() {
+  variable_set('os_reader_last_feed_item', 0);
+}
+
+/**
+ * Change the formatter for reader teaser.
+ */
+function os_reader_update_7007() {
+  features_revert(array('os_reader' => array('field_instance')));
+}
+
+/**
+ * Add importer_type_nid grouped index to os_feed_item table.
+ */
+function os_reader_update_7008() {
+  if (!db_index_exists('os_feed_item', 'importer_type_nid')) {
+    db_add_index('os_feed_item', 'importer_type_nid', array('importer_type', 'importer_nid'));
+  }
+}
+
+/**
+ * Add importer_nid index to os_feed_item table.
+ */
+function os_reader_update_7009() {
+  if (!db_index_exists('os_feed_item', 'importer_nid')) {
+    db_add_index('os_feed_item', 'importer_nid', array('importer_nid'));
+  }
+}
+
+/**
+ * Delete orphan os feed items.
+ */
+function os_reader_update_7010() {
+  $query = db_select('os_feed_item', 'ofi');
+  $query->distinct();
+  $query->fields('ofi', ['importer_nid']);
+  $query->leftJoin('node', 'n', 'n.nid = ofi.importer_nid');
+  $query->isNull('n.nid');
+  $result = $query->execute();
+  $nids = $result->fetchAllKeyed();
+
+  if (count($nids)) {
+    // Delete all related feed item
+    $query = db_delete('os_feed_item');
+    $query->condition('importer_nid', array_keys($nids));
+    $query->execute();
+  }
+  drupal_set_message(t('%count orphan os feed items has been deleted.', ['%count' => count($nids)]));
+}

@@ -1,0 +1,13 @@
+diff --git a/includes/biblio.pages.inc b/includes/biblio.pages.inc
+index 0e8cc9e..4f9a970 100644
+--- a/includes/biblio.pages.inc
++++ b/includes/biblio.pages.inc
+@@ -554,7 +554,7 @@ function _biblio_sort_tabs() {
+   $sort_links = array();
+   $tabs = variable_get('biblio_sort_tabs_style', 0);
+   $uri = drupal_parse_url(request_uri());
+-  $uri['path'] = variable_get('biblio_base', 'biblio');
++  $uri['path'] = $_GET['q'];
+   if (substr($uri['path'], 0, 1) == '/') $uri['path'] = substr($uri['path'], 1);
+ 
+   $default = array(

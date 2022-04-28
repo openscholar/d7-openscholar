@@ -1,0 +1,15 @@
+/* Emerald version*/
+
+#menu-bar {
+  background: rgb(66, 105, 79);
+background: -moz-linear-gradient(270deg, rgb(66, 105, 79) 30%, rgb(91, 130, 104) 70%);
+background: -webkit-linear-gradient(270deg, rgb(66, 105, 79) 30%, rgb(91, 130, 104) 70%);
+background: -o-linear-gradient(270deg, rgb(66, 105, 79) 30%, rgb(91, 130, 104) 70%);
+background: -ms-linear-gradient(270deg, rgb(66, 105, 79) 30%, rgb(91, 130, 104) 70%);
+background: linear-gradient(0deg, rgb(66, 105, 79) 30%, rgb(91, 130, 104) 70%);
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color: #496f55;
+  }

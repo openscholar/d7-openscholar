@@ -1,0 +1,208 @@
+<?php
+
+/**
+ * @file
+ * Code for OS Virtual Site: Presets
+ */
+
+include_once 'vsite_preset.features.inc';
+
+/**
+ * Implements hook_og_tasks_info().
+ */
+function vsite_preset_og_tasks_info($entity_type, $entity) {
+  $tasks = array();
+  $path = drupal_get_path('module', 'vsite_preset');
+
+  // Provides all simple section tasks.
+  $sections = array(
+    'About' => array(
+      'subpages' => array(
+        'Contact',
+      ),
+    ),
+    'Academics' => array(),
+    'Activities' => array(),
+    'Bio' => array(
+      'subpages' => array(
+        'CV',
+      ),
+    ),
+    'News & Events' => array(),
+    'Overview' => array(),
+    'Research' => array(),
+    'Resources' => array(),
+    'Services' => array(),
+    'Program' => array(
+      'subpages' => array(
+        'Schedule',
+      ),
+    ),
+    'Register' => array(),
+    'Logistics' => array(),
+  );
+  foreach ($sections as $title => $info) {
+    $key = 'vsite_preset_section_' . str_replace(' ', '_', strtolower($title));
+    $tasks[$key] = _vsite_preset_new_section_task($title, $info);
+  }
+
+  // Provides a single generic menu ordering-task based off a preset variable.
+  $properties = array(
+    'title' => t('Initial Menu Order'),
+    'description' => t('Sets up standard primary menu link ordering.'),
+    'required' => TRUE,
+    'callback' => '_vsite_preset_menu_order_task',
+    'file' => $path . '/includes/menu.inc',
+  );
+  $tasks['vsite_preset_menu_order'] = new vsite_task($properties);
+
+  $properties = array(
+    'title' => t('Import content from CSV'),
+    'description' => t('Import vsite content from CSV files.'),
+    'required' => FALSE,
+    'callback' => 'vsite_preset_import_content_task',
+    'file' => $path . '/includes/import_content.inc',
+  );
+  $tasks['vsite_preset_import_content'] = new vsite_task($properties);
+
+  $properties = array(
+    'title' => t('Import menu items from CSV'),
+    'description' => t('Import vsite menu items from CSV files.'),
+    'required' => FALSE,
+    'callback' => 'vsite_preset_import_menu_task',
+    'file' => $path . '/includes/import_menu.inc',
+  );
+  $tasks['vsite_preset_import_menu'] = new vsite_task($properties);
+
+  $properties = array(
+    'title' => t('Create widgets'),
+    'description' => t('Create vsite widgets.'),
+    'required' => FALSE,
+    'callback' => 'vsite_preset_create_widgets_task',
+    'file' => $path . '/includes/create_widgets.inc',
+  );
+  $tasks['vsite_preset_create_widgets'] = new vsite_task($properties);
+
+  $properties = array(
+    'title' => t('Update page contexts'),
+    'description' => t('Update page contexts with real nids instead of aliases.'),
+    'required' => FALSE,
+    'callback' => 'vsite_preset_update_page_contexts_task',
+    'file' => $path . '/includes/update_contexts.inc',
+  );
+  $tasks['vsite_preset_update_page_contexts'] = new vsite_task($properties);
+
+  return $tasks;
+}
+
+/**
+ * Builds a new task that creates a page section and primary menu item.
+ *
+ * @param string $title
+ *   The string to use for the page title and menu link title.
+ * @return object $task
+ *   The new vsite_task object to create the new page and new menu link.
+ */
+function _vsite_preset_new_section_task($title, $info = array()) {
+  $path = drupal_get_path('module', 'vsite_preset');
+  $replacements = array('@title' => $title);
+  $properties = array(
+    'title' => t('@title Section', $replacements),
+    'description' => t('Sets up standard template for a @title section.', $replacements),
+    'required' => TRUE,
+    'callback' => '_vsite_preset_section_task',
+    'arguments' => array(
+      'title' => t($title),
+      'info' => $info,
+    ),
+    'file' => $path . '/includes/menu.inc',
+  );
+  $task = new vsite_task($properties);
+
+  return $task;
+}
+
+/**
+ * Get node ID by alias.
+ *
+ * @param string $alias
+ *   Alias of the node.
+ *
+ * @return int
+ *   Node id for the given alias or FALSE if not found.
+ */
+function vsite_preset_get_nid_from_alias($alias) {
+  $purl = vsite_get_purl();
+  $prefix = $purl ? $purl . '/' : '';
+  $path = drupal_get_normal_path($prefix . $alias);
+  if (strpos($path, 'node/') !== FALSE) {
+    $parts = explode('/', $path);
+    if (isset($parts[1]) && !empty($parts[1])) {
+      return $parts[1];
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Create slideshow_slide node.
+ *
+ * @param array $options
+ *   Slide node properties.
+ *
+ * @return obj
+ *   Slide node.
+ */
+function vsite_preset_create_slide($options) {
+  $slide = new stdClass();
+  $slide->type = 'slideshow_slide';
+  $slide->language = LANGUAGE_NONE;
+  $slide->status = NODE_PUBLISHED;
+  $slide->is_new = TRUE;
+  node_object_prepare($slide);
+  $wrapper = entity_metadata_wrapper('node', $slide);
+  if (isset($options['image']) && !empty($options['image'])) {
+    $purl = vsite_get_purl();
+    $destination = file_default_scheme() . '://' . $purl . '/files';
+    if (file_prepare_directory($destination, FILE_CREATE_DIRECTORY)) {
+      $file = system_retrieve_file($options['image'], $destination, TRUE);
+      if (is_object($file) && file_exists($file->uri)) {
+        $crop_x = isset($options['crop_x']) ? $options['crop_x'] : 0;
+        $crop_y = isset($options['crop_y']) ? $options['crop_y'] : 0;
+        $crop_height = isset($options['height']) ? $options['height'] : $file->image_dimensions['height'];
+        $crop_width = isset($options['width']) ? $options['width'] : $file->image_dimensions['width'];
+        $slide->field_image[LANGUAGE_NONE][0] = array(
+          'fid' => $file->fid,
+          'display' => 1,
+          'description' => '',
+          'cropbox_x' => $crop_x,
+          'cropbox_y' => $crop_y,
+          'cropbox_height' => $crop_height,
+          'cropbox_width' => $crop_width,
+        );
+      }
+    }
+  }
+  if (isset($options['link']) && !empty($options['link'])) {
+    $link = array(
+      'url' => $options['link'],
+      'title' => '',
+      'attributes' => array(),
+    );
+    $wrapper->field_link->set($link);
+  }
+  if (isset($options['headline']) && !empty($options['headline'])) {
+    $wrapper->field_headline->set($options['headline']);
+  }
+  if (isset($options['description']) && !empty($options['description'])) {
+    $wrapper->field_description->set($options['description']);
+  }
+  if (isset($options['alt']) && !empty($options['alt'])) {
+    $wrapper->field_slideshow_alt_text->set($options['alt']);
+  }
+  if (isset($options['title']) && !empty($options['title'])) {
+    $wrapper->field_slideshow_title_text->set($options['title']);
+  }
+  $wrapper->save();
+  return $wrapper->getIdentifier();
+}

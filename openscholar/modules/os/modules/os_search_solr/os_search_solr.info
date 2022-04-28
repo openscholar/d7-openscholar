@@ -1,0 +1,19 @@
+name = OpenScholar: Solr Search
+description = Provides OpenScholar Solr Search support and facets
+core = 7.x
+package = OpenScholar
+dependencies[] = apachesolr_search
+dependencies[] = context
+dependencies[] = ctools
+dependencies[] = current_search
+dependencies[] = facetapi
+dependencies[] = features
+features[ctools][] = facetapi:facetapi_defaults:1
+features[features_api][] = api:2
+features[ctools][] = boxes:box:1
+features[box][] = solr_search_box
+
+files[] = plugins/facetapi/os_adapter.inc
+files[] = plugins/facetapi/os_search_solr_other_sites_links.inc
+files[] = plugins/os_search_solr_search_box/os_search_solr_search_box.inc
+files[] = includes/OsSolrBaseQuery.php

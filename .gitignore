@@ -1,0 +1,33 @@
+.project
+.buildpath
+.settings
+.idea
+
+# Don't track temporary files or Mac OS system files.
+*~
+*.DS_store
+*.swp
+
+# Dont's track coder module backups
+*.coder.orig
+
+# Dont's track install configuration files.
+install.sh
+
+#behat
+openscholar/behat/vendor/
+openscholar/behat/vendor
+openscholar/behat/bin
+openscholar/behat.local.yml
+composer.phar
+openscholar/composer.lock
+behat/vendor
+
+openscholar/client/node_modules
+
+#make
+openscholar/1/
+openscholar/libraries/
+openscholar/modules/contrib/
+www/
+docker-compose.override.yml

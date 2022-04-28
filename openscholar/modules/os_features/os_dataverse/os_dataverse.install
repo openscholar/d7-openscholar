@@ -1,0 +1,171 @@
+<?php 
+
+/**
+ *  Updates dataverse urls from `dvn.iq.harvard.edu` to `thedata.harvard.edu` #2948
+ **/
+function os_dataverse_update_7001() {
+  $done = 0;
+  $results = db_select('spaces_overrides', 'so')
+    ->condition('object_type', 'variable')
+    ->condition('object_id', 'os_dataverse_dvn_alias')
+    ->fields('so')
+    ->execute();
+  
+  while ($row = $results->fetchAssoc()) {
+    $value = unserialize($row['value']);
+    $value = str_replace('http://dvn.iq.harvard.edu/', 'http://thedata.harvard.edu/', $value);
+    $value = serialize($value);
+    
+    if ($value != $row['value']) {
+      $done += db_update('spaces_overrides')
+        ->fields(array('value' => $value))
+        ->condition('type', $row['type'])
+        ->condition('id', $row['id'])
+        ->condition('object_type', $row['object_type'])
+        ->condition('object_id', $row['object_id'])
+        ->execute();  
+    }
+  }
+  
+  return t('Updated @count sites.', array('@count' => $done));
+}
+
+/**
+ *  Changes dataverse app to widgets with new embed code
+ **/
+function os_dataverse_update_7002() {
+  $query = db_select('spaces_overrides', 'spaces_overrides')
+    ->condition('object_type', 'variable')
+    ->condition('object_id', 'os_dataverse_dvn_alias')
+    ->fields('spaces_overrides', array('id', 'value'));
+  $results = $query->execute();
+
+  $done = 0;
+
+  while ($row = $results->fetchObject()) {
+    $vsite_id = $row->id;
+    $vsite = vsite_get_vsite($vsite_id)->og;
+    $vsite_name = $vsite->purl;
+
+    // get dataverse account user alias
+    preg_match('/dvn\/dv\/([\w_\d]+)/', $row->value, $matches);
+
+    if (isset($matches[1])) {
+      $user_alias = $matches[1];
+      $transaction = db_transaction();
+
+      try {
+        // create new page and add it to the vsite
+        $node = os_create_node('Dataverse', 'page', 1);
+        vsite_add_node($node, $vsite_id);
+        $path = array(
+          "source" => "node/" . $node->nid, 
+          "alias" => "$vsite_name/data"
+        );
+        path_save($path);
+
+        // fix primary menu to link to that page
+        $menu_data = db_select('spaces_overrides', 'spaces_overrides')
+          ->condition('object_id', 'primary-menu')
+          ->condition('id', $vsite_id)
+          ->fields('spaces_overrides', array('value'))
+          ->execute()
+          ->fetchField();
+
+        if ($menu_data) {
+          $menu = unserialize($menu_data);
+          $menu['2566']['link_path'] = "node/" . $node->nid;
+          $menu['2566']['module'] = "menu";
+          $menu['2566']['router_path'] = "node/%";
+          $menu_data = serialize($menu);
+
+          db_update('spaces_overrides')
+            ->fields(array('value' => $menu_data))
+            ->condition('object_id', 'primary-menu')
+            ->condition('id', $vsite_id)
+            ->execute();
+        }
+
+        // create the dataverse box objects
+        $search_delta = os_boxes_create_delta();
+        $search_box = new stdClass();
+        $search_box->embed_as = array("iframe");
+        $search_box->changed = NULL;
+        $search_box->delta = $search_delta;
+        $search_box->title = "";
+        $search_box->description = "Dataverse search";
+        $search_box->options = array(
+          "make_embeddable" => 0,
+          "user_alias" => $user_alias,
+          "search_box_text" => "Search my dataverse",
+          "additional_classes" => ""
+        );
+        $search_box->plugin_key = "os_boxes_dataverse_search";
+
+        $list_delta = $search_delta + 1;
+        $list_box = new stdClass();
+        $list_box->embed_as = array("iframe");
+        $list_box->changed = NULL;
+        $list_box->delta = $list_delta;
+        $list_box->title = "";
+        $list_box->description = "Dataverse listing";
+        $list_box->options = array(
+          "make_embeddable" => 0,
+          "user_alias" => $user_alias,
+          "embed_height" => "500px",
+          "additional_classes" => ""
+        );
+        $list_box->plugin_key = "os_boxes_dataverse_list";
+
+        // create page array
+        $page = array(
+          "blocks" => array(
+            "os_pages-main_content" => array(
+              "module" => "os_pages",
+              "delta" => "main_content",
+              "region" => "content_top",
+              "weight" => 0,
+              "status" => 0,
+              "title" => ""
+            ),
+            "boxes-$search_delta" => array(
+              "module" => "boxes",
+              "delta" => $search_delta,
+              "title" => "Dataverse search",
+              "region" => "content_top",
+              "status" => 0,
+              "weight" => 1
+            ),
+            "boxes-$list_delta" => array(
+              "module" => "boxes",
+              "delta" => $list_delta,
+              "title" => "Dataverse list",
+              "region" => "content_top",
+              "status" => 0,
+              "weight" => 2
+            )
+          )
+        );
+
+        db_insert('spaces_overrides')
+          ->fields(array('type' => 'og', 'id' => $vsite_id, 'object_type' => 'boxes', 'object_id' => $search_delta, 'value' => serialize($search_box)))
+          ->execute();
+
+        db_insert('spaces_overrides')
+          ->fields(array('type' => 'og', 'id' => $vsite_id, 'object_type' => 'boxes', 'object_id' => $list_delta, 'value' => serialize($list_box)))
+          ->execute();
+
+        db_insert('spaces_overrides')
+          ->fields(array('type' => 'og', 'id' => $vsite_id, 'object_type' => 'context', 'object_id' => 'os_pages-page-' . $node->nid . ':reaction:block', 'value' => serialize($page)))
+          ->execute();
+        $done++;
+      }
+      catch (Exception $e) {
+        $transaction->rollback();
+        watchdog_exception('spaces_overrides', $e);
+        throw $e;
+      }
+    }
+  }
+  return t('Updated @count sites.', array('@count' => $done));
+}

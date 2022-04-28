@@ -1,0 +1,33 @@
+default:
+  context:
+    parameters:
+      drupal_users:
+        admin:
+          'admin'
+        john:
+          'jfk'
+        michelle:
+          'FourMoreYears'
+        bill:
+          'clinton'
+        alexander:
+          'bell'
+        demo:
+          'demo'
+        bruce:
+          'bruce'
+        klark:
+          'klark'
+      # the node ID of the group
+      vsite:
+        2
+
+  extensions:
+    Behat\MinkExtension\Extension:
+      base_url:  BASE_URL
+    Drupal\DrupalExtension\Extension:
+      drupal:
+        drupal_root: "PathToDrupal"
+      api_driver: "drupal"
+      drush:
+        alias: DRUSH_ALIAS

@@ -1,0 +1,7 @@
+name = 3 Frontpage Columns
+description = A 3 Frontpage Columns Version of the Commodore theme
+screenshot = screenshot.png
+
+css[] = 3Columns_front.css
+
+os[cp_layout_css] = cp-layout-map.css

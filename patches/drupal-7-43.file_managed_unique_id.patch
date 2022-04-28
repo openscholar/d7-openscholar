@@ -1,0 +1,13 @@
+diff --git a/modules/file/file.module b/modules/file/file.module
+index 9e091af..3910c93 100644
+--- a/modules/file/file.module
++++ b/modules/file/file.module
+@@ -691,7 +691,7 @@ function theme_file_managed_file($variables) {
+ 
+   $attributes = array();
+   if (isset($element['#id'])) {
+-    $attributes['id'] = $element['#id'];
++    $attributes['id'] = $element['#id'] . '-wrapper';
+   }
+   if (!empty($element['#attributes']['class'])) {
+     $attributes['class'] = (array) $element['#attributes']['class'];

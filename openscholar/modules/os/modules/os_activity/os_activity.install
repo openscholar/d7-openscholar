@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the OS activity module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function os_activity_install() {
+  variable_set('message_purge_enable', TRUE);
+  variable_set('message_purge_days', 30);
+}
+
+/**
+ * Enables message purge.
+ */
+function os_activity_update_7000() {
+  variable_set('message_purge_enable', TRUE);
+  variable_set('message_purge_days', 30);
+}

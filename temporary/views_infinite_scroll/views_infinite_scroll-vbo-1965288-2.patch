@@ -1,0 +1,13 @@
+diff --git a/views_plugin_pager_infinite_scroll.inc b/views_plugin_pager_infinite_scroll.inc
+index 0c12eb9..c4e2235 100644
+--- a/views_plugin_pager_infinite_scroll.inc
++++ b/views_plugin_pager_infinite_scroll.inc
+@@ -43,7 +43,7 @@ class views_plugin_pager_infinite_scroll extends views_plugin_pager_full {
+         $items_selector = '.views-row';
+         break;
+       case 'table':
+-        $content_selector = 'div.view-content > table > tbody';
++        $content_selector = 'div.view-content tbody';
+         $items_selector = 'tr';
+         break;
+     }

@@ -1,0 +1,43 @@
+<?php
+
+function cp_menu_enable() { 
+  _cp_menu_update_weight();
+}
+
+/**
+ * Updates weight so cp_menu comes after pathauto
+ */
+function cp_menu_update_7000() {
+  _cp_menu_update_weight();
+}
+
+/**
+ * Enables tooltip/title editing 
+ */
+function cp_menu_update_7001() {
+  variable_set('cp_menu_link_options_tooltip', 1);
+}
+
+/**
+ * @function _cp_menu_update_weight
+ * 
+ * cp_menu needs to be after menu and pathauto modules
+ */
+function _cp_menu_update_weight() {
+  $menu_weight = db_select('system', 's')
+    ->fields('s', array('weight'))
+    ->condition('name', 'menu')
+    ->execute()->fetchField(0);
+  
+  $pathauto_weight = db_select('system', 's')
+    ->fields('s', array('weight'))
+    ->condition('name', 'pathauto')
+    ->execute()->fetchField(0);
+  
+  db_update('system')
+    ->fields(array('weight' => max($pathauto_weight, $menu_weight) + 1))
+    ->condition('name', 'cp_menu')
+    ->condition('type', 'module')
+    ->execute();
+}
+

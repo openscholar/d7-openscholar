@@ -1,0 +1,289 @@
+<?php
+
+/**
+ * @file
+ * OS wysiwyg main module file.
+ */
+
+/**
+ * Implements hook_wysiwyg_editor_settings_alter().
+ */
+function os_wysiwyg_wysiwyg_editor_settings_alter(&$settings, $context) {
+  global $base_url;
+
+  // Settings there are no UI options for.
+  $settings['gecko_spellcheck'] = true;
+  $settings['theme_advanced_path'] = false;
+  $settings['theme_advanced_statusbar'] = false;
+  drupal_add_css(drupal_get_path('module', 'os_wysiwyg') . '/os_wysiwyg.css');
+
+  $settings['contentsCss'] = array(
+   $base_url . '/' . drupal_get_path('theme', 'hwpi_basetheme') . '/css/hwpi.base.css',
+  );
+
+  ctools_include('themes', 'os');
+  $flavors = os_theme_get_flavors();
+  $theme = os_theme_get();
+
+  $theme_info = os_get_themes($theme, 'vsite', FALSE);
+
+  if ($theme_info->stylesheets) {
+    // Adding the css of the theme.
+    foreach ($theme_info->stylesheets as $stylesheets) {
+      foreach ($stylesheets as $stylesheet) {
+        $settings['contentsCss'][] = $base_url . '/' . $stylesheet;
+      }
+    }
+  }
+
+  if ($flavor_name = variable_get('os_appearance_' . $theme . '_flavor')) {
+    $flavor_info = $flavors[$flavor_name];
+
+    // Adding the css of the current flavor.
+    foreach ($flavor_info['css'] as $css) {
+      $settings['contentsCss'][] = $base_url . '/' . $flavor_info['path'] . '/' . $css;
+    }
+  }
+
+  _os_wysiwyg_add_public_css($settings, $context);
+  if ($context['profile']->format == 'filtered_html') {
+
+    // Reorder buttons.
+    // TODO: remove when WYSIWYG module can do this for us
+
+    // Format select buttons.
+    if (is_array($settings['toolbar']) && $btns = reset($settings['toolbar'])) {
+      $format_start = array_search('formatselect', $btns);
+      $selects = array_splice($btns, $format_start, 4);
+      $format_start = array_search('pasteword', $btns);
+      array_splice($btns, $format_start, 0, $selects);
+
+      // Move some buttons to end of first row.
+      $insert = array();
+
+      // Media button.
+      $media_start = array_search('media', $btns);
+      $media = array_splice($btns, $media_start, 1);
+      $insert = array_merge($insert, $media);
+
+      // Teaser break button.
+      $teaser_start = array_search('break', $btns);
+      $teaser = array_splice($btns, $teaser_start, 1);
+      $insert = array_merge($insert, $teaser);
+
+      // Toggle toolbar button.
+      $toggle_start = array_search('pdw', $btns);
+      if ($toggle_start !== FALSE) {
+        $toggle = array_splice($btns, $toggle_start, 1);
+        $insert = array_merge($insert, $toggle);
+      }
+
+      // os_wysiwyg_link button.
+      $link_start = array_search('os_link', $btns);
+      $link = array_splice($btns, $link_start, 1);
+      $unlink_start = array_search('unlink', $btns);
+      array_splice($btns, $unlink_start, 0, $link);
+      array_splice($btns, $format_start, 0, $insert);
+
+      $toolbarStart = array_search('break', $btns) + 1;
+      $settings['theme_advanced_buttons2'] = implode(',', array_splice($btns, $toolbarStart));
+      $settings['theme_advanced_buttons1'] = implode(',', $btns);
+    }
+    $new_buttons = array();
+    $buttons = $settings['toolbar'][0];
+
+
+    foreach ($buttons as $button) {
+
+      if (in_array($button, array('Unlink', 'os_link'))) {
+          continue;
+      }
+
+      $new_buttons[] = $button;
+    }
+
+    $new_buttons[] = 'Unlink';
+    $new_buttons[] = 'os_link';
+
+    $settings['toolbar'][0] = $new_buttons;
+
+    // PDW settings
+    $settings['pdw_toggle_toolbars'] = '2,3,4';
+    $settings['pdw_toggle_on'] = 1;
+  }
+}
+
+/**
+ * Helper function to add css files.
+ */
+function _os_wysiwyg_add_public_css(&$settings, $context) {
+    ctools_include('themes', 'os');
+    $theme = os_theme_get();
+    $flavor = os_theme_get_flavor();
+
+    $css = _os_wysiwyg_get_theme_css($theme);
+
+    $flavors = os_theme_get_flavors($theme);
+    $flavor = variable_get('os_appearance_' . $theme . '_flavor', 'default');
+    if ($flavor != 'default' && isset($flavors[$flavor])) {
+        $flavor = $flavors[$flavor];
+        if (isset($flavor['css'])) {
+            foreach ($flavor['css'] as $file) {
+                $css[] = $flavor['path'].'/'.$file;
+            }
+        }
+    }
+
+    $settings['content_css'] = implode(',', $css);
+    $settings['body_class'] = "page-node not-front node node-inner content";
+}
+
+/**
+ * Return valid wysiwyg sheets given a theme.
+ */
+function _os_wysiwyg_get_theme_css($theme) {
+    $css = array();
+    $themes = list_themes();
+    if (!isset($themes[$theme])) return $css;
+
+    $theme = $themes[$theme];
+    if (!empty($theme->stylesheets)) {
+        foreach ($theme->stylesheets as $media => $stylesheets) {
+            //Skip print stylesheets
+            if ($media != 'print') {
+                foreach ($stylesheets as $name => $stylesheet) {
+                    if (file_exists($stylesheet)) {
+                        $css[] = base_path() . $stylesheet;
+                    }
+                }
+            }
+        }
+    }
+
+    if (isset($theme->base_theme) && isset($themes[$theme->base_theme])) {
+        $css = array_merge(_os_wysiwyg_get_theme_css($theme->base_theme), $css);
+    }
+
+    return $css;
+}
+
+/**
+ * Adds the pdw plugin to the wysiwyg.
+ */
+function os_wysiwyg_wysiwyg_include_directory($type) {
+    if ($type == 'plugins') {
+        return $type;
+    }
+}
+
+/**
+ * Implements hook_element_info_alter().
+ *
+ * Adds a pre-render to the text_format element.
+ */
+function os_wysiwyg_element_info_alter(&$elements) {
+    $elements['text_format']['#attached']['js'][] = drupal_get_path('module', 'os_wysiwyg').'/os_wysiwyg.js';
+}
+
+/**
+ * Implements hook_field_widget_info.
+ * Defines a field form widget for expanding textarea wysiwygs
+ */
+function os_wysiwyg_field_widget_info() {
+    return array(
+        'os_wysiwyg_expanding_textarea' => array(
+            'label' => t('Expanding Textarea'),
+            'field types' => array(
+                'text_long',
+                'text_with_summary',
+            ),
+            'settings' => array(
+                'rows' => 1,
+                'max_rows' => 10,
+            ),
+            'behaviors' => array(
+                'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+                'default value' => FIELD_BEHAVIOR_DEFAULT,
+            ),
+            'weight' => 3,
+        ),
+    );
+}
+
+/**
+ * Implements hook_field_widget_form.
+ */
+function os_wysiwyg_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+    $info = element_info('text_format');
+
+    $element += array(
+        '#type' => 'text_format',
+        '#default_value' => isset($items[$delta]['value']) ? $items[$delta]['value'] : NULL,
+        '#maxlength' => variable_get('os_wysiwyg_maximum_length_' . $instance['field_name'], 5 * 1000000),
+        '#rows' => 5,
+        '#attributes' => array(
+            'class' => array(
+                'text-full',
+                'os-wysiwyg-expandable'
+            ),
+            'data-maxrows' => $instance['widget']['settings']['max_rows'],
+            'data-minrows' => $instance['widget']['settings']['rows']
+        ),
+        '#attached' => array(
+            'js' => $info['#attached']['js'] + array(
+                    drupal_get_path('module', 'os_wysiwyg') . '/os_wysiwyg.widget.js' => array (
+                        'weight' => 5000,
+                        'scope' => 'footer',
+                    ),
+                ),
+            'css' => array( drupal_get_path('module', 'os_wysiwyg').'/os_wysiwyg.widget.css'),
+        )
+    );
+    return $element;
+}
+
+/**
+ * Implements hook_field_widget_settings_form.
+ */
+function os_wysiwyg_field_widget_settings_form($field, $instance) {
+    $form = text_field_widget_settings_form($field, $instance);
+
+    $widget = $instance['widget'];
+    $settings = $widget['settings'];
+
+    $form['rows']['#weight'] = -2;
+    $form['rows']['#title'] = t('Collapsed Rows');
+    $form['max_rows'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Expanded Rows'),
+        '#default_value' => $settings['max_rows'],
+        '#required' => TRUE,
+        '#element_validate' => array('element_validate_integer_positive'),
+        '#weight' => -1
+    );
+
+    return $form;
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function os_wysiwyg_field_widget_form_alter(&$element, &$form_state, $context) {
+    if ($context['instance']['widget']['type'] != 'os_wysiwyg_expanding_textarea') {
+        return;
+    }
+
+    array_unshift($element['#attached']['js'], drupal_get_path('module', 'os_wysiwyg') . '/js/wrap_plugins.js');
+}
+
+/**
+ * Implements hook_preprocess_field().
+ */
+function os_wysiwyg_preprocess_field(&$variables) {
+    $element = $variables['element'];
+
+    if ($element['#field_name'] == 'body') {
+        // Adding the latex JS library.
+        drupal_add_js('//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML', 'external');
+    }
+}

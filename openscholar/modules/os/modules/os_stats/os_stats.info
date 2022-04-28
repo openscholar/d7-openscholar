@@ -1,0 +1,5 @@
+core = "7.x"
+description = "Provides a statistics block for OpenScholar sites."
+name = "OpenScholar: Stats"
+package = "OpenScholar"
+version = "7.x-beta1"

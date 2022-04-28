@@ -1,0 +1,214 @@
+/* D6 retro css for older themes */
+#columns {padding:0 10px;}
+
+
+body {
+  background: url('../images/background03.jpg') 50% 0 repeat;
+  color: #050505;
+  }
+
+
+/*TYPOGRAPHY*/
+.biblio-title a, .biblio-title-chicago a,
+a,
+a:visited {
+  color: #006e97;
+  }
+
+a:hover {
+  color: #000;
+  }
+  
+ h1#page-title {
+ 	font-size: 1.5em;
+ } 
+
+#header-container h1 a,
+#header-container h1 a:visited,
+#header-container h2, #header-container p,
+#header-container p a,
+#header-container p a:visited {
+  color: #fff;
+  font-weight: normal;
+  }
+
+#header-container h1 {
+  font-size: 23px;
+  margin: 0;
+  }
+
+#header-container h2 {
+  font-size: 17px;
+  margin: 0;
+  }
+
+#header-container p {
+  font-size: 13px;
+  margin:0;
+  }
+
+#header-container #block-os-primary-menu  {
+  margin-top: 10px;
+  text-align:right;
+  }
+
+.region-sidebar-first h3,
+.region-sidebar-second h3,
+.region-sidebar-second div.litecal .litecal-title h3.litecal-title,
+.region-sidebar-first div.litecal .litecal-title h3.litecal-title {
+  font-size: 14px;
+  line-height: 17px;
+  text-transform: uppercase;
+  }
+
+.block-vsite_menus li a,
+.block-vsite_menus li a:visited {
+  color: #ec8501;
+  font-weight: bold;
+  }
+
+.region-header-second .block-vsite_menus li a:hover {
+  color: #fff;
+  }
+
+/* LAYOUT */
+
+#page {
+  background: rgba(0,0,0,0.4);
+  margin: 10px auto;
+  padding: 21px 23px;
+  
+  }
+
+#header-container {
+  padding-bottom: 9px;
+  
+  }
+
+#columns {
+  clear:both;
+  padding: 9px 0 0;
+  }
+  
+  
+.content-inner {
+	padding:0 15px;
+}
+
+
+.region-sidebar-first .region-inner,
+.region-sidebar-second .region-inner {
+	border-left:1px dashed #CCC;
+}
+
+#footer .region-footer {
+  padding-top:16px;
+  }
+
+
+#columns .hg-container {
+  background: #fff;
+  overflow:auto;
+  padding: 30px 0;
+  }
+
+
+.no-sidebars #columns .hg-container {
+  background: #fff;
+  }
+
+.region-header-first,
+.region-header-third,
+#header-container #boxes-box-site_logo img {
+  width:80px;
+  }
+
+#header-container #scholar-shield img {
+  width: 55px;
+  }
+
+
+#menu-bar {
+  width: 390px;
+  float: right;
+  clear: none;
+  padding: 0 0 0 0;
+  min-height: 71px;
+  }
+
+#menu-bar {
+  text-align: right;
+  }
+
+#menu-bar li {
+  display: inline;
+  margin-left: 16px;
+  display:inline;
+  font-size: .9em;
+  line-height: 1.5em;
+  }
+
+#menu-bar li.last {
+  margin-right: 0;
+  }
+
+#menu-bar li a, #menu-bar li a:visited {
+  color: #fff;
+  text-transform:uppercase;
+  }
+
+#menu-bar li a:hover,
+#menu-bar li a.active, #menu-bar li.active-trail a {
+  color: #EDEF1D;
+  }
+
+.clearfix:after {
+	  display: inline;
+	
+}
+
+#menu-bar ul.nice-menu ul {
+	left: -1.5em;
+    top: 1.3em;
+    border-top:none;
+	
+}
+
+#menu-bar ul.nice-menu ul a {
+	color:#293352;
+	
+}
+
+.sidebar ul.menu a {
+    color: #027AC6;
+}
+
+.sidebar ul.menu a:hover {
+    text-decoration:underline !important;
+}
+
+ul.nice-menu li {
+    float: right !important;
+}
+
+/* HTML ITEMS */
+
+
+
+#footer {
+  padding-top: 0;
+  margin-top:-4px;
+  height: auto;
+  }
+
+p.copy, p.copy a, p.copy a:visited {
+    color:#f8f8f8;
+    }
+
+p.copy a {
+  text-decoration: underline;
+  }
+
+p.copy a.poweredby {
+  background-position: 0 -26px;
+  }

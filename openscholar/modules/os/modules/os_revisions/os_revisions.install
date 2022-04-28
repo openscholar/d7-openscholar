@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the os revisions module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function os_revisions_uninstall() {
+  $node_types = array_keys(node_type_get_types());
+  foreach ($node_types as $node_type) {
+    variable_del('enable_revisions_' . $node_type);
+    variable_del('restrict_node_revision_number_for_' . $node_type);
+  }
+  module_disable(array('node_revision_restrict'));
+}

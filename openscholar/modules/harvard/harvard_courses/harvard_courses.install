@@ -1,0 +1,224 @@
+<?php
+/**
+ * @file
+ * Install file for Harvard courses module.
+ */
+
+function harvard_courses_install() {
+  drupal_set_message(t('Please clear you cache for the settings to take place.'));
+
+  // Apply features exported fields.
+  features_rebuild();
+  field_cache_clear();
+
+  // Create import nodes.
+  $node = new stdClass();
+  $node->type = 'harvard_api_importer';
+  $node->title = 'Department & school importer';
+  $node->language = LANGUAGE_NONE;
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $wrapper->field_base_url->set('http://services.isites.harvard.edu/course_catalog/api/v1/search');
+  $wrapper->field_import_type->set('department_school');
+  $wrapper->author->set(1);
+  $wrapper->save();
+
+  $node = new stdClass();
+  $node->type = 'harvard_api_importer';
+  $node->title = 'Catalog importer';
+  $node->language = LANGUAGE_NONE;
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $wrapper->field_base_url->set('http://services.isites.harvard.edu/course_catalog/api/v1/search');
+  $wrapper->field_import_type->set('cat_num');
+  $wrapper->author->set(1);
+  $wrapper->save();
+
+  // Enable the harvard courses feature.
+  $preset = spaces_preset_load('os_scholar', 'og');
+  $preset->value['variable']['spaces_features']['harvard_courses'] = 1;
+  spaces_preset_save($preset);
+
+  $spaces_features = variable_get('spaces_features', array());
+  $spaces_features['harvard_courses'] = 1;
+  variable_set('spaces_features', $spaces_features);
+
+  // Change the weight of the module so we can change the OS add new link menu.
+  $weight = db_select('system', 's')
+    ->fields('s', array('weight'))
+    ->condition('name', 'os')
+    ->execute()
+    ->fetchField();
+
+  db_update('system')
+    ->fields(array('weight' => $weight +1))
+    ->condition('name', 'harvard_courses')
+    ->execute();
+
+  // Terms.
+  $taxonomy_terms = array(
+    'Faculty of Arts and Sciences',
+    'Harvard Business School - Doctoral Programs',
+    'Harvard Business School - MBA Program',
+    'Harvard Divinity School',
+    'Harvard Extension School',
+    'Harvard Graduate School of Design',
+    'Harvard Graduate School of Education',
+    'Harvard Kennedy School',
+    'Harvard Law School',
+    'Harvard Medical School',
+    'Harvard School of Dental Medicine',
+    'Harvard School of Public Health',
+    'Harvard Summer School',
+  );
+
+  // Creating the vocabulary.
+  $vocabulary = taxonomy_vocabulary_machine_name_load('schools_names');
+  if (!$vocabulary) {
+    // Create a terms vocabulary.
+    $vocabulary = new stdClass();
+    $vocabulary->name = 'Schools names';
+    $vocabulary->machine_name = 'schools_names';
+    taxonomy_vocabulary_save($vocabulary);
+  }
+
+  // Creating the terms for the vocabulary.
+  foreach ($taxonomy_terms as $taxonomy_term) {
+    // Create a term in the vocabulary.
+    $term = new stdClass();
+    $term->name = $taxonomy_term;
+    $term->vid = $vocabulary->vid;
+    taxonomy_term_save($term);
+  }
+}
+
+/**
+ * Disable comments for existing harvard courses nodes.
+ */
+function harvard_courses_update_7000() {
+  db_query("UPDATE {node} SET comment = 1 WHERE type = 'harvard_course'");
+}
+
+/**
+ * Disable comments for existing harvard courses nodes.
+ */
+function harvard_courses_update_7001() {
+  features_revert(array('harvard_courses' => array('field', 'views_view')));
+  drupal_flush_all_caches();
+}
+
+/**
+ * Set the time stamp field for the harvard courses.
+ */
+function harvard_courses_update_7002(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'query' => 'harvard_courses_update_time_stamp_query',
+    'iterator' => 'harvard_courses_update_iterator',
+    'batch' => 250,
+    'entity' => 'node',
+  ));
+}
+
+/**
+ * Remove the pre-populate settings for harvard courses group reference and
+ * remove all the courses membership.
+ */
+function harvard_courses_update_7003() {
+  $instance = field_info_instance('node', OG_AUDIENCE_FIELD, 'harvard_course');
+  $instance['settings']['behaviors']['prepopulate']['status'] = FALSE;
+  field_update_instance($instance);
+
+  $query = new EntityFieldQuery();
+
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'harvard_course')
+    ->execute();
+
+  db_delete('og_membership')
+    ->condition('etid', array_keys($result['node']))
+    ->condition('entity_type', 'node')
+    ->execute();
+}
+
+/**
+ * Update harvard courses reference.
+ */
+function harvard_courses_update_7004(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'path' => drupal_get_path('module', 'harvard_courses') . '/includes/updates.inc',
+    'query' => array('HarvardCoursesUpdate7004', 'query'),
+    'iterator' => array('HarvardCoursesUpdate7004', 'iterator'),
+  ));
+}
+
+/**
+ * Change the guid for harvard courses importer.
+ */
+function harvard_courses_update_7005() {
+  features_revert(array('harvard_courses' => array('feeds_importer')));
+}
+
+/**
+ * Delete harvard courses.
+ */
+function harvard_courses_update_7006(&$sandbox) {
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    // Get the total amounts of nodes.
+    $query = new EntityFieldQuery();
+    $sandbox['max'] = $query
+      ->entityCondition('entity_type', 'node')
+      ->propertyCondition('type', 'harvard_course')
+      ->count()
+      ->execute();
+  }
+
+  $id = empty($sandbox['id']) ? 0 : $sandbox['id'];
+
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'harvard_course')
+    ->propertyCondition('nid', $id, '>=')
+    ->range(0, 150)
+    ->execute();
+
+  $ids_array = array_keys($result['node']);
+
+  if (empty($ids_array)) {
+    return;
+  }
+
+  node_delete_multiple($ids_array);
+
+  $sandbox['id'] = end($ids_array);
+
+  if ($sandbox['progress'] > $sandbox['max']) {
+    // The total results amount is smaller then the amount we processed in a
+    // single batch. After a single batch we can set the finished to true.
+    $sandbox['#finished'] = 1;
+  }
+  else {
+    // Save the last node, increase the node and check if the import finished.
+    $sandbox['#finished'] = ($sandbox['progress'] / $sandbox['max']);
+  }
+}
+
+/**
+ * Adding secondary order to the courses view: order by the course title.
+ */
+function harvard_courses_update_7007() {
+  features_revert(array('harvard_courses' => array('feeds_importer')));
+}
+
+/**
+ * Update to API URL.
+ */
+function harvard_courses_update_7008() {
+  $importers = node_load_multiple(array(), array('type' => 'harvard_api_importer'));
+
+  foreach ($importers as $importer) {
+    $importer = entity_metadata_wrapper('node', $importer);
+    $importer->field_base_url->set('https://api.courses.harvard.edu/api/search');
+    $importer->save();
+  }
+}

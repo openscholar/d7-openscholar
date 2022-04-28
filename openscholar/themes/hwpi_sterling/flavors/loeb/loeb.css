@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans');
+body *,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+.date-nav h3,
+.slide-copy h2 {
+    font-family: 'Open Sans';
+}
+.accordion .ui-state-default,
+.ui-tabs ul.ui-tabs-nav li,
+.event-start .event-start,
+#menu-bar {
+    background-color: #f1f1f1;
+}
+#columns .accordion ul.nice-menu li,
+#columns .os-custom-menu ul.nice-menu li,
+#columns #block-os-primary-menu ul.nice-menu li,
+#columns #block-os-secondary-menu ul.nice-menu li,
+#columns .os-custom-menu ul.menu li,
+#columns #block-os-primary-menu ul.menu li,
+#columns #block-os-secondary-menu ul.menu li,
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a,
+.section-nav .menu-depth-1 > a,
+.section-nav a:hover {
+    background-color: #f1f1f1 !important;
+}
+
+#header {
+    background-color: #fff;
+}
+body {
+    background-color: #f9f9f9;
+}
+#boxes-box-site_info h1 a {
+    font-family: Georgia;
+    font-size: 1.1em;
+}
+#menu-bar {
+    border-top: none;
+    border-bottom: none;
+}
+#header,
+#header a,
+body {
+    color: #222;
+}
+#header {
+    border-top: 7px solid #457141;
+}
+.calendar-calendar div.date-nav a,
+.calendar-calendar td .inner div.day a,
+div[id^=event-popover] .event-title a,
+.biblio-title a,
+.breadcrumb a,
+a,
+a:visited {
+    color: #457141;
+}
+
+a.os-swipe-large,
+a.os-swipe-small {
+    background-color: #457141;
+}
+.section-nav .expanded.menu-depth-2 > a,
+.section-nav .menu-depth-1 > a {
+    color: #457141 !important;
+}
+#menu-bar ul.nice-menu .menuparent ul li a.active,
+#footer .footer-login,
+#menu-bar ul.nice-menu .menuparent ul li a,
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#footer a,
+#footer {
+    color: #FFF;
+}
+a.rslides_nav {
+    background: url(/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png) repeat scroll 0 0 #457141;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat 2px -406px transparent;
+}
+h2.block-title {
+    border-left: 3px solid #D16103;
+    padding-left: 8px;
+    text-transform: uppercase;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+#footer {
+    background-color: #414141;
+}
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu ul {
+    background-color: #457141;
+    color: #fff;
+    border-radius: 3px;
+}
+#menu-bar ul.nice-menu .menuparent > a:before {
+    background-position: -24px -566px;
+}
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+    background-position: 0px -566px;
+}
+ul.nice-menu ul {
+    top: 2.5em !important;
+}
+#footer .footer-login:after,
+#footer .footer-login {
+    background: none;
+    box-shadow: none;
+    text-shadow: none;
+}
+#powered-by a {
+    background-position: -14px -548px;
+    
+}

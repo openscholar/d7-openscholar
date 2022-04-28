@@ -1,0 +1,15 @@
+diff --git a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+index ffd0185..c00cf78 100644
+--- a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
++++ b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+@@ -353,7 +353,10 @@ function biblio_build_query($arg_list) {
+       //$sortby = "ORDER BY bt.name %s, b.biblio_year DESC ";
+       $query->addField('n', 'title');
+       $query->orderBy($type_name, $arg_list['o']);
++      $query->orderBy('biblio_year', 'DESC');
++      $query->orderBy('biblio_date', 'DESC');
+       $query->orderBy('biblio_sort_title', $arg_list['o']);
++      $query->orderBy('biblio_sort_title');
+             break;
+     case 'title':
+       $query->addField('n', 'title');

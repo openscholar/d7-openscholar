@@ -1,0 +1,482 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * OS Comments module file.
+ */
+
+/**
+ * Implements hook_form_FORM_ID_alter() for cp_app_settings_form.
+ *
+ * Check if this is a feature form and add comment settings if the feature
+ * provides a node.
+ */
+function os_comments_form_cp_app_settings_form_alter(&$form, &$form_state, $form_id) {
+  // Gets the array of node types for this feature.
+  $info = features_get_features($form['#feature']);
+  // Only continues if this feature provides a node type.
+  if (!isset($info->info['features']['node']) || empty($info->info['features']['node'])) {
+    return;
+  }
+
+  $node_types = $info->info['features']['node'];
+  if(!in_array('blog',$node_types)) {
+    //Disable comment form for non-blog content types.
+    return;
+  }
+
+  foreach ($node_types as $key => $type) {
+    $node_types[$key] = 'comment_sources_' . $type;
+  }
+
+  // Includes the admin form inc file.
+  module_load_include('admin.inc', 'comment_sources');
+  // Initializes the actions button container.
+  if (!isset($form['actions'])) {
+    $form['actions'] = array();
+  }
+
+  $form['comment_settings'] = array(
+    '#type' => 'fieldset',
+    '#id' => "comment_settings",
+    '#title' => t('Comment Settings'),
+    '#weight' => 0,
+  );
+  $form["comment_settings"] += drupal_retrieve_form('comment_sources_admin_settings_form', $form_state);
+  // Moves the system setting form buttons
+  $form['actions'] = array_merge($form["comment_settings"]['actions'], $form['actions']);
+  unset($form["comment_settings"]['actions']);
+
+  // Loops through the available node types' comment source settings forms...
+  foreach (element_children($form["comment_settings"]) as $child) {
+    // Hides non-applicable node types from this app's setting page.
+    if (strpos($child, 'comment_sources_') === 0 && !in_array($child, $node_types)) {
+      $form["comment_settings"][$child]['#access'] = FALSE;
+    }
+  }
+
+  // Uses a secondary validator.
+  $form['#validate'][] = 'os_comments_cp_app_settings_form_validate';
+  // Uses default comment_sources submit handler
+  $form['#submit'][] = 'comment_sources_save_admin_form';
+}
+
+/**
+ * Validation callback; checks that user has disqus shortname if using discus.
+ *
+ * @see os_comments_form_cp_app_settings_form_alter()
+ */
+function os_comments_cp_app_settings_form_validate($form, &$form_state) {
+  // Gets the node types for this feature.
+  $info = features_get_features($form['#feature']);
+  $node_types = $info->info['features']['node'];
+
+  if (!empty($node_types)) {
+    $vsite = vsite_get_vsite();
+    foreach ($node_types as $key => $type) {
+      $node_types[$key] = 'comment_sources_' . $type;
+
+      if ($form_state['values'][$node_types[$key]] == 'disqus') {
+        // Checks for the disqus variable
+        if ($vsite) {
+          $disqus = $vsite->controllers->variable->get('disqus_domain', 'space');
+          $cp_url = $vsite->get_absolute_url() . "/cp/settings";
+        }
+        else {
+          $disqus = variable_get('disqus_domain', '');
+          $cp_url = "/cp/settings";
+        }
+        // Prevents form submit if there's no value for Disqus shortname.
+        if (empty($disqus)) {
+          form_set_error('comment_sources_announcement', t('You have not yet set your disqus shortname, please do so <a href="' . $cp_url . '">here in your Control Panel: Settings</a> before continuing.'));
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_comment_sources_alter().
+ */
+function os_comments_comment_sources_alter(&$sources) {
+  // Uses alternate save functions if we have vsite enabled
+  if (module_exists('vsite')) {
+    foreach ($sources as $source => $info) {
+      $vsite_save_function = "os_comments_{$source}_save_vsite";
+      if (function_exists($vsite_save_function)) {
+        $sources[$source]['save_function'] = $vsite_save_function;
+      }
+    }
+  }
+  // Renames "Drupal comments" to "Private comments".
+  $sources['comment']['description'] = t('Private comments');
+}
+
+/**
+ * Saves the Disqus node types comment settings
+ */
+function os_comments_disqus_save_vsite($comment_node_types) {
+  $vsite = vsite_get_vsite();
+  if (!$vsite) {
+    return FALSE;
+  }
+
+  $vsite->controllers->variable->set('disqus_nodetypes', $comment_node_types);
+}
+
+/**
+ * Enables "Drupal comments" for these node types, disables for all other types.
+ *
+ * Note: We do not have an option to set the default comment to be 'hidden'
+ *
+ * @param array $comment_node_types
+ *   Array containing all node types with Drupal comments enabled, including the
+ *   newly added type to enable comments on if the user is enabling Drupal
+ *   comments for a type.
+ */
+function os_comments_comment_save_vsite($comment_node_types) {
+  $vsite = vsite_get_vsite();
+  if (!$vsite) {
+    return FALSE;
+  }
+
+  $node_types = node_type_get_types();
+  foreach ($node_types as $node_type) {
+    if (isset($comment_node_types[$node_type->type])) {
+      $comment_value = COMMENT_NODE_OPEN;
+    }
+    else {
+      $comment_value = COMMENT_NODE_HIDDEN;
+    }
+    $comment_variable = "comment_" . $node_type->type;
+
+    $vsite->controllers->variable->set($comment_variable, $comment_value);
+  }
+}
+
+/**
+ * Implements hook_cp_settings().
+ *
+ * Adds field "Disqus shortname" to the CP > Settings form.
+ */
+function os_comments_cp_settings() {
+
+  $settings = array();
+
+  $spaces_features = variable_get('spaces_features');
+  // The app won't appear in CP menu if not enabled.
+  if (empty($spaces_features['os_blog'])) {
+    return $settings;
+  }
+
+  // Returns empty array if Disqus module is not enabled.
+  if (!module_exists('disqus')) {
+    return $settings;
+  }
+
+  if ($vsite = vsite_get_vsite()) {
+    $disqus_shortname = $vsite->controllers->variable->get('disqus_domain', 'space');
+  }
+  else {
+    $disqus_shortname = variable_get('disqus_domain');
+  }
+
+  $settings['disqus_domain'] = array(
+    'group' => array(
+      '#id' => 'blog_comments',
+      '#title' => t('Blog Comments'),
+      '#weight' => 2,
+      '#menu_parent' => 'app_settings',
+      '#help_link' => l(t('Learn more about blog comments'), 'https://help.theopenscholar.com/blogs#blog-settings', array('attributes' => array('target' => '_blank')))
+    ),
+    'form' => array(
+      '#type' => 'textfield',
+      '#title' => t('Disqus Shortname'),
+      '#default_value' => $disqus_shortname,
+      '#states' => array(
+        'visible' => array(
+          ':input[name="blog_comments_settings"]' => array('value' => 'disqus'),
+          ),
+        ),
+      '#description' => t('Enter the website shortname you used to register your Disqus account. If you registered <br/>http://example.disqus.com, you would enter "example" here. ') . '<a href="https://disqus.com/profile/signup/" target="_blank">Signup for a Disqus account &raquo;</a>' ,
+      ),
+  );
+
+  return $settings;
+}
+
+/**
+ * Implements hook_node_view().
+ *
+ * Shows the "Add new comment" link on node teasers with a non-drupal comment
+ * source.
+ */
+function os_comments_node_view($node, $view_mode) {
+  // Does nothing unless the node's view mode is teaser.
+  if (!in_array($view_mode, array('teaser', 'full'))) {
+    return;
+  }
+
+  // Does nothing if the node type is a group bundle.
+  if (og_is_group('node', $node)) {
+    return;
+  }
+
+  // Gets the current comment source for this node type.
+  $source = comment_sources_get_source($node->type);
+
+  // Otherwise, makes some changes if we are using a 3rd party comment source.
+  if ($source == 'comment') {
+    // Tells comment_node_view() to build an "Add new comment" link.
+    $node->comment = COMMENT_NODE_OPEN;
+    // Adds the source info to the node so we know to modify the node later.
+    // @see os_comments_preprocess_node()
+    $node->os_comments = $source;
+      // checking comment count
+    $comment_count = isset($node->nid) ? db_query('SELECT comment_count FROM {node_comment_statistics} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField() : 0;
+    $node->comment_count = $comment_count;
+    if (isset($node->disqus)) {
+      unset($node->disqus);
+    }
+  } elseif ($source == 'disqus') {
+    // Prepare Disqus element if it is already not set
+    if (!isset($node->disqus)) {
+      $disqus = array(
+        'domain' => variable_get('disqus_domain', ''),
+        'url' => url(drupal_get_path_alias('node/' . $node->nid), array('absolute' => TRUE)),
+        'title' => $node->title,
+        'identifier' => 'node/' . $node->nid,
+        'status' => TRUE,
+      );
+      // Add Disqus element to the node
+      $node->disqus = $disqus;
+    }
+
+    if ($view_mode == 'full') {
+      // Unset comment section in full view mode
+      $node->comment = COMMENT_NODE_HIDDEN;
+    } elseif ($view_mode == 'teaser') {
+      // Tells comment_node_view() to build an "Add new comment" link.
+      $node->comment = COMMENT_NODE_OPEN;
+      // Set private comment count to zero
+      $node->comment_count = 0;
+    }
+
+  } else {
+    // Unset comment section in No comments settings
+    $node->comment = COMMENT_NODE_HIDDEN;
+  }
+}
+
+/**
+ * Implementation of hook_link_alter()
+ *
+ * Removes "login to post comment" links and "Add new comment" where prohibited.
+ */
+function os_comments_node_view_alter(&$build) {
+  // Removes "login to post comment" links
+  if (isset($build['links']['comment']['#links']['comment_forbidden'])) {
+    unset($build['links']['comment']['#links']['comment_forbidden']);
+  }
+  // Removes "Add new comment" where prohibited.
+  if ($build['#view_mode'] != 'full' &&
+    isset($build['links']['comment']['#links']['comment-add'])) {
+    // Removes comment link for non-member authenticated users.
+    $wrapper = entity_metadata_wrapper('node', $build['#node']);
+    if (isset($wrapper->{OG_AUDIENCE_FIELD}) &&
+      $gid = $wrapper->{OG_AUDIENCE_FIELD}->value(array('identifier' => TRUE))) {
+      $is_member = og_is_member('node', $gid[0]);
+      if (!$is_member) {
+        unset($build['links']['comment']['#links']['comment-add']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK for node.tpl.php.
+ */
+function os_comments_preprocess_node(&$vars) {
+  // Removes the Drupal comment thread fragment from "Add new comment" link
+  // on node teasers. We do this when the comment source is NOT Drupal,
+  // in order to prevent the "Comments closed" error message from displaying.
+  if ($vars['teaser'] && isset($vars['node']->os_comments)) {
+    $vars['content']['links']['comment']['#links']['comment-add']['href'] = 'node/' . $vars['node']->nid;
+    // @todo add anchor link to go to comment threads for non-drupal comments.
+    if ($vars['node']->os_comments == 'disqus') {
+      unset($vars['content']['links']['comment']['#links']['comment-add']['fragment']);
+      // Currently can't add an anchor fragment to the thread without the link
+      // being rewritten to "X Comments" by disqus's count.js.
+      //$vars['content']['links']['comment']['#links']['comment-add']['fragment'] = 'disqus_thread';
+      //$vars['content']['links']['comment']['#links']['comment-add']['title'] = t('Add new comment');
+    }
+  }
+  // Removes the "Add new comment" form title when users don't have access.
+  // @see os_comments_form_comment_form_alter()
+  elseif ($vars['view_mode'] == 'full') {
+    if (isset($vars['content']['comments']['comment_form']['#access'])) {
+      if ($vars['content']['comments']['comment_form']['#access'] === FALSE) {
+        unset($vars['content']['comments']['comment_form']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function os_comments_module_implements_alter(&$implementations, $hook) {
+  // Moves os_comments_node_view() to the front of the list,
+  // Ensures it will execute before comment_node_view().
+  if ($hook == 'node_view') {
+    // module_implements() goes thru $implementations with a loop in the order
+    // that the items were added, so to move an item to the front of the array,
+    // we remove it, then reverse the array, then add it, then reverse again.
+    $group = $implementations['os_comments'];
+    unset($implementations['os_comments']);
+    $implementations = array_reverse($implementations, TRUE);
+    $implementations['os_comments'] = $group;
+    $implementations = array_reverse($implementations, TRUE);
+  }
+
+  // Moves os_comments_form_alter() to the end of the list,
+  // Ensures it will execute after comment_sources_node_view().
+  if ($hook == 'form_alter') {
+    // module_implements() goes thru $implementations with a loop in the order
+    // that the items were added, so to move an item to the front of the array,
+    // we remove it, then add it.
+    if (isset($implementations['os_comments'])) {
+      $group = $implementations['os_comments'];
+      unset($implementations['os_comments']);
+      $implementations['os_comments'] = $group;
+    }
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ */
+function os_comments_form_node_form_alter(&$form, $form_state, $form_id) {
+
+  // Hide comment settings from blog add / edit page.
+  unset($form['comment_settings']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for comment_form.
+ *
+ * Restricts comment form to just the current vsite's users.
+ *
+ * Since only certain roles (and not anonymous) users may post comments,
+ * This form would only ever appear to authorized roles.
+ * But we still want to restrict comments to just the current vsite's users.
+ */
+function os_comments_form_comment_form_alter(&$form, &$form_state) {
+  // Only looks for users of other groups if vsite module is enabled.
+  if (!module_exists('vsite')) {
+    return;
+  }
+
+  // Allows site member's to access the comment form.
+  $node = $form['#node'];
+  if (og_is_group('node', $node)) {
+    // This is the group itself.
+    return;
+  }
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $gid = $wrapper->{OG_AUDIENCE_FIELD}[0]->value(array('identifier' => TRUE));
+  if (og_is_member('node', $gid)) {
+    return;
+  }
+
+  // Denies non-members from accessing the form.
+  $form['#access'] = FALSE;
+}
+
+/**
+ * Implements hook_menu_alter() to change drupal_set_message in comment area
+ */
+function os_comments_menu_alter(&$items) {
+  $items['comment/reply/%node'] = array(
+    'title' => 'Add new comment',
+    'page callback' => 'os_comment_reply',
+    'page arguments' => array(2),
+    'access callback' => 'node_access',
+    'access arguments' => array('view', 2),
+  );
+}
+
+/**
+ * For details see comment_reply()
+ */
+function os_comment_reply($node, $pid = NULL) {
+  // Set the breadcrumb trail.
+  drupal_set_breadcrumb(array(l(t('Home'), NULL), l($node->title, 'node/' . $node->nid)));
+  $op = isset($_POST['op']) ? $_POST['op'] : '';
+  $build = array();
+
+  // The user is previewing a comment prior to submitting it.
+  if ($op == t('Preview')) {
+    if (user_access('post comments')) {
+      $build['comment_form'] = drupal_get_form("comment_node_{$node->type}_form", (object) array('pid' => $pid, 'nid' => $node->nid));
+    }
+    else {
+      drupal_set_message(t('You are not authorized to post comments.'), 'error');
+      drupal_goto("node/$node->nid");
+    }
+  }
+  else {
+    // $pid indicates that this is a reply to a comment.
+    if ($pid) {
+      if (user_access('access comments')) {
+        // Load the comment whose cid = $pid
+        $comment = db_query('SELECT c.*, u.uid, u.name AS registered_name, u.signature, u.signature_format, u.picture, u.data FROM {comment} c INNER JOIN {users} u ON c.uid = u.uid WHERE c.cid = :cid AND c.status = :status', array(
+          ':cid' => $pid,
+          ':status' => COMMENT_PUBLISHED,
+        ))->fetchObject();
+        if ($comment) {
+          // If that comment exists, make sure that the current comment and the
+          // parent comment both belong to the same parent node.
+          if ($comment->nid != $node->nid) {
+            // Attempting to reply to a comment not belonging to the current nid.
+            drupal_set_message(t('The comment you are replying to does not exist.'), 'error');
+            drupal_goto("node/$node->nid");
+          }
+          // Display the parent comment
+          $comment->node_type = 'comment_node_' . $node->type;
+          field_attach_load('comment', array($comment->cid => $comment));
+          $comment->name = $comment->uid ? $comment->registered_name : $comment->name;
+          $build['comment_parent'] = comment_view($comment, $node);
+        }
+        else {
+          drupal_set_message(t('The comment you are replying to does not exist.'), 'error');
+          drupal_goto("node/$node->nid");
+        }
+      }
+      else {
+        drupal_set_message(t('You are not authorized to view comments.'), 'error');
+        drupal_goto("node/$node->nid");
+      }
+    }
+    // This is the case where the comment is in response to a node. Display the node.
+    elseif (user_access('access content')) {
+      $build['comment_node'] = node_view($node);
+    }
+
+    // Should we show the reply box?
+    if ($node->comment != COMMENT_NODE_OPEN) {
+      drupal_goto("node/$node->nid");
+    }
+    elseif (user_access('post comments')) {
+      $edit = array('nid' => $node->nid, 'pid' => $pid);
+      $build['comment_form'] = drupal_get_form("comment_node_{$node->type}_form", (object) $edit);
+    }
+    else {
+      drupal_set_message(t('You are not authorized to post comments.'), 'error');
+      drupal_goto("node/$node->nid");
+    }
+  }
+
+  return $build;
+}

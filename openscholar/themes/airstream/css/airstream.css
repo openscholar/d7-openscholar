@@ -1,0 +1,231 @@
+/* D6 retro css for older themes */
+#columns {padding:0 10px;}
+
+body {
+  color:#282828;
+  }
+
+
+
+#page {
+  margin-top: 38px;
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color:#306696;
+  font-style: italic;
+  }
+
+a:hover {
+  color:#13a3eb;
+  }
+
+h1, h2, h3, .region-sidebar-first a, #header-container {
+  font-family: georgia, serif;
+  font-weight: normal;
+  }
+
+h1 a, h2 a, h3 a, .region-sidebar-first a {
+  font-style: normal;
+  }
+  
+h1#page-title {
+	font-size: 1.3em;
+}
+
+h2.block-title {
+	font-size: 1.16em;
+	}
+
+/* LAYOUT ELEMENTS */
+
+.region-sidebar-second .region-inner  {
+  border-left: 1px solid #D8D6D6;
+  }
+
+body.sidebar-first #footer p.copy,
+body.two-sidebars #footer p.copy {
+  margin-left: 209px;
+  text-align: left;
+  }
+  
+.region-sidebar-first .block-inner, .region-header-first .block-inner {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+
+}  
+
+/* HEADER ELEMENTS */
+
+#menu-bar {
+  background: #F1F3F4;
+  border-top:1px solid #E6EAED;
+  border-bottom:1px solid #E6EAED;
+  }
+
+#header-container h1 {
+  font-size: 2em;
+  line-height:1em;
+  font-style: normal;
+  }
+
+#header-container h2 {
+  font-size: 1.5em;
+  line-height:1.3em;
+  }
+
+#header-container h1 a, #header-container h1 a:visited {
+  color:#282828;
+  font-style: normal;
+  }
+
+#header-container p {
+  border-top: 1px solid #D8D6D6;
+  }
+
+body.navbar #header-container p {
+  border: none;
+  }
+
+#scholar-shield {
+  width:55px;
+  }
+
+/*Navbar & sidebar shared */
+
+#menu-bar ul.nice-menu li a,
+#menu-bar ul.nice-menu li a:visited,
+.region-sidebar-first ul.menu li a,
+.region-sidebar-first ul.menu li a:visited {
+  font-style: normal;
+  display:block;
+  color: #5088BA;
+  font-weight:bold;
+  text-decoration:none;
+  }
+
+#menu-bar ul.nice-menu li a:hover,
+.region-sidebar-first ul.menu li a:hover,
+#menu-bar ul.nice-menu li a.active,
+.region-sidebar-first  ul.nice-menu li a.active,
+#menu-bar ul.nice-menu li.active-trail,
+.region-sidebar-first  ul.nice-menu li.active-trail {
+  background:#F9FAFA;
+  }
+
+/*Navbar Specific */
+
+#menu-bar ul.nice-menu li  {
+  font-size: 1em;
+  line-height: 34px;
+  font-weight: bold;
+  float:left;
+  border-right: 1px solid #D8D6D6;
+  }
+
+#menu-bar ul.nice-menu li.first {
+  border-left: 1px solid #D8D6D6;
+  }
+
+#menu-bar ul.nice-menu li a,
+#menu-bar ul.nice-menu li a:visited {
+  padding: 0 9px;
+  height: 34px;
+  }
+  
+  /** NICE MENUS **/
+#menu-bar ul.nice-menu ul {
+	margin-top:-5px;
+	border:none;
+	}
+	
+#menu-bar ul.nice-menu ul ul {
+	margin-top:0;
+}
+
+#menu-bar ul.nice-menu ul ul li {
+	margin-bottom:0;
+}
+
+#menu-bar ul.nice-menu ul,	
+#menu-bar ul.nice-menu ul li {
+	margin-top:0;
+	background:#CCC;
+}
+	
+#menu-bar ul.nice-menu ul li a {
+	color:#5088BA;
+	background:#CCC;
+}
+
+
+#menu-bar ul.nice-menu ul li a:hover {
+	color:#5088BA;
+	background:#CCC;
+}
+  
+  
+
+
+body.sidebar-first #columns .hg-container,
+body.two-sidebars #columns .hg-container {
+  clear: none;
+  }
+
+body.navbar .region-sidebar-first {
+  clear: right;
+  }
+
+/* side bar specific */
+
+.region-sidebar-first .block {
+  padding: 10px;
+  }
+
+.region-sidebar-first #block-os-primary-menu {
+  padding: 0 0 10px 0;
+  }
+
+.region-sidebar-first #block-os-primary-menu ul {
+  width: 179px;
+  }
+
+.region-sidebar-first #block-os-primary-menu li {
+  list-style: none;
+  margin: 0 1px;
+  width: 179px;
+  }
+
+.region-sidebar-first #block-os-primary-menu a,
+.region-sidebar-first #block-os-primary-menu a:visited {
+    line-height:17px;
+    padding:14px 9px;
+    }
+
+.region-sidebar-first #block-os-primary-menu li a {
+    border-bottom:1px solid #D8D6D6;
+    }
+
+.region-sidebar-first h2,
+.region-sidebar-first h3,
+.region-sidebar-first p {
+    margin-left: 9px;
+    margin-right: 9px;
+    }
+
+
+/* Nodes */
+
+.submitted {
+  color: #444;
+  border-bottom: 1px solid #D8D6D6;
+  display:block;
+  }
+  
+  #powerby-login {
+   position: fixed;
+    right: 0;
+    bottom:20px;
+ }

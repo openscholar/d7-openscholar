@@ -1,0 +1,5 @@
+name = "Media Browser: Angular"
+description = "A Media Browser written using AngularJS and REST APIs."
+core = 7.x
+dependencies[] = os_common
+dependencies[] = restful

@@ -1,0 +1,49 @@
+<?php
+
+function overlay_commands_page_build(&$page) {
+  if (!user_access('access overlay')) return;
+
+  if (overlay_get_mode() == 'parent') {
+    drupal_add_js(drupal_get_path('module', 'overlay_commands').'/overlay_commands.js');
+  }
+  else {
+    drupal_add_js(array('overlay_commands' => overlay_commands_get()), 'setting');
+  }
+}
+
+function overlay_commands_add($command = NULL) {
+  if (!isset($_SESSION['overlay_commands']))
+    $_SESSION['overlay_commands'] = array();
+  $commands = &$_SESSION['overlay_commands'];
+
+  if (isset($command)) {
+    if (isset($command['command'])) {
+      $commands[] = $command;
+    }
+  }
+
+  return $commands;
+}
+
+function overlay_commands_get() {
+  return overlay_commands_add();
+}
+
+function overlay_commands_clear() {
+  global $user;
+
+  if (!$user->uid) {
+    return;
+  }
+  $_SESSION['overlay_commands'] = array();
+}
+
+function overlay_commands_preprocess_html() {
+  overlay_commands_clear();
+}
+
+function overlay_command_dismiss() {
+  return array(
+    'command' => 'modal_dismiss',
+  );
+}

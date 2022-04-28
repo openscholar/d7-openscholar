@@ -1,0 +1,22 @@
+<?php
+
+function sweaver_layout_ctools_plugin_api($module, $api) {
+  if ($module == 'sweaver' && $api == 'plugins') {
+    return array('version' => 1);
+  }
+}
+
+function sweaver_layout_sweaver_plugins() {
+  $plugins['sweaver_layout'] = array(
+    'handler' => array(
+      'path' => drupal_get_path('module', 'sweaver_layout'),
+      'file' => 'sweaver_layout.inc',
+      'class' => 'sweaver_layout',
+      'parent' => 'sweaver_plugin',
+    ),
+    'tab' => t('Widgets'),
+    'tab_description' => t('Control position of widgets on your page.'),
+  );
+
+  return $plugins;
+}

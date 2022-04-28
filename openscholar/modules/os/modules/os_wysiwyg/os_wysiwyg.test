@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * General tests for WYSIWYG functions in OpenScholar
+ */
+
+class OsWysiwygTestCase extends OSProfileTestCase {
+
+  protected $urlList = array(
+    'youtube' => 'http://youtu.be/hUkiJOBYmU4',
+    'abcnews' => 'http://abcnews.go.com/GMA/video/zimmerman-injuries-exclusive-photo-night-trayvon-martin-death-16178849',
+    'barelypolitical' => 'http://www.barelypolitical.com/autotune/episode/BP_20090903/auto-tune-the-news-8-with-t-pain',
+    'chartly' => 'http://chart.ly/symbols/AAPL',
+    'cnbc' => 'http://www.cnbc.com/id/15840232?video=3000085290&play=1',
+    'flickr' => 'http://www.flickr.com/photos/chongkin/7093842851/',
+    'googlemaps' => 'http://maps.google.com/maps?saddr=6+Oakland+Avenue,+Somerville,+MA&daddr=779+McGrath+Highway,+Somerville,+MA+02145+(Super+Stop+%26+Shop)&hl=en&ll=42.389913,-71.091089&spn=0.010634,0.015557&sll=42.391199,-71.089988&sspn=0.010634,0.015557&geocode=FT_YhgIdWDDD-ykn89t_03DjiTHtwfdeWuhENg%3BFenVhgIdQlLD-yE9yREyExtYrSknkMdH13DjiTHXOR5s0nOx2A&oq=6+Oak&t=v&dirflg=w&mra=ls&z=16',
+    'hulu' => 'http://www.hulu.com/watch/348494/saturday-night-live-watch-what-happens-live',
+
+  );
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Media oEmbed',
+      'description' => 'Tests for the embedding of content from an oembed link',
+      'group' => 'Media',
+    );
+  }
+
+  protected function setUp() {
+    parent::setUp('media_oembed');
+    variable_set('oembedembedly_api_key', '7dad0ee8bec911e0b3a84040d3dc5c07');
+  }
+
+  public function testOembedFilter() {
+    $handler = new MediaInternetOEmbedHandler("");
+    foreach ($this->urlList as $source => $url) {
+      // create an oembed file for each link
+      $handler->embedCode = $url;
+      try {
+        $handler->save();
+      }
+      catch (PDOException $pe) {
+        // database error
+        // skip this link
+        $this->fail("Database error with ".$source);
+        continue;
+      }
+
+      $file = $handler->getFileObject();
+      $tag = array(
+        'type' => 'media',
+        'view_mode' => 'media_original',
+        'fid' => $file->fid,
+        'attributes' => array(
+          'class' => 'media-image',
+          'typeof' => 'foaf:Image',
+        ),
+      );
+
+      $text = '[['.drupal_json_encode($tag).']]';
+      debug($text);
+      $fulltext = 'lorem ipsum '.$text.' some other stuff';
+      $filtered = check_markup($fulltext, 'filtered_html');
+
+      $oembed = oembedcore_oembed_data($url);
+
+      if ($oembed->type == 'video') {
+        $expected = $oembed->html;
+      }
+      else {
+        $expected = theme('oembed', $oembed);
+      }
+      debug($filtered);
+      debug($expected);
+
+      $this->assertTrue(strpos($filtered, $expected) !== FALSE, "Testing of provider: "+$source);
+    }
+  }
+}

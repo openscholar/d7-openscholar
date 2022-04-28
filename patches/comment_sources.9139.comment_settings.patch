@@ -1,0 +1,38 @@
+diff --git a/includes/api.inc b/includes/api.inc
+index 84ba8f6..5f03fc6 100644
+--- a/includes/api.inc
++++ b/includes/api.inc
+@@ -567,30 +567,9 @@ function comment_sources_get_source_node($node, $trim_preset = FALSE, $default_s
+   // Stores info in a drupal_static variable.
+   $node_sources = &drupal_static('comment_sources_node_sources');
+ 
+-  // Initializes this node's info array if it does not exist.
+-  if (!isset($node_sources[$node->nid])) {
+-    // Finds the first-recorded ACTIVE comment source for this node.
+-    $results = db_select('comment_sources_comments', 'c')
+-      ->orderBy('cid', 'ASC')
+-      ->condition('nid', $node->nid)
+-      ->condition('status', COMMENT_SOURCES_ACTIVE)
+-      ->fields('c', array('cid', 'source'))
+-      ->range(0, 1)
+-      ->execute()
+-      ->fetchAllAssoc('cid');
+-    if ($results) {
+-      foreach ($results as $cid => $record) {
+-        $source = $record->source;
+-      }
+-    }
+-    // Otherwise, defaults to this node type's setting if no result was found.
+-    else {
+-      $source = comment_sources_get_source_type($node->type, $trim_preset, $default_source);
+-    }
+-
+-    // Stores this value in drupal static array.
+-    $node_sources[$node->nid] = $source;
+-  }
++  $source = comment_sources_get_source_type($node->type, $trim_preset, $default_source);
++  // Stores this value in drupal static array.
++  $node_sources[$node->nid] = $source;
+ 
+   $source = $node_sources[$node->nid];
+   // Optionally removes the plugin from the source key.

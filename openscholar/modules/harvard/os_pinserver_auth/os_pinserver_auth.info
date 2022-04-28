@@ -1,0 +1,9 @@
+name = OS Pinserver Integration
+description = "This module uses the pinserver module to modify site creation, user registration and private file downloads."
+dependencies[] = "vsite_register"
+dependencies[] = "vsite"
+dependencies[] = "os_files_private"
+dependencies[] = "pinserver_authenticate"
+files[] = includes/os_pinserver_auth_stream_wrapper.inc
+package = "OpenScholar Harvard"
+core = 7.x

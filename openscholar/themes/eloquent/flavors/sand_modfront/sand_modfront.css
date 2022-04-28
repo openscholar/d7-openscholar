@@ -1,0 +1,134 @@
+body {
+  background-color: #E0D0B1;
+
+  }
+
+
+a, a:visited {
+    color:#6D1102;
+    }
+
+a:hover {
+    text-decoration: underline;
+    }
+
+h2, h3, #header-container {
+    color:#484b63;
+    font-weight: normal;
+    }
+
+.biblio-title a, .biblio-title-chicago a {
+    font: 15px 'Book Antiqua',garamond,'times new roman',times,serif;
+}
+
+/* HEADER ELEMENTS */
+
+
+#header-container h2 {
+
+  color: #444;
+  text-shadow: none;
+  }
+
+#header-container a,
+#header-container a:visited,
+#header-container p {
+    text-decoration: none;
+    color: #444;
+    text-shadow: none;
+    }
+    
+#header-container h1 a,
+#header-container h1 a:visited {
+	font-size: 32px;
+    text-decoration: none;
+    color: #00552F;
+    text-shadow: none;
+    }
+#header-container a:hover {	
+    color:#00552F;
+    }
+
+#menu-bar {
+	padding-bottom: 5px;
+}
+
+#menu-bar a,
+#menu-bar a:visited {
+  color:#6D1102;
+  }
+
+#menu-bar a:hover,
+#menu-bar a.active,
+#menu-bar .active-trail a {
+  color: #731001;
+  text-decoration: underline;
+  }
+
+/* MAIN CONTENT AREA */
+
+#columns {
+  background: #F7F3EA;
+    -moz-box-shadow: 1px 0 1em #777777;
+  -webkit-box-shadow: 1px 0 1em #777777;
+  box-shadow: 1px 0 1em #777777;
+  }
+  
+.front #columns {
+ display:none;
+  } 
+  
+ul.menu li a:link, ul.menu li a:visited {
+color: #6D1102;
+}
+
+/* GORDON */
+.front #header-container {
+    padding-bottom: 0;
+    height:415px;
+}
+
+.front .region-header-second p {
+    margin: 0 0 -5px;
+
+}
+
+.front .block-inner {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.front .region-inner {
+    padding: 0;
+}
+
+.front #menu-bar {
+	padding-bottom: 0;
+}
+
+
+
+.front #menu-bar .os-menu {background: #6E1205; height: 60px;
+    padding-top: 35px;
+    padding-left:170px;}
+
+
+.front #page {width:1020px;margin: 30px auto;}
+
+body.front #menu-bar .os-menu li a, body.front #menu-bar .os-menu li a:visited {
+    color: #E0D0B1;
+    font-size: 18px;
+    text-transform: uppercase;
+    margin-right:30px;
+}
+
+body.front #menu-bar .os-menu li a:hover, body.front #menu-bar .os-menu li a:active {
+    color: #FFF;
+    text-decoration: none;
+    text-shadow: 0 0 0.1em #FFF, 0 0 0.1em #FFF;
+    
+}
+
+body.front #block-boxes-agordon-custom-menu-box {margin: -10px 11px 0 13px;}
+
+

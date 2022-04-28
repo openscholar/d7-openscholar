@@ -1,0 +1,79 @@
+body {
+  background-color: #E0D0B1;
+
+  }
+
+
+a, a:visited {
+    color:#6D1102;
+    }
+
+a:hover {
+    text-decoration: underline;
+    }
+
+h2, h3, #header-container {
+    color:#484b63;
+    font-weight: normal;
+    }
+
+.biblio-title a, .biblio-title-chicago a {
+    font: 15px 'Book Antiqua',garamond,'times new roman',times,serif;
+}
+
+/* HEADER ELEMENTS */
+
+
+#header-container h2 {
+
+  color: #444;
+  text-shadow: none;
+  }
+
+#header-container a,
+#header-container a:visited,
+#header-container p {
+    text-decoration: none;
+    color: #444;
+    text-shadow: none;
+    }
+    
+#header-container h1 a,
+#header-container h1 a:visited {
+	font-size: 32px;
+    text-decoration: none;
+    color: #00552F;
+    text-shadow: none;
+    }
+#header-container a:hover {	
+    color:#00552F;
+    }
+
+#menu-bar {
+	padding-bottom: 5px;
+}
+
+#menu-bar a,
+#menu-bar a:visited {
+  color:#6D1102;
+  }
+
+#menu-bar a:hover,
+#menu-bar a.active,
+#menu-bar .active-trail a {
+  color: #731001;
+  text-decoration: underline;
+  }
+
+/* MAIN CONTENT AREA */
+
+#columns {
+  background: #F7F3EA;
+    -moz-box-shadow: 1px 0 1em #777777;
+  -webkit-box-shadow: 1px 0 1em #777777;
+  box-shadow: 1px 0 1em #777777;
+  }
+  
+ul.menu li a:link, ul.menu li a:visited {
+color: #6D1102;
+}

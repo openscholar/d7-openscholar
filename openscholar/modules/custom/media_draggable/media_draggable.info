@@ -1,0 +1,5 @@
+name = "Media: Draggable"
+core = 7.x
+description = "A new version fo the Media widget that allows for files to be dragged onto it."
+dependencies[] = media
+dependencies[] = dragndrop_upload_element

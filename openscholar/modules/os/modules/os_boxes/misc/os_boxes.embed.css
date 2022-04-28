@@ -1,0 +1,47 @@
+
+.block-boxes .os-embed-link {
+  position: absolute;
+  right: 5px;
+  top: 30px;
+  color: #999999;
+  font-size: smaller;
+  display: none;
+  z-index:3;
+}
+
+.block-boxes:hover .os-embed-link {
+  display: block;
+}
+
+/**
+ * Embed-link within another block
+ */
+.block-boxes:hover .block .os-embed-link {
+  display: none;
+}
+
+.ui-dialog {
+  z-index: 500;
+}
+
+.embed-popup.ui-widget ul.ui-tabs-nav li {
+  text-align: center;
+  background: white;
+}
+
+.embed-popup.ui-widget ul.ui-tabs-nav li a {
+  padding: 5px 0;
+  border-bottom: 3px solid white !important;
+  background-color: white;
+  margin: 0 15px;
+}
+
+.embed-popup.ui-widget ul.ui-tabs-nav li.ui-tabs-active a {
+  background-color: white !important;
+  border-bottom-color: black !important;
+  color: black !important;
+}
+
+.embed-popup.ui-widget textarea {
+  font-size: 0.75em;
+}

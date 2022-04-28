@@ -1,0 +1,128 @@
+/** REMOVE WHEN THE SITE INFO VERTICAL ALIGN MIDDLE ISSUE IS RESOLVED **/
+ #boxes-box-site_info {
+  padding-top: 0;
+}
+
+
+#branding_header, #branding_footer, #search-block-form .form-item label, .search-block-form .form-item label {
+	display: none;
+}
+
+body,
+.cke_editable * {
+	background: #FFF;
+	color: #282828;
+	font-family: georgia, Arial, Verdana, sans-serif;
+	font-size: 1em;
+}
+
+.biblio-title a, .biblio-title-chicago a, a, a:visited {
+	color: #b54f26;
+	text-decoration: underline;
+}
+
+a:hover {
+	color: #8c2e08;
+}
+
+.title a, #top a, .views-field-title a, #block-os-primary-menu a {
+	font-style: normal;
+	text-decoration: none;
+}
+
+h1#page-title, h1, h2, h3 {
+	font-weight: normal;
+}
+
+/* HEADER ELEMENTS */
+
+.region-header-third ul.nice-menu a {
+  font: normal 1.2em georgia,sans-serif;
+  text-transform: none;
+  
+}
+
+#header-container h1 {
+	font-size: 31px;
+	line-height: 1em;
+}
+
+#header-container h1, #header-container h2, #header-container h3, #header-container a, #header-container a:visited, #header-container h1 a, #header-container h1 a:visited {
+	color: #282828;
+}
+
+#header-container h1 a, #header-container h1 a:visited {
+	text-decoration: none;
+}
+
+
+#boxes-box-site_info h2 {
+ font-size: 1.5em;
+  font-style: normal;
+}
+
+
+#header-container a, #header-container a:visited {
+	text-decoration: none;
+}
+
+#menu-bar {
+	background: rgb(166, 89, 58);
+	background: -moz-linear-gradient(270deg, rgb(166, 89, 58) 30%, rgb(192, 115, 84) 70%);
+	background: -webkit-linear-gradient(270deg, rgb(166, 89, 58) 30%, rgb(192, 115, 84) 70%);
+	background: -o-linear-gradient(270deg, rgb(166, 89, 58) 30%, rgb(192, 115, 84) 70%);
+	background: -ms-linear-gradient(270deg, rgb(166, 89, 58) 30%, rgb(192, 115, 84) 70%);
+	background: linear-gradient(0deg, rgb(166, 89, 58) 30%, rgb(192, 115, 84) 70%);
+	padding: 4px 0;
+}
+
+
+#menu-bar li {
+
+	text-transform: uppercase;
+}
+
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu a:visited {
+	color: #f5f5d8;
+	text-decoration: none;
+	font-size: 1.4em;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a, #menu-bar ul.nice-menu .menuparent a:hover, #menu-bar ul.nice-menu .menuparent a.active, #menu-bar ul.nice-menu a.active, #menu-bar ul.nice-menu a:hover {
+	color: #F9E433;
+	text-decoration: none;
+	background: none;
+}
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+	background-position: 0px -566px;
+}
+
+/** NICE MENUS **/
+#menu-bar ul.nice-menu ul {
+
+	border: none;
+	background: #777;
+}
+
+#menu-bar ul.nice-menu ul li {
+
+	background: #777;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active,
+#menu-bar ul.nice-menu ul li a {
+	color: #FFF;
+	background: #777;
+}
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit,
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+	background-position: 2px -440px;
+	background-color: #555;
+}
+

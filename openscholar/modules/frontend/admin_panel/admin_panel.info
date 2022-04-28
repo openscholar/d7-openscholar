@@ -1,0 +1,7 @@
+name = "Admin Panel"
+core = 7.x
+description = "Admin Panel for logged in users"
+dependencies[] = app_form
+dependencies[] = os_common
+dependencies[] = restful
+dependencies[] = os

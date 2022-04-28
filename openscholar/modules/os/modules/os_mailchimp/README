@@ -1,0 +1,43 @@
+os_mailchimp                Jon Sagotsky <jsagotsky@fas.harvard.edu>
+
+This module allows drupal users to sign up for MailChimp mailing lists.  It does this in two ways.  
+
+Automatic hook
+==============
+
+The first is a user hook that automatically signs up new users to the site.  The location and API
+key for the mailing list are available in your sites admin page.  You will need to enter an API
+key before you can choose a list.  Ignoring these fields will prevent these automatic signups from
+happening.
+
+The hook supports a couple magic fields.  
+
+INSTANCES
+---------
+
+1. Create a custom field in your mailchimp list.  
+2. Set its merge var to "INSTANCES".
+3. This variable will store a comma separated list of the server instances in which this user has 
+  OS accounts, provided all those OS servers include the same mailchimp API key and list.
+
+SITES
+-----
+
+1. Create a custom field in your mailchimp list.
+2. Set its merge var to "SITES".
+3. This variable will store a comma separated list of vsites owned by that user.  Multiple servers
+  can point to the same mailing list and the list will merge instead of being overwritten.
+
+Note that for both these magic merge vars, a user is uniquely identified by an email address 
+subscribed to your list.
+
+
+Signup box
+==========
+
+The second is a box that this module provides.  It lets users sign up via a form.  A default box is 
+provided.  This box uses the same API key/mailing list that was set in the admin page.  Additional 
+boxes can be created to use different keys and lists.  API keys can be set per space, to prevent you
+from having to keep re-entering the same key.
+
+

@@ -1,0 +1,5 @@
+name = Devils Eye
+description = A Devils Eye of the scholor-theme-07 theme
+screenshot = screenshot.png
+
+css[] = devils_eye.css

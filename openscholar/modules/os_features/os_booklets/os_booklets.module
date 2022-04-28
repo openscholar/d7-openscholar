@@ -1,0 +1,324 @@
+<?php
+// $Id$
+
+
+/**
+ * @file
+ * Code for the OS Booklets feature.
+ */
+
+include_once 'os_booklets.features.inc';
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_booklets_os_app_info() {
+  $apps = array();
+
+  $apps['os_booklets'] = array(
+    'path' => 'documents',
+  	'nodetypes' => array(
+  	  'book',
+    ),
+    'views tabs' => array(
+      'os_booklets' => array('page'),
+    ),
+    'browse_pages' => array(
+      'book' => array(
+        'url' => 'browse/documents',
+        'title' => t('Documents'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'documents',
+      ),
+    ),
+    'has_settings' => TRUE,
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function os_booklets_menu_alter(&$items) {
+
+  if (isset($items['node/%node/outline'])) {
+    $item = &$items['node/%node/outline'];
+    $item['page callback'] = 'os_booklets_book_root_outline';
+    $item['page arguments'] = array(1);
+    $item['access callback'] = '_os_booklets_outline_access';
+    $item['file'] = 'book.admin.inc';
+    $item['file path'] = drupal_get_path('module', 'book');
+    $item['type'] = MENU_LOCAL_TASK;
+    $item['context'] = MENU_CONTEXT_INLINE;
+    $item['weight'] = 0;
+    $item['theme callback'] = 'cp_theme_name';
+  }
+
+  if (isset($items['book'])) {
+    // Provided by core book
+    // Shows a list of all books in the system, formatted poorly.
+    // remove this page
+    unset($items['book']);
+  }
+}
+
+/**
+ * Checks that node is book before allowing access to outline
+ */
+function _os_booklets_outline_access($node) {
+  return _book_outline_access($node) && book_type_is_allowed($node->type);
+}
+
+/**
+ * Page callback; returns the book_admin_edit form for the root of the book.
+ */
+function os_booklets_book_root_outline($node) {
+  $root = os_books_get_root($node);
+  return drupal_get_form('book_admin_edit', $root);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for book_admin_edit.
+ */
+function os_booklets_form_book_admin_edit_alter(&$form, $form_state) {
+  if ($form['#node']->type == 'book') {
+    $form['save']['#value'] = t('Save Booklet Outline');
+  }
+}
+
+
+/**
+ * Implements hook_node_view().
+ */
+function os_booklets_node_view($node, $view_mode, $langcode) {
+  // Only alters the node object if this book needs a table of contents inline.
+  if ($node->type !== 'book' || $view_mode !== 'full') {
+    return;
+  }
+  $toc_position = variable_get('os_booklets_toc_position', 0);
+  if ((int) $toc_position === 0) {
+    return;
+  }
+
+  // Adds the table of contents (toc) block to the top of the node content.
+  $block = os_books_build_toc($node, TRUE);
+  $content = '<div class="book-menu"><h3 class="title">' . $block['subject'] . '</h3>' . $block['content'] . '</div>';
+  $node->content['os_booklets_toc'] = array(
+    '#weight' => -10,
+    '#markup' => $content,
+  );
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_booklets_vsite_og_node_type_info() {
+  return array(
+    'book' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_form_alter()
+ *
+ * Removes the book outline form from node types that aren't enabled to have it
+ * Drupal core is backwards in this.
+ *
+ * It only checks if that node type is an allowed book type if the user fails all the book permissions
+ */
+function os_booklets_form_node_form_alter(&$form, &$form_state, $form_id) {
+  $node = $form['#node'];
+  if (!book_type_is_allowed($node->type)) {
+    unset($form['book']);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_form_alter() for book_node_form
+ */
+function os_booklets_form_book_node_form_alter(&$form, &$form_state, $form_id) {
+
+  // TRUE when a new 'book' node is being added with no parent.
+  $no_book_param      = (!isset($_GET['parent']) || empty($_GET['parent']));
+  $book_not_set       = (!empty($form['book']));
+  $is_new_node        = (bool)(!$form['nid']['#value']);
+  $new_book_root_mode = ($no_book_param && $book_not_set && $is_new_node);
+
+  // TRUE when book node already exists, also when new 'book' node has a parent node specified.
+  $book_is_set         = (bool)(!empty($_GET['parent']) && !empty($form['book']));
+  $existing_node       = (bool)$form['nid']['#value'];
+  $add_edit_child_mode = ($book_is_set || $existing_node);
+
+  if ($new_book_root_mode) {
+    // Hides book options and ensures new book is created on node save
+    _os_booklets_book_root_form_alter($form);
+  }
+  elseif ($add_edit_child_mode) {
+    // Hides certain book settings and customize appearance on node edit form.
+    _os_booklets_child_page_form_alter($form);
+    // Filters book options by current space
+    _os_booklets_option_filter_form_alter($form);
+  }
+}
+
+/**
+ * Hides book options and ensures new book is created on node save.
+ *
+ * @param array $form
+ *
+ * @see os_booklets_form_book_node_form_alter()
+ */
+function _os_booklets_book_root_form_alter(&$form) {
+  drupal_set_title(t('Create Booklet'));
+  // Unsets visible book elements
+  $remove = array(
+    // => 'fieldset'
+    '#type',
+    // => 'Book outline'
+    '#title',
+    // array('#type' => 'select', ... )
+    'bid',
+    // array('#type' => 'select', ... )
+    'weight',
+  );
+
+  foreach ($remove as $element) {
+    unset($form['book'][$element]);
+  }
+
+  unset($form['book']['plid']['#prefix']);
+  unset($form['book']['plid']['#suffix']);
+
+  // Sets hidden values to create new book root
+  $form['book']['bid']['#type'] = 'value';
+  $form['book']['bid']['#value'] = 'new';
+
+  $form['book']['weight']['#type'] = 'value';
+  $form['book']['weight']['#value'] = 0;
+}
+
+/**
+ * Hides certain book settings and customize appearance on node edit form.
+ *
+ * @param array $form
+ *
+ * @see os_booklets_form_book_node_form_alter()
+ */
+function _os_booklets_child_page_form_alter(&$form) {
+  drupal_set_title(t('Create Child page'));
+  // Prevents users from creating a new book through this page.
+  if (!empty($form['book']['bid']['#options'])) {
+    unset($form['book']['bid']['#options']['new']);
+  }
+
+  // Prevents users from changing what book this page belongs to.
+  $val = $form['book']['bid']['#default_value'];
+  $form['book']['bid']['#type'] = 'value';
+  $form['book']['bid']['#value'] = $val;
+
+  // Prevents users from editting page weights
+  $weight = $form['book']['weight']['#default_value'];
+  unset($form['book']['weight']);
+  $form['book']['weight']['#type'] = 'value';
+  $form['book']['weight']['#value'] = $weight;
+
+  // Expands book fieldset right above default node 'Additional settings' tabs
+  $form['os_booklets'] = array(
+    '#type' => 'vertical_tabs',
+    '#weight' => 98,
+  );
+  $form['book']['#group'] = 'os_booklets';
+
+  // Customize default book terminology and fieldset settings
+  $form['book']['#weight'] = !empty($form['body_field']['#weight']) ? $form['body_field']['#weight'] : 0;
+  $form['book']['#title'] = t('Booklet information');
+  $form['book']['#collapsible'] = TRUE;
+  $form['book']['#collapsed'] = FALSE;
+  $form['book']['#description'] = t('This page will be posted to booklet: <strong>!booklet</strong>',
+    array(
+      '!booklet' => $form['book']['bid']['#options'][$val],
+    )
+  );
+  $form['book']['plid']['#description'] = t('Set the parent item of this page. Your selection will determine the place where this page will reside in this booklet\'s hierarchy. You can think of the booklet\'s hierarchy as the "table of contents" for your booklet. You could select the top-level booklet itself or another page within the booklet. The maximum depth for a booklet and all child pages is 9.');
+}
+
+/**
+ * Allows users to select only books in current space, use EntityFieldQuery
+ *
+ * @param array $form
+ *
+ * @see _os_booklets_child_page_form_alter()
+ * @see os_booklets_form_book_node_form_alter()
+ */
+function _os_booklets_option_filter_form_alter(&$form) {
+  $space = spaces_get_space();
+  if (!module_exists('vsite') || !$space) {
+    return;
+  }
+
+  // Includes class OSNodeFieldQuery (extends EntityFieldQuery)
+  ctools_include('node', 'os');
+
+  $query = new OSNodeFieldQuery('book');
+  $result = $query->execute();
+
+  if (!isset($result['node'])) {
+    return;
+  }
+
+  $nids_in_current_space = array_keys($result['node']);
+
+  // Removes options for books not in this space.
+  foreach ($form['book']['bid']['#options'] as $key => $value) {
+    if (is_numeric($key) && !isset($nids_in_current_space[$key])) {
+      unset($form['book']['bid']['#options'][$key]);
+    }
+  }
+}
+
+/**
+ * Implements hook_os_add_new_links_alter()
+ */
+function os_booklets_os_add_new_links_alter(&$links) {
+  // Renames "Add new" link to "Add Booklet".
+  // Otherwise it would be "Add Book page".
+  if (isset($links['book']['title'])) {
+    $links['book']['title'] = t('Booklet');
+  }
+}
+
+/**
+ * Implements hook_cp_settings().
+ */
+function os_booklets_cp_settings() {
+
+  $settings = array();
+  $spaces_features = variable_get('spaces_features');
+  // The app won't appear in CP menu if not enabled.
+  if (empty($spaces_features['os_booklets'])) {
+    return $settings;
+  }
+
+  $settings['os_booklets_toc_position'] = array(
+    'group' => array(
+      '#id' => 'feature_os_booklets',
+      '#title' => t('Booklets'),
+      '#weight' => 0,
+      '#menu_parent' => 'app_settings',
+      '#help_link' => l(t('Learn more about Booklets'), 'https://help.theopenscholar.com/booklet#booklet-app-settings', array('attributes' => array('target' => '_blank'))),
+    ),
+    'form' => array(
+      '#type' => 'radios',
+      '#title' => t('Table of contents position'),
+      '#options' => array(
+        '0' => 'Display as a widget (default)',
+        '1' => 'Display inline at the top of book page content',
+      ),
+      '#default_value' => variable_get('os_booklets_toc_position', '0'),
+      '#required' => FALSE,
+    ),
+  );
+
+  return $settings;
+}

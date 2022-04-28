@@ -1,0 +1,104 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the OpenScholar profile.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function openscholar_install() {
+  // enable the following themes
+  $enable = array(
+    'adaptivetheme',
+    'aberdeen',
+    'aglet',
+    'airstream',
+    'ballard',
+    'bigpic',
+    'bunchy',
+    'cayley',
+    'cleanblue',
+    'collector',
+    'collegiate',
+    'commodore',
+    'cp_theme',
+    'dunster',
+    'documental',
+    'eloquent',
+    'nortony',
+    'quinn',
+    'redhead',
+    'seven',
+    'stripy',
+   	'hwpi_basetheme',
+    'hwpi_classic',
+    'hwpi_college',
+    'hwpi_modern',
+    'hwpi_onepage',
+    'hwpi_widener',
+    'hwpi_sterling',
+    'hwpi_vibrant',
+	  'weft',
+    'os_basetheme',
+    'os_default',
+    'fairbanks_center',
+    'gking',
+    'openscholar_theme',
+    'projects_harvard',
+    'rcss',
+    'scholar_department',
+    'scholars_harvard',
+    'spinker',
+  );
+  theme_enable($enable);
+
+  // Disable the default Bartik theme.
+  theme_disable(array('bartik'));
+
+  // set the default theme.
+  variable_set('theme_default', 'os_default');
+
+  variable_set('admin_theme', 'seven');
+  variable_set('node_admin_theme', '1');
+
+  // Add the full html format.
+  /*$full_html_format = array(
+    'format' => 'full_html',
+    'name' => 'Full HTML',
+    'weight' => 1,
+    'filters' => array(
+      // URL filter.
+      'filter_url' => array(
+        'weight' => 0,
+        'status' => 1,
+      ),
+      // Line break filter.
+      'filter_autop' => array(
+        'weight' => 1,
+        'status' => 1,
+      ),
+      // HTML corrector filter.
+      'filter_htmlcorrector' => array(
+        'weight' => 10,
+        'status' => 1,
+      ),
+    ),
+  );
+  $full_html_format = (object) $full_html_format;
+  filter_format_save($full_html_format);*/
+
+  // Disable preventing anonymous cache in biblio.
+  variable_set('biblio_prevent_anon_cache', FALSE);
+
+  // Turn on the OG vocab term page access.
+  variable_set('og_vocab_term_page_access', TRUE);
+
+  // Set image toolkit variables.
+  variable_set('imageapi_optimize_service', 'resmushit');
+  variable_set('image_toolkit', 'imageapi_optimize');
+
+  features_revert(array('os_restful_config' => array('variable')));
+}
+

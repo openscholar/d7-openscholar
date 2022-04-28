@@ -1,0 +1,7 @@
+/**
+ * Styles unique to the section outline form
+ */
+
+a.button[data-disabled="true"] {
+  color: #aaaaaa !important;
+}

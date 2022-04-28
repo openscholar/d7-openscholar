@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css?family=Lora');
+body *,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a {
+    font-family: 'Lora';
+}
+#columns {
+    font-size: 1.1em;
+}
+h1#page-title {
+    line-height: 1.2;
+}
+.node-type-page .breadcrumb,
+.node-type-person #content-column .node-person h1.node-title {
+    margin-bottom: 10px;
+}
+.node-type-person #content-column .node-person h1.node-title {
+    font-size: 2.1em;
+}
+h2.block-title {
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+.node-person .field-name-field-professional-title,
+h1,
+h2,
+h1 a,
+h2 a {
+    font-weight: normal;
+}
+#menu-bar {
+    border-top: 1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+}
+.section-nav .expanded.menu-depth-2 > a,
+.section-nav .menu-depth-1 > a,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    color: #215990;
+}
+.section-nav .menu-depth-1 > a {
+    color: #215990 !important;
+}
+.event-start .event-start,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#footer,
+#menu-bar ul.nice-menu ul {
+    background-color: #ececec;
+}
+.section-nav .menu-depth-1 > a,
+.section-nav a:hover {
+    background-color: #ececec !important;
+}
+.section-nav .expanded.menu-depth-2 li > a {
+    background-color: #fbfbfb;
+}
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a {
+    background-color: #f3f3f3 !important;
+}
+.section-nav .expanded.menu-depth-2 li > a {
+    background-color: #fff;
+}
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+    background-position: -12px -566px;
+}
+ul.nice-menu ul {
+    top: 2.82em !important;
+}
+.event-start .event-start {
+    background-image: none;
+}
+#boxes-box-site_info h1 {
+    font-size: 2.6em;
+}
+
+/* I need to use important, because of this line in global.base.css:
+.node-teaser .field-name-body h2
+*/
+.block-boxes-os_boxes_manual_list .node-teaser .field-name-body h2 {
+    font-size: 1.3em !important;
+}

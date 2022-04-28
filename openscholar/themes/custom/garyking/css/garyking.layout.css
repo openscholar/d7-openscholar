@@ -1,0 +1,66 @@
+/* Layout CSS */
+
+
+.front-lop-blockgrid {
+min-height: 532px;
+}
+
+
+.front-lop-blockgrid.front-lop-books {
+min-height: 500px;
+}
+
+ .front-lop-software-tabs .block-boxes-os_sv_list_box {
+    min-height: 416px;
+}
+
+.front .region-content-second {
+padding-top: 40px;
+}
+
+.sidebar {
+    margin-top: 260px;
+}
+.node-type-biblio .sidebar {
+    margin-top: 215px;
+}
+
+#main-content-header,
+.research-by-topic,
+.front .block-boxes-os_boxes_html.bio-teaser-block2,
+.front .block-boxes-os_boxes_twitterfeed,
+h1#page-title {
+    width: 980px;
+}
+.front .block.block-boxes-os_boxes_columns.front-top-cloumn {
+    width: 100%;
+}
+.front .region-content-top .block-boxes-os_boxes_html.bio-teaser-block2,
+#menu-bar nav,
+#menu-bar #block-os-primary-menu,
+.front-top-featured {
+    width: auto !important;
+}
+.front-four-lops .region-two-66-33-first {
+    width: 61%;
+}
+.front .block-boxes-os_boxes_tabs {
+    width: 103.25%;
+    min-height: 425px;
+}
+.front-top-cloumn .region-two-66-33-second,
+.front-top-cloumn .region-two-66-33-first {
+    height: 300px;
+}
+.front-top-cloumn .region-two-66-33-first {
+    width: 69.9%;
+    border-right: 1px solid #fff;
+}
+.front-top-cloumn .region-two-66-33-second {
+    width: 30%;
+}
+.front .block-boxes-os_boxes_twitterfeed,
+.research-by-topic,
+.block-boxes-os_boxes_twitterfeed h2.block-title {
+    margin: 0 auto;
+}

@@ -1,0 +1,42 @@
+Vsite Widgets allows you to add custom blocks to a vsite and configure them site-by-site.
+
+<h3>Create a widget</h3>
+
+<dl>
+<dt>Create a block</dt>
+<dd>Create a block with hook_block or via views or boxes, see drupal for how to create blocks.</dd>
+<dt>Implement hook_os_widgets in your module</dt>
+<dd>
+Your module should implement hook_os_widgets which adds a block to the list of blocks avalible for an openscholar site.
+<pre>
+/**
+ * hook os_widget
+ */
+function mymodule_os_widgets(){
+  $items = array();
+  $items['mymodule-block5'] = array(
+        'module' => 'mymodule',
+        'delta' => 'block5',
+        'weight' => -21,
+        'region' => false,
+        'label' => 'Latest Things',
+        'tags' => array('social'),
+      );
+  return $items;
+}
+</pre>
+Where the key if the array is [module '-' delta] see above.
+<ul>
+  <li><b>module</b> - The module that implements hook block</li>
+  <li><b>delta</b> - the delta of the block (passed to hook block)</li>
+  <li><b>weight</b> - Default weight in the region</li>
+  <li><b>region</b> - The default region the widget should be in or false if you want the widget to be avalible to all users but not in a region by default.</li>
+  <li><b>label</b> - The Label that shows in CP Appearance</li>
+  <li><b>tags</b> - An array of tags that this widget belongs to (optional)</li>
+  <li><b>block_config_path</b> - <i>Advanced</i> A ctools popup compatible path that can be used to configure the settings for this widget. (optional)</li>
+  <li><b>icon_path</b> - Path to an icon that represents this widget</li>
+</ul>
+</dd>
+</dl>
+
+

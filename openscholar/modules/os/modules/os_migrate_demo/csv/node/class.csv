@@ -1,0 +1,5 @@
+ID,Title,Body,Link,Semester,Site,Terms,Path,UID
+class1,John F. Kennedy,This class answer the main question of the semester: who was JFK?.,http://en.wikipedia.org/wiki/JFK;Wikipedia page on JFK,Fall,personal1,ScienceTerm1|ScienceTerm2|ScienceTerm3,,user2
+class2,Neil Armstrong,Learn about the first man on the moon.,http://en.wikipedia.org/wiki/Neil_Armstrong;Wikipedia page on Neil Armstrong,Fall,personal1,ScienceTerm2,,user2
+class3,Lou Gehrig,This class answer who was lou gehrig and how he relate to A.L.S.,http://en.wikipedia.org/wiki/Lou_Gehrig;Wikipedia page on lou gehrig,Summer,project1,,user2
+class4,John F.kendy music,Lorem ipsum,,Fall,personal1,,john/classes/authors/antoine-de-saint-exupéry,user2

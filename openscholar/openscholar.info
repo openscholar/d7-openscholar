@@ -1,0 +1,161 @@
+name = OpenScholar
+description = A full-featured site-creation package designed for the academic community. A single OpenScholar installation can host thousands of personal or project sites.
+version = VERSION
+core = 7.x
+os_version = 7.x-3.31
+
+files[] = openscholar.profile
+files[] = openscholar.install
+files[] = tests/openscholar.test
+
+; Core
+dependencies[] = color
+dependencies[] = comment
+dependencies[] = contextual
+dependencies[] = dblog
+dependencies[] = file
+dependencies[] = filter
+dependencies[] = help
+dependencies[] = image
+dependencies[] = list
+dependencies[] = menu
+dependencies[] = number
+dependencies[] = options
+dependencies[] = overlay
+dependencies[] = path
+dependencies[] = search
+dependencies[] = shortcut
+dependencies[] = taxonomy
+
+; Contrib - core
+dependencies[] = biblio
+dependencies[] = boxes
+dependencies[] = context
+dependencies[] = captcha
+dependencies[] = ctools
+dependencies[] = date
+dependencies[] = date_ical
+dependencies[] = entity
+dependencies[] = features
+dependencies[] = feeds
+dependencies[] = html_title
+dependencies[] = jquery_update
+dependencies[] = pathauto
+dependencies[] = recaptcha
+dependencies[] = redirect
+dependencies[] = strongarm
+dependencies[] = title
+dependencies[] = token
+dependencies[] = views
+
+; media / files / wysiwyg
+dependencies[] = file_entity
+dependencies[] = imagefield_crop
+dependencies[] = jcarousel
+dependencies[] = media
+dependencies[] = media_draggable
+dependencies[] = media_internet
+dependencies[] = media_oembed
+dependencies[] = oembed
+dependencies[] = oembedprovider
+dependencies[] = wysiwyg
+dependencies[] = wysiwyg_filter
+
+; media custom
+dependencies[] = media_embed
+
+; performance
+dependencies[] = entitycache
+dependencies[] = views_litepager
+
+; web services
+dependencies[] = restful
+
+; boxes
+dependencies[] = os_mailchimp
+dependencies[] = os_slideshow
+dependencies[] = views_slideshow_cycle
+
+; misc
+dependencies[] = node_revision_restrict
+
+; OS
+dependencies[] = citation_distribute
+dependencies[] = media_browser
+dependencies[] = os
+dependencies[] = os_books
+dependencies[] = os_boxes
+dependencies[] = os_breadcrumbs
+dependencies[] = os_comments
+dependencies[] = os_common
+dependencies[] = os_files
+dependencies[] = os_files_private
+dependencies[] = os_taxonomy
+dependencies[] = os_ga
+dependencies[] = os_wysiwyg_link
+dependencies[] = os_importer
+dependencies[] = os_exporter
+dependencies[] = os_front
+dependencies[] = os_front
+dependencies[] = os_ga
+dependencies[] = os_help
+dependencies[] = os_importer
+dependencies[] = os_revisions
+dependencies[] = os_restful
+dependencies[] = os_restful_config
+dependencies[] = os_rss
+dependencies[] = os_search_db
+dependencies[] = os_slideshow
+dependencies[] = os_taxonomy
+dependencies[] = os_tour
+dependencies[] = os_wysiwyg
+dependencies[] = os_wysiwyg_link
+
+; Control Panel
+dependencies[] = cp
+dependencies[] = cp_appearance
+dependencies[] = cp_content
+dependencies[] = cp_layout
+dependencies[] = cp_menu
+dependencies[] = cp_user
+dependencies[] = admin_panel
+dependencies[] = ap_settings_form
+dependencies[] = app_form
+dependencies[] = restful_messages
+dependencies[] = os_site_creation
+
+; Features
+dependencies[] = os_blog
+dependencies[] = os_booklets
+dependencies[] = os_classes
+dependencies[] = os_events
+dependencies[] = os_faq
+dependencies[] = os_image_gallery
+dependencies[] = os_links
+dependencies[] = os_news
+dependencies[] = os_pages
+dependencies[] = os_presentations
+dependencies[] = os_profiles
+dependencies[] = os_publications
+dependencies[] = os_reader
+dependencies[] = os_software
+dependencies[] = os_stats
+dependencies[] = os_taxonomy
+
+; other
+dependencies[] = admin_panel
+dependencies[] = entity_validator
+dependencies[] = metatag
+dependencies[] = metatag_opengraph
+dependencies[] = metatag_twitter_cards
+dependencies[] = nice_menus
+dependencies[] = nodeformcols
+dependencies[] = password_policy
+dependencies[] = respondjs
+dependencies[] = shorten
+dependencies[] = term_reference_tree
+dependencies[] = twitter_pull
+dependencies[] = views_infinite_scroll
+dependencies[] = web_widgets
+
+files[] = openscholar.profile

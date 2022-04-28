@@ -1,0 +1,31 @@
+----------------------------
+OpenScholar 3.52, 2016-10-24
+----------------------------
+- Bug fixes in the new CKEDITOR wysiwyg
+- Bug fixes
+    - List of Files widget: video (in full content mode) runs over the sidebar 2
+    - If a widget is within another widget, even if the checkbox "Make Embeddable" is checked, the CSS hides the "embed" link from the user
+    - Software Release: release file is displayed as a huge icon in form
+    - List of Files widget: showing no content for Embedded Media when Display style is set to either Title or Teaser
+    - Adding a hyperlink to an image makes the image disappear
+    - Harvard Chicago Author date citation style should display all authors
+- Added "read more" to people's bio teasers
+- Updated the text for new account emails
+
+----------------------------
+OpenScholar 3.54, 2016-11-14
+----------------------------
+- Changed to the Settings in the menu. There are now three sections under Settings:
+1.	Enable/ Disable Apps - to set the app views to public, disabled, or private
+2.	App Settings -  to change the settings on your enabled apps
+3.	Global Settings - to change site-wide settings
+
+All the screens under Global settings are now in AngularJS.
+
+----------------------------
+OpenScholar 3.57, 2016-01-30
+----------------------------
+- Bug fixes with the People Sync functionality
+- New settings AngularJS screens for Private files, Booklets in left nav
+- New AngularJS screens for Help in left nav
+- Faceted Taxonomy in Publications will now honor the Publications Settings sort order

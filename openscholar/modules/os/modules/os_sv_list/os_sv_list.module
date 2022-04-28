@@ -1,0 +1,363 @@
+<?php
+/**
+ * @file
+ * Code for the os sv list feature.
+ */
+
+include_once 'os_sv_list.features.inc';
+
+/**
+ * Implements hook_menu()
+ */
+function os_sv_list_menu() {
+  $items = array();
+
+  $items['os_sv_list/page/%os_boxes'] = array(
+    'title' => 'Pager',
+    'page callback' => 'os_sv_list_pager_callback',
+    'page arguments' => array(2),
+    'delivery callback'  => 'ajax_deliver',
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Ajax callback.
+ */
+function os_sv_list_pager_callback($box) {
+
+  $output = $box->render();
+  $commands[] = ajax_command_replace('box-' . $box->delta . '-page', $output['content']);
+  return $output['content'];
+}
+
+/**
+ * Implements hook_ctools_plugin_type
+ *
+ * Defines sv_list plugins that extend the basic sv list.
+ */
+function os_sv_list_ctools_plugin_type() {
+  return array('sv_list' => array('use hooks' => TRUE));
+}
+
+/**
+ * Implements hook_ctools_plugin_directory
+ *
+ * Provides the sv_list plugins this module provides
+ */
+function os_sv_list_ctools_plugin_directory($module, $plugin) {
+  if (($module == 'os_sv_list') && ($plugin == 'sv_list')) {
+    // Base class must be present first.
+    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'os_sv_list') . '/plugins/sv_list/plugin.inc';
+    return 'plugins/sv_list';
+  }
+}
+
+/**
+ * @function os_sv_list_plugins
+ *
+ * Get sv_list plugins.  Optionally filter by entity type or bundle.
+ */
+function os_sv_list_plugins($entity_type = NULL, $bundle = NULL) {
+  $plugins = ctools_get_plugins('os_sv_list', 'sv_list');
+
+  foreach (array('entity_type', 'bundle') as $filter) {
+    $var = ${$filter};
+    if ($var) {
+      $plugins = array_filter($plugins, function($plugin) use ($var, $filter) {
+        return (in_array($var, $plugin[$filter]) || empty($plugin[$filter]));
+      });
+    }
+
+  }
+  return $plugins;
+}
+
+/**
+ * Implements hook_boxes_plugins
+ */
+function os_sv_list_boxes_plugins() {
+  $plugins = array();
+
+  //load the base class for node and file lists
+  $plugins['os_sv_list'] = array(
+    'tags' => array('Content'),
+    'handler' => array(
+      'class' => 'os_sv_list',
+      'file' => 'os_sv_list.inc',
+      'path' => drupal_get_path('module', 'os_sv_list') . '/plugins/',
+      'parent' => 'os_boxes_default',
+    ),
+    'factory' => FALSE,
+  );
+
+  $plugins['os_sv_list_box'] = array(
+    'title' => 'List of Posts',
+    'tags' => array('Content'),
+    'handler' => array(
+      'class' => 'os_sv_list_box',
+      'file' => 'os_sv_list_node.inc',
+      'path' => drupal_get_path('module', 'os_sv_list') . '/plugins/',
+      'parent' => 'os_sv_list',
+    ),
+    'factory' => TRUE,
+  );
+
+  $plugins['os_sv_list_file'] = array(
+    'title' => 'List of Files',
+    'tags' => array('Content'),
+    'handler' => array(
+      'class' => 'os_sv_list_file',
+      'file' => 'os_sv_list_file.inc',
+      'path' => drupal_get_path('module', 'os_sv_list') . '/plugins/',
+      'parent' => 'os_sv_list',
+    ),
+    'factory' => TRUE,
+  );
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_entity_query_alter().
+ *
+ * After this point, no more fields are being added to the query.
+ */
+function os_sv_list_entity_query_alter(EntityFieldQuery $efq) {
+
+  $key = false;
+  foreach ($efq->fieldConditions as $k => $fc) {
+    if ($fc['delta_group'] == 'sv_list_events') {
+      $key = $k;
+      break;
+    }
+  }
+
+  if ($key) {
+    foreach ($efq->order as &$o) {
+      if (!empty($o['specifier']['field']['field_name']) && $o['specifier']['field']['field_name'] == 'field_date') {
+        $oldIndex = $o['specifier']['index'];
+        if ($oldIndex != $key) {
+          unset($efq->fields[$oldIndex]);
+        }
+        $o['specifier']['index'] = $key;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_query_TAG_alter
+ *
+ * EFQs tagged with random will be randomly sorted.
+ * http://rupertj.tumblr.com/post/21641418129/randomly-sorting-an-entityfieldquery
+ */
+function os_sv_list_query_random_alter($query) {
+  $query->orderRandom();
+}
+
+/**
+ * Implements hook_query_TAG_alter
+ */
+function os_sv_list_query_sv_list_biblio_alter(&$query) {
+  $query->join('biblio', 'b', 'b.vid = node.vid');
+  $query->orderBy('b.biblio_year', 'DESC');
+
+  // If this query is used for the sv_list plugin, keep the sticky sort as is.
+  $sv_list = $query->getMetaData('sv_list');
+  if (!$sv_list) {
+    // The query is not used for the sv_list. Order first by the biblio year,
+    // and then by sticky.
+    $fields =& $query->getOrderBy();
+    if (!empty($fields['node.sticky'])) {
+      $order = $fields['node.sticky'];
+      unset($fields['node.sticky']);
+      $fields['node.sticky'] = $order;
+    }
+  }
+
+  // Lastly order by created.
+  $query->orderBy('node.created', 'DESC');
+}
+
+/**
+ * Implements hook_query_tag_alter
+ */
+function os_sv_list_query_sv_list_events_alter(SelectQueryInterface $query) {
+  // fix this awful query
+
+  // Add the delta to the fields so we get a row for each unique nid-delta
+  // combination. This tells EFQ how many results it actually has. The table
+  // alias is derived from the delta group given in the conditions. We have to
+  // use the same alias, and not a different alias of the same table to get the
+  // correct results.
+
+  // add the delta to the fields
+  $tables = &$query->getTables();
+  $date_table = '';
+  foreach ($tables as $t => $def) {
+    if (strpos($t, 'field_data_field_date') !== FALSE) {
+      $date_table = $t;
+    }
+  }
+
+  if(!$date_table) {
+    watchdog('os_sv_list_events',"Can not sort because field_data_field_date has not been joined.");
+    return;
+  }
+
+  $query->fields($date_table, array('delta'));
+
+  // Get the type of sort to use.
+  if ($sort_type = $query->getMetaData('sort_event')) {
+
+    // If this query is used for the sv_list plugin, keep the sticky sort as is.
+    $sv_list = $query->getMetaData('sv_list');
+    if ($sv_list) {
+      // Sort first by sticky and use the right table.
+      $order = &$query->getOrderBy();
+      $order = array(
+        'node.sticky' => 'DESC',
+        $date_table . '.field_date_value' => $sort_type,
+      );
+    } else {
+      // Sort on the right table.
+      $order = &$query->getOrderBy();
+      $order = array(
+        $date_table . '.field_date_value' => $sort_type,
+      );
+    }
+  }
+}
+
+/**
+ * Get Vocabularies by content type.
+ *
+ * @param $bundle
+ *  The bundle that the og vocab are related to.
+ *
+ * @return Array
+ *  Array keyed with vocabulary id and valued with the vocabulary name.
+ */
+function os_sv_list_get_content_type_vocabs($bundle, $entity_type = 'node') {
+  $bundles = ($bundle == 'all') ? os_get_bundles(array(1)) + os_files_get_bundles() : array($bundle => $bundle);
+  $vocabs = array();
+  foreach (array_keys($bundles) as $os_bundle) {
+    if ($vocab = og_vocab_get_accessible_vocabs($entity_type, $os_bundle, OG_VOCAB_FIELD)) {
+      foreach ($vocab as $vid) {
+        $vocabs[] = $vid;
+      }
+    }
+  }
+//os_taxonomy_og_vocabulary_bundles($vocabulary, $gid)
+
+  if (empty($vocabs)) {
+    return array();
+  }
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'og_vocab')
+    ->propertyCondition('entity_type', $entity_type)
+    ->propertyCondition('vid', $vocabs, is_array($vocabs) ? 'IN' : '=');
+
+  if ($bundle != 'all') {
+    $query->propertyCondition('bundle', $bundle);
+  }
+
+  $result = $query->execute();
+
+  if (empty($result['og_vocab'])) {
+    return array();
+  }
+
+  foreach (array_keys($result['og_vocab']) as $vid) {
+    $og_vocab = entity_load_single('og_vocab', $vid);
+    $vocabulary = taxonomy_vocabulary_load($og_vocab->vid);
+    $options[$vocabulary->vid] = $vocabulary->name;
+  }
+
+  return $options;
+}
+
+/**
+ * Element validate; Set 'terms' according to 'vocabs'.
+ */
+function os_sv_list_terms_element_validate($element, &$form_state) {
+  // Get all selected terms from the 'vocab' select fields.
+  $tids = array();
+  foreach ($form_state['values']['vocabs'] as $value) {
+    $tids = array_merge($tids, $value);
+  }
+
+  // Set 'terms' value to be the selected vocab terms.
+  $terms_element = array('#parents' => array('terms'));
+  form_set_value($terms_element, $tids, $form_state);
+}
+
+/**
+ * Conditional field validation for show more link checkbox.
+ */
+function os_sv_list_after_build($form, &$form_state) {
+  // Removing field validation if Show "more" link checkbox is unchecked.
+  if ($form['details']['more_div']['more']['#value'] == 0) {
+    unset($form['details']['more_div']['more_link']['#needs_validation']);
+    unset($form['details']['more_div']['more_text']['#needs_validation']);
+  }
+  return $form;
+}
+
+/**
+ * @function os_sv_list_vocabs_content_type
+ *
+ * AJAX callback for reload the vocabulary for the selected content type.
+ */
+function os_sv_list_vocabs_content_type($form, $form_state) {
+  return $form['options']['vocabs'];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_sv_list_form_spaces_features_form_alter(&$form, &$form_state) {
+  $form['#submit'][] = 'os_sv_list_form_spaces_features_form_submit';
+}
+
+/**
+ * Submit handler.
+ *
+ * Invalidate the os_boxes cache to make sure that apps that are now private
+ * won't display content in the LOP
+ */
+function os_sv_list_form_spaces_features_form_submit($form, &$form_state) {
+  $cid = 'os_boxes_cache:';
+  if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    $cid .= $vsite->id;
+  }
+
+  // Flush raw data.
+  cache_clear_all($cid, 'cache_os_boxes', TRUE);
+
+  // Flush assets.
+  cache_clear_all('assets:' . $cid, 'cache_os_boxes', TRUE);
+}
+
+/**
+ * Helper function to alter destination url in contextual node-edit menu
+ * after ajax callback in os_sv_list pager
+ */
+function os_sv_list_contextual_links_view_alter(&$element, $items) {
+  if (isset($element['#links']['node-edit']['query']['destination'])) {
+    // Determine whether its after ajax callback,
+    // Ajax pager callback sets the contextual menu edit node destination URL as 'os_sv_list/page'
+    if (strpos($element['#links']['node-edit']['query']['destination'], 'os_sv_list') !== FALSE) {
+      // use the stored session after ajax callback
+      $element['#links']['node-edit']['query']['destination'] = $_SESSION['destination_path'];
+    } else {
+      // store the current page in session
+      $_SESSION['destination_path'] = $element['#links']['node-edit']['query']['destination'];
+    }
+  }
+}

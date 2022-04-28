@@ -1,0 +1,8 @@
+name = Mather
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = mather.css
+css[] = responsive.mather.css
+
+scripts[] = mather.js

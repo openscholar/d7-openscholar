@@ -1,0 +1,27 @@
+diff --git a/profiles/openscholar/modules/contrib/biblio/biblio.module b/profiles/openscholar/modules/contrib/biblio/biblio.module
+index 64f5f85..6bf2122 100644
+--- a/profiles/openscholar/modules/contrib/biblio/biblio.module
++++ b/profiles/openscholar/modules/contrib/biblio/biblio.module
+@@ -1018,7 +1018,7 @@ function biblio_filter_clear() {
+   if (isset($_GET['order'])) {
+     $options['order'] = $_GET['order'];
+   }
+-  drupal_goto($base, $options);
++  drupal_goto($base.'/no_filter', $options);
+ }
+ 
+ function biblio_remove_brace($title_string) {
+diff --git a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+index 22f800a..326a9fb 100644
+--- a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
++++ b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+@@ -634,6 +634,9 @@ function _biblio_filter_info_line($args = array()) {
+   if (count($filters)) {
+     $i = 0;
+     foreach ($filters as $type => $value) {
++      if ($type == 'no_filter') {
++        return '';
++      }
+       if ($type == 'search') {
+         $search_content = $value;
+         continue;

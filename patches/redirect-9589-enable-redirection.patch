@@ -1,0 +1,12 @@
+diff --git a/redirect.module b/redirect.module
+index 9f7a256..362cd01 100644
+--- a/redirect.module
++++ b/redirect.module
+@@ -557,6 +557,7 @@ function redirect_load_by_hash($hash, $reset = FALSE) {
+  * @ingroup redirect_api
+  */
+ function redirect_load_by_source($source, $language = LANGUAGE_NONE, array $query = array()) {
++  drupal_alter('redirect_load_by_source_existing_url', $source);
+   // Run a case-insensitive query for matching RIDs first.
+   $rid_query = db_select('redirect');
+   $rid_query->addField('redirect', 'rid');

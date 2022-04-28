@@ -1,0 +1,44 @@
+diff --git a/responsiveslides.js b/responsiveslides.js
+index 1e6f465..1726c76 100644
+--- a/responsiveslides.js
++++ b/responsiveslides.js
+@@ -65,7 +65,7 @@
+         slideClassPrefix = namespaceIdx + "_s",
+ 
+         // Pager
+-        $pager = $("<ul class='" + namespace + "_tabs " + namespaceIdx + "_tabs' />"),
++        $pager = $("<ul class='slidecontrol " + namespace + "_tabs " + namespaceIdx + "_tabs' />"),
+ 
+         // Styles for visible and hidden slides
+         visible = {"float": "left", "position": "relative", "opacity": 1, "zIndex": 2},
+@@ -185,7 +185,7 @@
+             var n = i + 1;
+             tabMarkup +=
+               "<li>" +
+-              "<a href='#' class='" + slideClassPrefix + n + "'>" + n + "</a>" +
++              "<a href='#' class='" + slideClassPrefix + n + "'>&bull;</a>" +
+               "</li>";
+           });
+           $pager.append(tabMarkup);
+@@ -308,14 +308,18 @@
+         // Navigation
+         if (settings.nav) {
+           var navMarkup =
+-            "<a href='#' class='" + navClass + " prev'>" + settings.prevText + "</a>" +
+-            "<a href='#' class='" + navClass + " next'>" + settings.nextText + "</a>";
++            "<li><a href='#' title='Previous slide' class='" + navClass + " prev'><span aria-hidden='true' class='icon-arrow-left7'></span></a></li>";
++
++          var navMarkup2 =
++            "<li><a href='#' title='Next slide' class='" + navClass + " next'><span aria-hidden='true' class='icon-arrow-right8'></span></a></li>";
+ 
+           // Inject navigation
+           if (options.navContainer) {
+             $(settings.navContainer).append(navMarkup);
+           } else {
+-            $this.after(navMarkup);
++            //$this.after(navMarkup);
++            $('.slidecontrol').prepend(navMarkup);
++            $('.slidecontrol').append(navMarkup2);
+           }
+ 
+           var $trigger = $("." + namespaceIdx + "_nav"),

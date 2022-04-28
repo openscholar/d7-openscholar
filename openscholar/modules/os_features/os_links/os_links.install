@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * Refreshes exported variables of the Links app.
+ */
+function os_links_update_7000() {
+  $revert = array(
+    'os_links' => array(
+      'variable',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Reverts field instance to remove the URL full view mode.
+ */
+function os_links_update_7001() {
+  $revert = array(
+    'os_links' => array(
+      'field_instance',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Reverts variable to enable customised full view mode.
+ */
+function os_links_update_7002() {
+  $revert = array(
+    'os_links' => array(
+      'variable',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Reverts variable to enable customised full view mode.
+ */
+function os_links_update_7003() {
+  $revert = array(
+    'os_links' => array(
+      'variable',
+      'field_instance',
+    )
+  );
+
+  features_revert($revert);
+}
+
+
+/**
+ * Revert to enable "Open in new tab" checkbox option
+ */
+function os_links_update_7004() {
+  $revert = array(
+    'os_links' => array(
+      'field_base',
+      'field_instance',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Hide "Open in new tab" label
+ */
+function os_links_update_7005() {
+  $revert = array(
+    'os_links' => array(
+      'field_base',
+      'field_instance',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Change the formatter for links teaser..
+ */
+function os_links_update_7006() {
+  features_revert(array('os_links' => array('field_instance')));
+}

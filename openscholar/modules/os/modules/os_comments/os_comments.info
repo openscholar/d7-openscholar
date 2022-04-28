@@ -1,0 +1,17 @@
+name = OpenScholar: Comments
+description = Provides OpenScholar Comment integration with features/comment_sources
+core = 7.x
+package = OpenScholar
+dependencies[] = comment
+dependencies[] = comment_sources
+dependencies[] = disqus
+dependencies[] = features
+dependencies[] = os
+features[features_api][] = api:2
+features[user_permission][] = access comments
+features[user_permission][] = administer comments
+features[user_permission][] = edit own comments
+features[user_permission][] = post comments
+features[user_permission][] = skip comment approval
+features[user_permission][] = toggle disqus comments
+features[user_permission][] = view disqus comments

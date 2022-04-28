@@ -1,0 +1,173 @@
+<?php
+// $Id$
+
+
+/**
+ * @file
+ * Code for OS Blog module
+ */
+include_once 'os_blog.features.inc';
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_blog_os_app_info() {
+  $apps = array();
+
+  $apps['os_blog'] = array(
+    'path' => 'blog',
+  	'nodetypes' => array(
+  	  'blog',
+    ),
+    'views tabs' => array(
+      'os_blog' => array('page'),
+    ),
+    // Index author in Solr.
+    'index author' => TRUE,
+
+    'importers' => array(
+      'blog' => array(
+        'csv' => 'os_blog_csv',
+        'rss' => 'blog_import',
+      ),
+    ),
+    'browse_pages' => array(
+      'blog' => array(
+        'url' => 'browse/blogs',
+        'title' => t('Blog'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'blog',
+      ),
+    ),
+    'has_settings' => FALSE,
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_os_restful_cp_menu_admin_panel_alter().
+ */
+function os_blog_os_restful_cp_menu_admin_panel_alter(&$menu) {
+  $parent = &$menu['settings']['children']['app_settings']['children'];
+  if (isset($parent['feature_os_blog'])) {
+    $parent['feature_os_blog']['label'] = t('Blog Comments');
+  }
+}
+
+/**
+ * Implements hook_process_hook() for node.
+ *
+ * Removes the username from $submitted info on blog type nodes.
+ */
+function os_blog_process_node(&$vars) {
+  if ($vars['type'] !== 'blog') {
+    return;
+  }
+
+  if ($vars['view_mode'] == 'title') {
+    unset($vars['submitted']);
+    return;
+  }
+
+  // Builds the submitted variable used by default in node templates
+  $pubdate = format_date($vars['created'], 'custom', 'F j, Y');
+  // Publication date, formatted with time element
+  $vars['submitted'] = '<time datetime="' . $vars['datetime'] . '" pubdate="pubdate">' . $pubdate . '</time>';
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_blog_vsite_og_node_type_info() {
+  return array(
+    'blog' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_os_widget().
+ *
+ * Exposes blocks as OpenScholar widgets.
+ */
+function os_blog_os_widget() {
+  $items = array();
+
+  // Displays "Archive" list of blog entry nodes by month
+  $items['views-os_blog-block'] = array(
+    'module' => 'views',
+    'delta' => 'os_blog-block',
+    'region' => 'sidebar_second',
+    'weight' => '-10',
+    'info' => 'Blog Archive',
+  );
+
+  return $items;
+}
+
+//TODO: Remove with os_layout_get is refactored to better handle widget titles
+function os_blog_os_widget_alter(&$widget) {
+  if ($widget['delta'] == 'os_blog-block') {
+    $widget['info'] = 'Blog Archive';
+  }
+}
+
+/**
+ * Implements hook_node_delete().
+ *
+ * Deletes data from os_feed_item when their node is deleted.
+ */
+function os_blog_node_delete($node) {
+  if($node->type != 'blog_import') {
+    return;
+  }
+  $nid = $node->nid;
+  db_delete('os_feed_item')
+  ->condition('importer_nid', $nid)
+  ->execute();
+}
+
+/**
+ * Implements hook_cp_settings().
+ */
+function os_blog_cp_settings() {
+  $settings = array();
+
+  $spaces_features = variable_get('spaces_features');
+  // The app won't appear in CP menu if not enabled.
+  if (empty($spaces_features['os_blog'])) {
+    return $settings;
+  }
+
+  // Includes the admin form inc file.
+  module_load_include('admin.inc', 'comment_sources');
+  $params['build_info']['args'][] = 'os_blog';
+  $settings_form = drupal_retrieve_form('comment_sources_admin_settings_form', $params);
+  $settings_form['comment_sources_blog']['#title'] = t('Choose which comment type you\'d like to use');
+  $settings_form['comment_sources_blog']['#options'] = array(
+    'nc' => t('No comments'),
+    'comment' => t('Private comments (only site members can see theme)'),
+    'disqus' => t('Disqus comments'),
+  );
+
+  if (empty($settings_form['comment_sources_blog']['#default_value'])) {
+    $settings_form['comment_sources_blog']['#default_value'] = 'nc';
+  }
+
+  $settings['blog_comments_settings'] = array(
+      'group' => array(
+        '#id' => 'blog_comments',
+        '#title' => t('Blog Comments'),
+        '#weight' => 1,
+        '#menu_parent' => 'app_settings',
+        '#help_link' => l(t('Learn more about blog comments'), '', array('attributes' => array('target' => '_blank')))
+      ),
+      'form' => $settings_form['comment_sources_blog'],      
+      'rest_submit' => function($value) {
+        $type_settings['blog'] = ($value == 'nc') ? '' : $value;
+        comment_sources_save_type_settings($type_settings);
+      },
+    );
+
+  return $settings;
+}

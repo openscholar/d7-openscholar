@@ -1,0 +1,77 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function vsite_vocab_install() {
+
+  drupal_static_reset('og_fields_info');
+
+  //Get the weight of og_vocab
+  $weight = db_query("SELECT weight FROM {system} WHERE type = 'module' AND name = 'og_vocab' ")->fetchField();
+  $weight ++;
+
+  // Required to alter vocab forms after og_vocab
+  db_update('system')->fields(array(
+    'weight' => $weight
+  ))->condition('type', 'module')->condition('name', 'vsite_vocab')->execute();
+
+  $bundles = og_get_all_group_content_bundle('node');
+  if (isset($bundles) && is_array($bundles)) {
+    $og_field = og_fields_info(OG_VOCAB_FIELD);
+    $og_field['instance']['display']['default']['label'] = 'hidden';
+    $og_field['instance']['display']['default']['settings']['concatenate'] = TRUE;
+    foreach ($bundles as $bundle => $name) {
+      // Group content.
+      og_create_field(OG_VOCAB_FIELD, 'node', $bundle, $og_field);
+    }
+  }
+
+  //Add og_vocab instance to file bundles
+  _vsite_vocab_files_add_vocab_field();
+}
+
+/**
+ * Adds og_vocab field to files
+ */
+function vsite_vocab_update_7001() {
+  _vsite_vocab_files_add_vocab_field();
+}
+
+/**
+ * @function _vsite_vocab_files_add_vocab_field()
+ *
+ * Add og_vocab instance to file bundles
+ */
+function _vsite_vocab_files_add_vocab_field() {
+  $bundles = og_get_all_group_content_bundle('file');
+  if (empty($bundles)) {
+    return;
+  }
+
+  $og_field = og_fields_info(OG_VOCAB_FIELD);
+  $og_field['instance']['display']['default']['label'] = 'hidden';
+  $og_field['instance']['display']['default']['settings']['concatenate'] = TRUE;
+  foreach ($bundles as $bundle => $name) {
+    og_create_field(OG_VOCAB_FIELD, 'file', $bundle, $og_field);
+  }
+}
+
+/**
+ * Remove non-allowed characters from the vocabulary machine name.
+ */
+function vsite_vocab_update_7002(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'query' => '_vsite_vocab_update_query',
+    'iterator' => '_vsite_vocab_name_fix_iterator',
+    'batch' => 100,
+    'entity' => 'taxonomy_vocabulary',
+  ));
+}
+
+/**
+ * Remove comma characters from the vocabulary machine name.
+ */
+function vsite_vocab_update_7003(&$sandbox) {
+  vsite_vocab_update_7002($sandbox);
+}

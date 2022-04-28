@@ -1,0 +1,9 @@
+name = Vsite Layout
+description = "This implements the vsite api's for layout to apply overrides to contexts."
+core = 7.x
+package = "OpenScholar vsite"
+php = "5.2.4"
+dependencies[] = ctools
+dependencies[] = vsite
+dependencies[] = os
+files[] = "tests/vsite_layout.test"

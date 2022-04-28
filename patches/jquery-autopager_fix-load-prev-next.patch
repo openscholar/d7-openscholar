@@ -1,0 +1,76 @@
+diff --git a/jquery.autopager-1.0.0.js b/jquery.autopager-1.0.0.js
+index 18223ef..28a91ab 100644
+--- a/jquery.autopager-1.0.0.js
++++ b/jquery.autopager-1.0.0.js
+@@ -52,7 +52,8 @@
+ 		}
+ 
+ 		setUrl();
+-		
++		nextUrl = $(options.link).attr('href');
++
+ 		if (_options.link_prev) {
+ 		  prevUrl = $(_options.link_prev).attr('href');
+       if (prevUrl && currentUrl.match(_options.page_arg)) {
+@@ -102,7 +103,7 @@
+ 		autoLoad: function(value) {
+ 			return this.option('autoLoad', value);
+ 		},
+-		
++
+ 		urlGetArg: function (arg, url) {
+ 		  if (url && (url.indexOf('?') > 0)) {
+   		  args = url.split('?')[1].split('&');
+@@ -125,7 +126,7 @@
+ 			$.get(nextUrl, insertContent);
+ 			return this;
+ 		},
+-		
++
+ 		load_prev: function() {
+ 		  if (active || !prevUrl || options.disabled || !options.link_prev) {
+         return;
+@@ -153,7 +154,7 @@
+ 				if (value) {
+ 					options.appendTo = null;
+ 				}
+-				break
++				break;
+ 			case 'appendTo':
+ 				if (value) {
+ 					options.insertBefore = null;
+@@ -163,13 +164,12 @@
+ 		options[key] = value;
+ 	}
+ 
+-	function setUrl(context) {
++	function setUrl() {
+ 		currentUrl = nextUrl || window.location.href;
+-		nextUrl = $(options.link, context).attr('href');
+ 	}
+ 
+ 	function loadOnScroll() {
+-	  
++
+ 		if (content.offset().top + content.height() < $(document).scrollTop() + $(window).height()) {
+ 	    var page = (typeof(nextUrl) != 'undefined') ? nextUrl.replace(/.*page=(\d+).*/, "$1") : false;
+ 
+@@ -203,8 +203,7 @@
+           window.history.replaceState({}, document.title, nextUrl);
+     } 
+ 
+-		set('page', nextNum);
+-		setUrl(nextPage);
++		setUrl();
+ 		
+     if (loadingPrevious) {
+       var $content= $(_options.content + ':first');
+@@ -228,6 +227,8 @@
+       
+       options.load(); //dont forget the load callbacks
+     } else {
++			set('page', currentNum);
++			nextUrl = $(options.link, nextPage).attr('href');
+   		if (nextContent.length) {
+   			if (_options.insertBefore) {
+   				nextContent.insertBefore(_options.insertBefore);

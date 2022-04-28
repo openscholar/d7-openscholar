@@ -1,0 +1,28 @@
+#extradiv {
+  background-image: url('images/fabric-strip-grungy-green.png');
+  }
+
+body {
+  background-color: #212519;
+  }
+
+#menu-bar {
+  background: url('images/menu-strip-grungy-green.png') #868C5F;
+  }
+  
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color: #898F47;
+  }
+
+#menu-bar li a,
+#menu-bar li a:visited {
+  color: #fff;
+  }
+
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar .active-trail a {
+  background: #dcdace;
+  color: #212519;
+  }

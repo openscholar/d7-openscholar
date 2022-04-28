@@ -1,0 +1,451 @@
+<?php
+/**
+ * @file
+ * Allows faculty members to import a list of their publications.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function harvard_activity_reports_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#harvard_activity_reports':
+      $output = '<p>'. t('Harvard Activity Report (HAR) will display a list of publications for a given faculty member.') .'</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function harvard_activity_reports_menu() {
+  $items['harvard_activity_reports'] = array(
+    'title' => 'Harvard Activity Report',
+    'page callback' => 'harvard_activity_reports_page',
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Query the {iqss_pinserver_register} table for a user id and returns the
+ * user ID.
+ *
+ * @param $hash_id
+ *   The hashed user ID.
+ *
+ * @return
+ *   The user ID if found, or FALSE.
+ */
+function harvard_activity_reports_query_user_by_id($hash_id)  {
+  if (!module_exists('pinserver_authenticate')) {
+    return FALSE;
+  }
+  $result = db_query('SELECT uid, huid FROM {pinserver_users} WHERE hashID = :hashID', array(':hashID'=>$hash_id))->fetchObject();
+  return !empty($result->uid) ? $result->uid : FALSE;
+}
+
+/**
+ * Query users by ID and return a site.
+ *
+ * @param $site
+ *   The URL that should be parsed and queried from the PURL table.
+ */
+function harvard_activity_reports_query_user_by_site($site_url) {
+  // Make sure the site URL is with http.
+  $site_url = rtrim(str_replace('https://', 'http://', $site_url), '/');
+
+  global $base_url;
+
+  if (strpos($site_url, $base_url) === 0) {
+    // base_url should always be scholar.harvard.edu
+    // so if the site_url starts with it, then this site does not have a custom domain
+
+    $path = str_replace($base_url, '', $site_url);
+    $path = trim($path, '/');
+    $path = explode('/', $path);
+    $vsite = $path[0];
+    $provider = "spaces_og";
+  }
+  else{
+    // site_url is a custom, non-shared domain, we think
+    $provider = "vsite_domain";
+    $parts = parse_url($site_url);
+    $vsite = $parts['host'];
+  }
+
+  // Query the database.
+  if ($uid = db_query('SELECT n.uid FROM {node} n, {purl} p WHERE p.value = :path AND p.provider = :provider AND n.nid = p.id', array(':path' => $vsite, ':provider' => $provider))->fetchField()) {
+    return $uid;
+  }
+
+  // if we fall here, this is a shared domain
+  // since it's high unlikely someone used a shared domain with a / in it
+  // it's safe to assume the vsite is the first part of the path
+  $provider = "spaces_og";
+  $path = parse_url($site_url, PHP_URL_PATH);
+  $path = explode('/', trim($path, '/'));
+  $vsite = $path[0];
+
+  return db_query('SELECT n.uid FROM {node} n, {purl} p WHERE p.value = :path AND p.provider = :provider AND n.nid = p.id', array(':path' => $vsite, ':provider' => $provider))->fetchField();
+}
+
+/**
+ *
+ * Query and return a user's vsite ID based on their user ID.
+ *
+ * @param $uid
+ *   The user ID.
+ *
+ * @return
+ *   The node ID of the group if found, or FALSE.
+ */
+function harvard_activity_reports_query_vsite_id($uid) {
+  // now that we have the UID, grab their VSITE node ID from the Node table
+  $group_types = og_get_all_group_bundle('node');
+
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', array_keys($group_types), 'IN')
+    ->propertyCondition('uid', $uid)
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->range(0, 1)
+    ->execute();
+
+  return !empty($result['node']) ? key($result['node']) : FALSE;
+}
+
+/**
+ * Function to update the users hash ID if it doesnt already exist.
+ *
+ * @param $uid
+ *   The user ID.
+ * @param $hash_id
+ *   The hashed user ID.
+ */
+function harvard_activity_reports_update_huid_hash($uid, $hash_id) {
+  if (!module_exists('pinserver_authenticate')) {
+    return;
+  }
+
+  // Add a new hash ID, replacing the old if needed, hashID is not used by scholars.
+  return db_merge('pinserver_users')
+    ->key(array('uid' => $uid))
+    ->fields(array(
+      'hashID'=>$hash_id,
+    ))
+    ->execute();
+}
+
+/**
+ * Implements harvard_activity_reports_query_user().
+ *
+ * Custom query to pull the user publicatios from the passed hash ID.
+ *
+ * @return
+ *   The node ID of the vsite if found, or FALSE.
+ */
+function harvard_activity_reports_query_user() {
+  // Check if we already have a space context.
+  if ($vsite = spaces_get_space()) {
+    return $vsite->group->uid;
+  }
+
+  if (empty($_GET['id']) && empty($_GET['site_url'])) {
+    return;
+  }
+
+  $hash_id = !empty($_GET['id']) ? strip_tags($_GET['id']) : FALSE;
+  $site_url = !empty($_GET['site_url']) ? strip_tags($_GET['site_url']) : FALSE;
+
+  if ($hash_id && $uid = harvard_activity_reports_query_user_by_id($hash_id)) {
+    // User exists, just continue on here no reason to work with the site
+    // url.
+    return harvard_activity_reports_query_vsite_id($uid);
+  }
+
+  if ($site_url && $uid = harvard_activity_reports_query_user_by_site($site_url)) {
+    if ($hash_id) {
+      // Grab the user's hash ID and insert them into the pin table.
+      harvard_activity_reports_update_huid_hash($uid, $hash_id);
+    }
+
+    return harvard_activity_reports_query_vsite_id($uid);
+  }
+}
+
+/**
+ * Get the biblio information from a node.
+ *
+ * @param $nid
+ *   The node ID of the VSite.
+ *
+ * @param
+ *   Array with biblio node IDs if found, or empty array.
+ */
+function harvard_activity_reports_get_biblio_by_vsite($nid){
+  $return = array();
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'biblio')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', $nid)
+    ->execute();
+
+  return !empty($result['node']) ? array_keys($result['node']) : array();
+}
+
+/**
+ * Sort XML array by the "biblio year".
+ *
+ * @see http://www.firsttube.com/read/sorting-a-multi-dimensional-array-with-php/
+ */
+function harvard_activity_reports_subval_sort($a,$subkey) {
+  foreach($a as $k=>$v) {
+    $b[$k] = strtolower($v[$subkey]);
+  }
+  // Sort high to low, so most recent publications first.
+  arsort($b);
+  foreach($b as $key=>$val) {
+    $c[] = $a[$key];
+  }
+  return $c;
+}
+
+/**
+ * Create the XML based on the biblio information.
+ *
+ * @param unknown_type $biblio_data
+ */
+function harvard_activity_reports_create_xml($biblio_data, $hash_id, $status,$nid) {
+  $return = '';
+
+  // load in the vsite data
+  $vsite = vsite_get_vsite($nid);
+  if(!empty($vsite)) {
+  // Create the source url.
+  $source_url = $vsite->get_absolute_url();
+  }else{
+    $source_url = NULL;
+  }
+
+  // Create a dom document with encoding utf8.
+  $domtree = new DOMDocument('1.0', 'UTF-8');
+  $domtree->formatOutput=true;
+
+  /* create the root element of the xml tree */
+  $xmlRoot = $domtree->createElement("response");
+
+  // setup the response xml root
+  $response = $domtree->createAttribute("xmlns:xsi");
+  $xmlRoot->appendChild($response);
+  $responseValue = $domtree->createTextNode("http://www.w3.org/2001/XMLSchema-instance");
+  $response->appendChild($responseValue);
+  // response part 2
+  $xsiAtt = $domtree->createAttribute("xsi:noNamespacesSchemaLocation");
+  $xmlRoot->appendChild($xsiAtt);
+  $xsiValue = $domtree->createTextNode("far_response.xsd");
+  $xsiAtt->appendChild($xsiValue);
+  //
+  /* append it to the document created */
+  $xmlRoot = $domtree->appendChild($xmlRoot);
+
+  // create the person element
+  $personElement = $domtree->createElement("person");
+  $xmlRoot->appendChild($personElement);
+  // add the person attributes
+  $hash_idAtt = $domtree->createAttribute("huid");
+  $personElement->appendChild($hash_idAtt);
+  // now the test node
+  $hash_idAttValue = $domtree->createTextNode($hash_id);
+  $hash_idAtt->appendChild($hash_idAttValue);
+  // attribute #1 sourceURL.
+  $url_att = $domtree->createAttribute("sourceUrl");
+  $personElement->appendChild($url_att);
+  // Create the text for the sourceUrl attribute
+  $url_att_value = $domtree->createTextNode($source_url);
+  $url_att->appendChild($url_att_value);
+  // attribute #2
+  $asAtt = $domtree->createAttribute("action_status");
+  $personElement->appendChild($asAtt);
+  // now the test node
+  $asAttValue = $domtree->createTextNode($status);
+  $asAtt->appendChild($asAttValue);
+
+  switch($status) {
+    case "ok":
+      if ($biblio_data) {
+        // sort the XML by year, most recent first
+        $biblio_data = harvard_activity_reports_subval_sort($biblio_data, 'biblio_year');
+        // loop through the array data for the publications and create XML elements with them
+        foreach($biblio_data as $value) {
+          // create the pub element
+          $currentPub = $domtree->createElement("publication");
+          $currentPub = $personElement->appendChild($currentPub);
+          // now we'll add attributes to it
+          // publication nid
+          $nidAtt = $domtree->createAttribute("id");
+          $currentPub->appendChild($nidAtt);
+          // nid value
+          $nidValue = $domtree->createTextNode($value['biblio_nid']);
+          $nidAtt->appendChild($nidValue);
+          // publication type
+          $pubTypeAtt = $domtree->createAttribute("pubType");
+          $currentPub->appendChild($pubTypeAtt);
+          // publication value
+          $pubTypeValue = $domtree->createTextNode($value['biblio_type_name']);
+          $pubTypeAtt->appendChild($pubTypeValue);
+          // publication source
+          $pubSource = $domtree->createAttribute("pubSource");
+          $currentPub->appendChild($pubSource);
+          // publication source value
+          $pubSourceValue = $domtree->createTextNode('OpenScholar');
+          $pubSource->appendChild($pubSourceValue);
+
+          // citation info
+          $currentPub->appendChild($domtree->createElement("citation",$value['biblio_author'] . ". " . utf8_encode(htmlspecialchars(html_entity_decode(strip_tags($value['biblio_title'])), 0, 'ISO-8859-1', FALSE)) . ". " . $value['biblio_secondary_title']));
+          // biblio basic info
+          // create the proper linkTo
+          $currentPub->appendChild($domtree->createElement('linkToArticle',$value['biblio_url']));
+          // biblio citation information
+          $currentPub->appendChild($domtree->createElement('yearOfPublication',$value['biblio_year']));
+        }
+      }
+      break;
+    case "error":
+    case "unknown":
+  }
+  $return = $domtree->saveXML();
+  return $return;
+}
+
+/**
+ * Page callback; Return XML with the Biblio publications.
+ */
+function harvard_activity_reports_page() {
+  // Get the year from the URL, or use the current year as default value.
+  $year = !empty($_GET['year']) ? $_GET['year'] : date("Y");
+
+  // Get the user from the query.
+  if ($nid = harvard_activity_reports_query_user()) {
+    // xml status is ok
+    $status = "ok";
+    if (module_exists('pinserver_authenticate')) {
+      $hash_id = db_query("SELECT i.hashID FROM {pinserver_users} i, {node} n WHERE n.nid = :nid AND i.uid = n.uid",array(':nid'=>$nid))->fetchField();
+    }
+    else{
+      $hash_id = !empty($_GET['id']) ? strip_tags($_GET['id']) : FALSE;
+    }
+
+    $biblio_data = array();
+    $counter = 0;
+
+    // Get the user's biblio.
+    // @todo: Get only the ones from the queried years.
+    $nids = harvard_activity_reports_get_biblio_by_vsite($nid);
+
+    // Pre-load all nodes at-once.
+    $nodes = node_load_multiple($nids);
+
+    // Loop through each node.
+    foreach($nodes as $node) {
+      if (!empty($_GET['year'])) {
+        // They want only a specific year, so just pull that year only.
+        if ($node->biblio_year == $year) {
+          // Increment the counter.
+          $counter++;
+          $biblio_data[$counter] = _harvard_activity_reports_build_bibilio_data($node);
+        }
+      }
+      else {
+        // No year selected, just get everything greater than or equal to
+        // the current year.
+        if ($node->biblio_year >= $year) {
+          // Increment the counter.
+          $counter++;
+          $biblio_data[$counter] = _harvard_activity_reports_build_bibilio_data($node);
+        }
+      }
+    }
+    // Call the XML creation function.
+    $return = harvard_activity_reports_create_xml($biblio_data, $hash_id, $status, $nid);
+  }
+  else {
+    if (!empty($_GET['id'])) {
+      // If an ID was provided, the status is error.
+      $status = 'error';
+      // Return the hash ID that was originally sent over.
+      // Requested to be added in by Michael Kerry of FAS.
+      $hash_id = strip_tags($_GET['id']);
+    }
+    else {
+      $status = 'unknown';
+      $hash_id = NULL;
+    }
+
+    $return = harvard_activity_reports_create_xml(FALSE, $hash_id, $status, $nid);
+  }
+
+  // Send back the XML.
+  drupal_add_http_header('Content-Type', 'application/xml; charset=utf-8');
+  print $return;
+  drupal_exit();
+}
+
+/**
+ * Helper function; Build the data array for later creating the XML.
+ *
+ * @param $node
+ *   The biblio node object.
+ *
+ * @see harvard_activity_reports_page()
+ * @see harvard_activity_reports_create_xml()
+ */
+function _harvard_activity_reports_build_bibilio_data($node) {
+  $return = array();
+
+  $return['biblio_nid'] = $node->nid;
+  $return['biblio_title'] = $node->title;
+  $return['biblio_url'] = $node->biblio_url;
+  $return['biblio_type_name'] = $node->biblio_type_name;
+  $return['biblio_site_name'] = $node->name;
+  // grab the citation data now
+  $return['biblio_year'] = $node->biblio_year;
+  $return['biblio_secondary_title'] = $node->biblio_secondary_title;
+  // Push all authors from the citations list into another array.
+  $contributers = $node->biblio_contributors;
+  // Author work
+  $author_counter = 1;
+  $author_count = count($contributers);
+  $author_list = '';
+
+  // Grab out all the contributers and list them.
+  foreach($contributers as $contribute_author){
+    // As long as there are more than one author
+    if ($author_count > 1){
+
+      if ($author_counter == $author_count) {
+        // append an "and" at the end
+        $author_list .= "and " . $contribute_author['name'];
+      }
+      elseif ($author_count == 0) {
+        $author_list .= $contribute_author['name'];
+      }
+      else{
+        // append a comma after each other
+        $author_list .= $contribute_author['name'] . ", ";
+      }
+    }
+    else{
+      // only one author, no need for "ands" or ","
+      $author_list .= $contribute_author['name'];
+    }
+    $author_counter++;
+  }
+    // push the final author list into the main array
+  $return['biblio_author'] = $author_list;
+  return $return;
+}

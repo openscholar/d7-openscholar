@@ -1,0 +1,176 @@
+body.page-admin-reports-os .container-inline {
+  padding: 0px;
+  margin: 20px 0px;
+}
+
+body.page-admin-reports-os .container-inline .form-item label {
+  margin-right: 10px;
+}
+
+body.page-admin-reports-os .container-inline .form-item label.option {
+  margin-right: 15px;
+}
+
+body.page-admin-reports-os form fieldset {
+  margin: 20px 0px;
+  border: 0px none;
+  padding: 0;
+  background: none;
+  width: 100%;
+}
+
+body.page-admin-reports-os form fieldset .fieldset-wrapper {
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+}
+
+body.page-admin-reports-os form .container-inline fieldset{
+  margin: 0px;
+}
+
+body.page-admin-reports-os form fieldset .container-inline {
+  margin: 2px 0px;
+}
+
+body.page-admin-reports-os .buttons {
+  margin-top: 0.25em;
+  margin-bottom: 0;
+}
+
+body.page-admin-reports-os form .buttons input.form-submit,
+body.page-admin-reports-os form a.button {
+  margin-bottom: 0.25em;
+}
+
+body.page-admin-reports-os .pager .container-inline {
+  margin: 2px;
+}
+
+body.page-admin-reports-os .pager {
+  text-align: center;
+}
+
+body.page-admin-reports-os .pager .previous a,
+body.page-admin-reports-os .pager .next a {
+  display: none;
+}
+
+body.page-admin-reports-os form fieldset .fieldset-legend {
+  margin: 0px 0px 5px 0px;
+  padding-left: 0px;
+  position: relative;
+  display: block;
+}
+
+body.page-admin-reports-os form fieldset legend {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+body.page-admin-reports-os form input.form-text,
+body.page-admin-reports-os form textarea {
+  background: none;
+  padding: 0px;
+  margin: 0px;
+  width: auto;
+  font-size: 0.9em;
+  height: 1.5em;
+}
+
+body.page-admin-reports-os form table td,
+body.page-admin-reports-os form table th {
+  padding: 6px 8px;
+}
+
+body.page-admin-reports-os form table th {
+  vertical-align: bottom;
+  line-height: 1.25em;
+}
+
+body.page-admin-reports-os form table td {
+  vertical-align: top;
+}
+
+body.page-admin-reports-os form table th a,
+body.page-admin-reports-os form table td {
+  white-space: nowrap;
+}
+
+body.page-admin-reports-os .results {
+  min-height: 300px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+body.page-admin-reports-os .status_count {
+  padding: 0px 40px;
+}
+
+body.page-admin-reports-os input.hidden {
+  display: none;
+}
+
+body.page-admin-reports-os section#main-content {
+  padding-top: 10px;
+}
+
+body.page-admin-reports-os h1#page-title {
+  background: none;
+  padding-top: 0px;
+  font-size: 1.5em;
+}
+
+body.page-admin-reports-os .results table tr.even {
+  background: #f3f4ee none repeat scroll 0 0;
+}
+
+body.page-admin-reports-os .results table td {
+  border: 1px solid #bebfb9;
+}
+
+body.page-admin-reports-os #page.container {
+  width: auto;
+  font-family: "Lucida Grande",Verdana,sans-serif;
+}
+
+body.page-admin-reports-os form th.active {
+  background-color: #bdbeb9;
+}
+
+body.page-admin-reports-os form table th.nosort a {
+  white-space: normal;
+}
+
+body.page-admin-reports-os form th.asc a {
+  background: url('/themes/seven/images/arrow-asc.png') no-repeat right;
+}
+
+body.page-admin-reports-os form th.desc a {
+  background: url('/themes/seven/images/arrow-desc.png') no-repeat right;
+}
+
+body.page-admin-reports-os form th.nosort a {
+  color: #000;
+  text-decoration: none;
+}
+
+body.page-admin-reports-os #page.container div.messages::before {
+  background-image: none;
+}
+
+body.page-admin-reports-os .container-inline .form-item-creationend label {
+  margin-left: 10px;
+}
+
+body.page-admin-reports-os .fieldset-wrapper .form-item-only-vsite-ids {
+  margin-top: -5px;
+  padding-bottom: 8px;
+}
+body.page-admin-reports-os #edit-columns {
+  overflow: hidden;
+}
+body.page-admin-reports-os #edit-columns .form-type-checkbox {
+  display: block;
+  float: left;
+}

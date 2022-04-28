@@ -1,0 +1,5 @@
+name = Green
+description = A Green Version of the eloquent theme
+screenshot = screenshot.png
+
+css[] = green.css

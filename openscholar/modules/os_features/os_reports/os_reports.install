@@ -1,0 +1,34 @@
+<?php
+// $Id$
+
+
+/**
+ * Implements hook_install().
+ */
+function os_reports_install() {
+  $roles = user_roles();
+  $report_rid = array_search("os report admin", $roles);
+  if ($report_rid) {
+    $report_perms = array(
+      'OS Reports' => array(
+        'access os reports',
+      ),
+    );
+    user_role_grant_permissions($report_rid, $report_perms);
+  }
+}
+
+/**
+ * Add additional permissions to OS Report Admin role
+ */
+function os_reports_update_7001() {
+  $roles = user_roles();
+  $report_rid = array_search("os report admin", $roles);
+  if ($report_rid) {
+    $report_perms = array(
+      'access toolbar',
+      'access site reports',
+    );
+    user_role_grant_permissions($report_rid, $report_perms);
+  }
+}

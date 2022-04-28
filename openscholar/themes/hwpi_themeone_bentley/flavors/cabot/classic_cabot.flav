@@ -1,0 +1,6 @@
+name = Cabot
+description = Cabot is a blue & yellow version of the Classic theme
+screenshot = screenshot.png
+
+css[] = cabot.css
+css[] = responsive.cabot.css

@@ -1,0 +1,187 @@
+diff --git a/biblio/includes/biblio.pages.inc b/biblio/includes/biblio.pages.inc
+index c644d65..5ebec48 100644
+--- a/biblio/includes/biblio.pages.inc
++++ b/biblio/includes/biblio.pages.inc
+@@ -301,9 +301,7 @@ function biblio_entry($node) {
+  */
+ function biblio_build_query($arg_list) {
+   global $user;
+-  static $bcc = 0; //biblio_contributor (bc) count , increase for every invocation
+-  static $bkd = 0;
+-  static $tcc = 0; //term counter, increase for every invocation
++
+   $rss_info['feed'] = FALSE;
+   $rss_info['title'] = variable_get('biblio_base_title', 'Biblio');
+   $rss_info['link'] = '';
+@@ -327,15 +325,6 @@ function biblio_build_query($arg_list) {
+   $type_name = $query->addField('bt', 'name', 'biblio_type_name');
+   $query->leftJoin('biblio', 'b', 'n.vid=b.vid');
+   $query->innerJoin('biblio_types', 'bt', 'b.biblio_type=bt.tid');
+-//  $query->distinct();
+-
+-  // POSIX regular expression matching, case insensitive
+-  $match_op = (db_driver() == 'pgsql') ? '~*' : 'RLIKE';
+-
+-  $limit = '';
+-  if (variable_get('biblio_view_only_own', 0) ) {
+-    $limit .= " AND n.uid = $user->uid ";
+-  }
+ 
+   if (!isset($arg_list['s'])) {
+     $arg_list['s'] = variable_get('biblio_sort', 'year');
+@@ -344,17 +333,6 @@ function biblio_build_query($arg_list) {
+     $arg_list['o'] = strtolower(variable_get('biblio_order', 'desc'));
+   }
+ 
+-  if (!isset($_SESSION['biblio_filter']) || !is_array($_SESSION['biblio_filter'])) {
+-    $_SESSION['biblio_filter'] = array();
+-  }
+-
+-  $session = &$_SESSION['biblio_filter'];
+-
+-  if (!in_array('no_filters', $arg_list)) {
+-    foreach ($session as $filter) {
+-      $arg_list = array_merge($arg_list, $filter);
+-    }
+-  }
+   switch ($arg_list['s']) {
+     case 'type':
+       //$sortby = "ORDER BY bt.name %s, b.biblio_year DESC ";
+@@ -371,19 +349,14 @@ function biblio_build_query($arg_list) {
+ 
+       break;
+     case 'author':
+-      //$last_name = $query->addField('bcd', 'lastname');
+       $query->innerJoin('biblio_contributor', 'bc', 'b.vid = bc.vid');
+       $query->join('biblio_contributor_data', 'bcd', 'bc.cid = bcd.cid');
+       $query->condition('bc.rank', 0);
+       $query->addField('bcd', 'lastname');
+       $query->orderBy('bcd.lastname', $arg_list['o']);
+-      // $query->condition('bc.auth_category', 1);
++
+       break;
+-    case 'keyword': // added msh 070808
+-      $word = $query->addField('bkd', 'word', 'biblio_keyword');
+-      $query->orderBy($word, $arg_list['o']);
+-      $query->innerJoin('biblio_keyword', 'bk', 'b.vid = bk.vid');
+-      $query->innerJoin('biblio_keyword_data', 'bkd', 'bk.kid = bkd.kid');
++    case 'keyword':
+       break;
+     case 'year':
+     default:
+@@ -413,35 +386,18 @@ function biblio_build_query($arg_list) {
+           break;
+         case 'term':
+         case 'term_id':
+-          $query->innerJoin('taxonomy_index', "ti$tcc", "n.nid = ti$tcc.nid");
+-          if ($type == 'term') {
+-            $query->innerJoin('taxonomy_term_data', 'td', "ti$tcc.tid = td.tid");
+-            $query->condition('td.name', $value);
+-          }
+-          elseif ($type == 'term_id') {
+-            $query->condition("ti$tcc.tid", $value);
+-          }
+-          $tcc++;
+-          break;
+         case 'tg':
+-          $query->where("UPPER(substring(biblio_sort_title,1 ,1)) = :letter", array(':letter' => $value));
+-          break;
+-        case 'ag': //selects entries whoose authors firstname starts with the letter provided
+-          $query->where(" UPPER(substring(bcd.lastname,1,1)) = :letter ", array(':letter' => $value));
+-          //$where['bc-rank'] = "bc.rank=0";
+-          if ($arg_list['s'] != 'author') {
+-            $query->innerJoin('biblio_contributor', 'bc', 'b.vid = bc.vid');
+-            $query->innerJoin('biblio_contributor_data', 'bcd', 'bc.cid = bcd.cid');
+-          }
++        case 'ag':
++          //IGNORE these Filters
+           break;
+         case 'cid':
+         case 'aid':
+-          $bcc++;
+-          $query->innerJoin('biblio_contributor', "bc$bcc", "n.vid = bc$bcc.vid");
+-          $query->condition("bc$bcc.cid", $value);
++          if (array_search('bc', $tables) === FALSE) {
++            $query->innerJoin('biblio_contributor', 'bc', 'n.vid = bc.vid');
++          }
++          $query->condition("bc.cid", $value);
+           break;
+         case 'author':
+-          $bcc++;
+           if (array_search('bc', $tables) === FALSE) {
+             $query->innerJoin('biblio_contributor', 'bc', 'n.vid = bc.vid');
+           }
+@@ -471,14 +427,13 @@ function biblio_build_query($arg_list) {
+             if (array_search('bcd', $tables) === FALSE) {
+               $query->innerJoin('biblio_contributor_data', 'bcd', 'bcd.cid = bc.cid');
+             }
+-            $query->condition('bcd.name', "[[:<:]]" . $value . "[[:>:]]", $match_op);
++            $query->condition('bcd.name', "%".db_like($value)."%", 'LIKE');
+             $rss_info['title'] = t("Publications by @value", array('@value' => $value));
+             $rss_info['description'] = t("These publications by %author are part of the works listed at %sitename", array('%author' => $value, '%sitename' => variable_get('site_name', 'Drupal')));
+             $rss_info['link'] = '/author/' . $value;
+           }
+           break;
+         case 'publisher':
+-          $query->condition('b.biblio_publisher', "[[:<:]]" . $value . "[[:>:]]", $match_op);
+           break;
+         case 'year':
+           $query->condition('b.biblio_year', $value);
+@@ -488,31 +443,8 @@ function biblio_build_query($arg_list) {
+           $query->condition('n.uid', $value);
+           break;
+         case 'keyword':
+-          $bkd++;
+-          if (array_search('bk', $tables) === FALSE) {
+-            $query->innerJoin('biblio_keyword', 'bk', 'n.vid = bk.vid');
+-          }
+-          if (is_numeric($value)) {
+-            $query->condition('bk.kid', $value);
+-          }
+-          else{
+-            if (array_search('bkd', $tables) === FALSE) {
+-              $query->innerJoin('biblio_keyword_data', 'bkd', 'bkd.kid = bk.kid');
+-            }
+-            if (strlen($value) == 1) {
+-             // $query->condition('',  $value, 'SUBSTR(bkd.word, 1, 1) =');
+-              $query->where(" UPPER(substring(bkd.word,1,1)) = :letter ", array(':letter' => $value));
+-            }
+-            else {
+-              $query->condition('bkd.word', "[[:<:]]" . $value . "[:>:]]", 'LIKE');
+-            }
+-            $rss_info['title'] = t("Keyword @value", array('@value' => $value));
+-            $rss_info['description'] = t("These publications, containing the keyword: %keyword, are part of the works listed at %sitename", array('%keyword' => $value, '%sitename' => variable_get('site_name', 'Drupal')));
+-            $rss_info['link'] = '/keyword/' . $value;
+-          }
+           break;
+         case 'citekey':
+-          $query->condition('b.biblio_citekey', $value);
+           break;
+         case 'type':
+           if (is_array($value)) {
+@@ -526,12 +458,6 @@ function biblio_build_query($arg_list) {
+           $query->condition(db_or()->condition('b.biblio_type', $value)->condition('bt.name', $value));
+           break;
+         case 'search':
+-          $search_nids = array();
+-          $search_nids =  biblio_search_query($value);
+-          if (empty($search_nids)) {
+-            $search_nids[] = -1;  // if we didn't find anything, then add one value of -1 since there will never be a node id == -1
+-          }
+-          $query->condition('n.nid', $search_nids, 'IN');
+           break;
+         default:
+           if (in_array("biblio_$type", $fields)) {
+@@ -542,10 +468,8 @@ function biblio_build_query($arg_list) {
+     }
+   }
+ 
+-  // show unpublished nodes to users with uid = 1 or  with 'Administer Biblio' permissions
+-  if ($user->uid != 1 && !biblio_access('admin')) {
+-    $query->condition('n.status', 1);
+-  }
++  //Show the same for all users
++  $query->condition('n.status', 1);
+ 
+   $result = $query->execute();
+   $nids = array();

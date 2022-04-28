@@ -1,0 +1,5 @@
+name = Strawberry
+description = A Strawberry Version of the scholor-theme-03 theme
+screenshot = screenshot.png
+
+css[] = strawberry.css

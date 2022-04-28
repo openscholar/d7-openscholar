@@ -1,0 +1,50 @@
+diff --git a/profiles/openscholar/modules/contrib/biblio/modules/CiteProc/CSL.inc b/profiles/openscholar/modules/contrib/biblio/modules/CiteProc/CSL.inc
+index ff6a518..4f32815 100644
+--- a/profiles/openscholar/modules/contrib/biblio/modules/CiteProc/CSL.inc
++++ b/profiles/openscholar/modules/contrib/biblio/modules/CiteProc/CSL.inc
+@@ -188,6 +188,7 @@ class csl_element extends csl_collection {
+       for ($i=0; $i < $dom_node->attributes->length; $i++) {
+         $value = $dom_node->attributes->item($i)->value;
+         $name  = str_replace(' ', '_', $dom_node->attributes->item($i)->name);
++        $value = variable_get('biblio_csl_override_'.$element_name.'-'.$name, $value);
+         if ($name == 'type' ) {
+           $value = $this->citeproc->map_type($value);
+         }
+@@ -691,29 +692,29 @@ class csl_name extends csl_format {
+   }
+ 
+   function get_latin1_regex() {
+-    $alnum = "[:alnum:]ÄÅÁÀÂÃÇÉÈÊËÑÖØÓÒÔÕÜÚÙÛÍÌÎÏÆäåáàâãçéèêëñöøóòôõüúùûíìîïæÿß";
++    $alnum = "[:alnum:]Ã„Ã…Ã�Ã€Ã‚ÃƒÃ‡Ã‰ÃˆÃŠÃ‹Ã‘Ã–Ã˜Ã“Ã’Ã”Ã•ÃœÃšÃ™Ã›Ã�ÃŒÃŽÃ�Ã†Ã¤Ã¥Ã¡Ã Ã¢Ã£Ã§Ã©Ã¨ÃªÃ«Ã±Ã¶Ã¸Ã³Ã²Ã´ÃµÃ¼ÃºÃ¹Ã»Ã­Ã¬Ã®Ã¯Ã¦Ã¿ÃŸ";
+     // Matches ISO-8859-1 letters:
+-    $alpha = "[:alpha:]ÄÅÁÀÂÃÇÉÈÊËÑÖØÓÒÔÕÜÚÙÛÍÌÎÏÆäåáàâãçéèêëñöøóòôõüúùûíìîïæÿß";
++    $alpha = "[:alpha:]Ã„Ã…Ã�Ã€Ã‚ÃƒÃ‡Ã‰ÃˆÃŠÃ‹Ã‘Ã–Ã˜Ã“Ã’Ã”Ã•ÃœÃšÃ™Ã›Ã�ÃŒÃŽÃ�Ã†Ã¤Ã¥Ã¡Ã Ã¢Ã£Ã§Ã©Ã¨ÃªÃ«Ã±Ã¶Ã¸Ã³Ã²Ã´ÃµÃ¼ÃºÃ¹Ã»Ã­Ã¬Ã®Ã¯Ã¦Ã¿ÃŸ";
+     // Matches ISO-8859-1 control characters:
+     $cntrl = "[:cntrl:]";
+     // Matches ISO-8859-1 dashes & hyphens:
+-    $dash = "-–";
++    $dash = "-â€“";
+     // Matches ISO-8859-1 digits:
+     $digit = "[\d]";
+     // Matches ISO-8859-1 printing characters (excluding space):
+-    $graph = "[:graph:]ÄÅÁÀÂÃÇÉÈÊËÑÖØÓÒÔÕÜÚÙÛÍÌÎÏÆäåáàâãçéèêëñöøóòôõüúùûíìîïæÿß";
++    $graph = "[:graph:]Ã„Ã…Ã�Ã€Ã‚ÃƒÃ‡Ã‰ÃˆÃŠÃ‹Ã‘Ã–Ã˜Ã“Ã’Ã”Ã•ÃœÃšÃ™Ã›Ã�ÃŒÃŽÃ�Ã†Ã¤Ã¥Ã¡Ã Ã¢Ã£Ã§Ã©Ã¨ÃªÃ«Ã±Ã¶Ã¸Ã³Ã²Ã´ÃµÃ¼ÃºÃ¹Ã»Ã­Ã¬Ã®Ã¯Ã¦Ã¿ÃŸ";
+     // Matches ISO-8859-1 lower case letters:
+-    $lower = "[:lower:]äåáàâãçéèêëñöøóòôõüúùûíìîïæÿß";
++    $lower = "[:lower:]Ã¤Ã¥Ã¡Ã Ã¢Ã£Ã§Ã©Ã¨ÃªÃ«Ã±Ã¶Ã¸Ã³Ã²Ã´ÃµÃ¼ÃºÃ¹Ã»Ã­Ã¬Ã®Ã¯Ã¦Ã¿ÃŸ";
+     // Matches ISO-8859-1 printing characters (including space):
+-    $print = "[:print:]ÄÅÁÀÂÃÇÉÈÊËÑÖØÓÒÔÕÜÚÙÛÍÌÎÏÆäåáàâãçéèêëñöøóòôõüúùûíìîïæÿß";
++    $print = "[:print:]Ã„Ã…Ã�Ã€Ã‚ÃƒÃ‡Ã‰ÃˆÃŠÃ‹Ã‘Ã–Ã˜Ã“Ã’Ã”Ã•ÃœÃšÃ™Ã›Ã�ÃŒÃŽÃ�Ã†Ã¤Ã¥Ã¡Ã Ã¢Ã£Ã§Ã©Ã¨ÃªÃ«Ã±Ã¶Ã¸Ã³Ã²Ã´ÃµÃ¼ÃºÃ¹Ã»Ã­Ã¬Ã®Ã¯Ã¦Ã¿ÃŸ";
+     // Matches ISO-8859-1 punctuation:
+     $punct = "[:punct:]";
+     // Matches ISO-8859-1 whitespace (separating characters with no visual representation):
+     $space = "[\s]";
+     // Matches ISO-8859-1 upper case letters:
+-    $upper = "[:upper:]ÄÅÁÀÂÃÇÉÈÊËÑÖØÓÒÔÕÜÚÙÛÍÌÎÏÆ";
++    $upper = "[:upper:]Ã„Ã…Ã�Ã€Ã‚ÃƒÃ‡Ã‰ÃˆÃŠÃ‹Ã‘Ã–Ã˜Ã“Ã’Ã”Ã•ÃœÃšÃ™Ã›Ã�ÃŒÃŽÃ�Ã†";
+     // Matches ISO-8859-1 "word" characters:
+-    $word = "_[:alnum:]ÄÅÁÀÂÃÇÉÈÊËÑÖØÓÒÔÕÜÚÙÛÍÌÎÏÆäåáàâãçéèêëñöøóòôõüúùûíìîïæÿß";
++    $word = "_[:alnum:]Ã„Ã…Ã�Ã€Ã‚ÃƒÃ‡Ã‰ÃˆÃŠÃ‹Ã‘Ã–Ã˜Ã“Ã’Ã”Ã•ÃœÃšÃ™Ã›Ã�ÃŒÃŽÃ�Ã†Ã¤Ã¥Ã¡Ã Ã¢Ã£Ã§Ã©Ã¨ÃªÃ«Ã±Ã¶Ã¸Ã³Ã²Ã´ÃµÃ¼ÃºÃ¹Ã»Ã­Ã¬Ã®Ã¯Ã¦Ã¿ÃŸ";
+     // Defines the PCRE pattern modifier(s) to be used in conjunction with the above variables:
+     // More info: <http://www.php.net/manual/en/reference.pcre.pattern.modifiers.php>
+     $patternModifiers = "";

@@ -1,0 +1,33 @@
+<?php 
+
+/**
+ * Blog revert - blog uses infinite scroll.
+ */
+function os_blog_update_7001() {
+  features_revert(array('os_blog' => 'view'));
+}
+
+/**
+ * Delete the bookmark flag from blogs but only if flags module is enabled.
+ */
+function os_blog_update_7002() {
+  if (module_exists('flag')) {
+    if ($flag = flag_get_flag('bookmarks')) {
+      $flag->delete();
+    }
+  }
+}
+
+/**
+ * Set the comment field to use normal input text.
+ */
+function os_blog_update_7003() {
+  features_revert(array('os_blog' => array('field_instance')));
+}
+
+/**
+ * Change the formatter for blog teaser.
+ */
+function os_blog_update_7004() {
+  features_revert(array('os_blog' => array('field_instance')));
+}

@@ -1,0 +1,64 @@
+/* CSS for profile display style example popup box */
+.profile-example {
+  margin-bottom: 5px;
+}
+.stylebox {
+  display: none;
+  position: absolute;
+  z-index: 99999;
+  width: 600px;
+  padding: 10px;
+  background: #fff;
+  color: #000000;
+  border: 1px solid #4D4F53;
+  margin: 0px;
+  -webkit-box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+  box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+}
+
+.stylebox h2 {
+  background-color: #EFEFEF;
+  color:  #000;
+  font-size: 14px;
+  display: block;
+  width: 100%;
+  margin: -10px 0px 8px -10px;
+  padding: 5px 10px;
+  border-bottom: 2px solid #C4C2C2;
+}
+
+a.profile-pop {
+  color: #333;
+  cursor: default;
+}
+
+.dummy-person-photo{
+  float: left;
+  margin-right: 5px;
+}
+
+.dummy-content {
+  display: table-cell;
+}
+
+.dummy-content h1{
+  font-weight: normal;
+  margin: 0;
+}
+
+.dummy-content .dummy-professional-title {
+  font-weight: bold;
+}
+
+h1.dummy-header {
+  font-weight: normal;
+}
+
+.dummy-slider {
+  color: black;
+  position: static;
+  width: auto;
+  background: #F1F1F1;
+  border: 1px solid #C0C5CC;
+  padding: 1em;
+}

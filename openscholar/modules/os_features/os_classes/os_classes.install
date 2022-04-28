@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * Revert OS classes fields.
+ */
+function os_classes_update_7000() {
+  features_revert(array('os_classes' => array('field_instance')));
+}
+
+/**
+ * Adding the fields.
+ */
+function os_classes_update_7001() {
+  include_once drupal_get_path('module', 'os_classes') . '/os_classes.features.field_base.inc';
+  include_once drupal_get_path('module', 'os_classes') . '/os_classes.features.field_instance.inc';
+
+  $fields = os_classes_field_default_field_bases();
+  field_create_field($fields['field_weight']);
+  $instances = os_classes_field_default_field_instances();
+  field_create_instance($instances['node-class-field_weight']);
+}
+
+/**
+ * Updating the node courses weight field.
+ */
+function os_classes_update_7002(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'query' => 'os_classes_count_classes_base_query',
+    'iterator' => 'os_classes_update_update_class_weight',
+    'batch' => 50,
+    'entity' => 'node',
+  ));
+}
+
+/**
+ * Updating post upload processing for field_semester field.
+ */
+function os_classes_update_7003() {
+  features_revert(array('os_classes' => array('feeds_tamper')));
+}
+
+/**
+ * Change the formatter for classes teaser.
+ */
+function os_classes_update_7004() {
+  features_revert(array('os_classes' => array('field_instance')));
+}
+
+/**
+ * Move Semester and year to the top in default view.
+ */
+function os_classes_update_7005() {
+  features_revert(array('os_classes' => array('field_instance')));
+}

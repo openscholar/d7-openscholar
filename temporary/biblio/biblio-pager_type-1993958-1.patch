@@ -1,0 +1,48 @@
+diff --git a/includes/biblio.admin.inc b/includes/biblio.admin.inc
+index 6719955..6689689 100644
+--- a/includes/biblio.admin.inc
++++ b/includes/biblio.admin.inc
+@@ -2146,7 +2146,7 @@ function biblio_admin_orphans_form($form, &$form_state) {
+       '#options' => $options,
+       '#empty' => t('No orphaned authors.'),
+     );
+-    $form['pager']   = array('#markup' => theme('pager'));
++    $form['pager']   = array('#markup' => theme(variable_get('biblio_pager', 'pager')));
+ //  }
+   return $form;
+ }
+@@ -2224,7 +2224,7 @@ function biblio_admin_keyword_orphans_form($form, $form_state) {
+       '#empty' => t('No orphaned keywords.'),
+     );
+ 
+-    $form['pager'] = array('#markup' => theme('pager'));
++    $form['pager'] = array('#markup' => theme(variable_get('biblio_pager', 'pager')));
+ 
+   return $form;
+ }
+diff --git a/includes/biblio.pages.inc b/includes/biblio.pages.inc
+index d86ff8b..31e2a06 100644
+--- a/includes/biblio.pages.inc
++++ b/includes/biblio.pages.inc
+@@ -213,7 +213,7 @@ function biblio_page_content($nids = array(), $extras = array()) {
+ 
+   }
+ 
+-  $content['pager']['#markup'] = theme('pager');
++  $content['pager']['#markup'] = theme(variable_get('biblio_pager', 'pager'));
+   if ($count == 0) {
+     $content .= "<h3>" . t("No items found") . "</h3>";
+     if (strstr($content, "Filters:")) {
+diff --git a/includes/biblio.search.inc b/includes/biblio.search.inc
+index 6b211ee..7af2615 100644
+--- a/includes/biblio.search.inc
++++ b/includes/biblio.search.inc
+@@ -216,7 +216,7 @@ function _biblio_search_page($results) {
+       '#module' => 'my_module_name',
+     );
+   }
+-  $output['suffix']['#markup'] = '</ol>' . theme('pager');
++  $output['suffix']['#markup'] = '</ol>' . theme(variable_get('biblio_pager', 'pager'));
+ 
+   return $output;
+ }

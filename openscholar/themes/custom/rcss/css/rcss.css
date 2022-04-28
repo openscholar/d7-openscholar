@@ -1,0 +1,145 @@
+/* D6 retro css for older themes */
+#columns {padding:0 10px;}
+
+body {
+  margin:0;
+  background: #fff;
+  }
+
+/* TYPOGRAPHY */
+
+h1#page-title {
+    font-size: 1.3em;
+    font-weight: normal;
+    letter-spacing: 0;
+}
+
+h2 {
+  font-weight: normal;
+  letter-spacing: 0;
+  }
+
+h4 {
+  margin-bottom: 0;
+  }
+
+/*LAYOUT ITEMS */
+
+
+#header-container, #block-os-primary-menu, #columns, #footer {
+  margin: 0 auto;
+  }
+
+#header-container .gpanel {
+  margin-top: 16px;
+  height: 88px;
+  }
+
+body.no-sidebars #center {
+  background: transparent;
+  min-height: 0;
+  padding: 0;
+  }
+
+div.ui-tabs-panel {
+  width: 100%;
+  }
+
+div.links {
+  display:none;
+  }
+
+#footer {
+  background: #fff;
+  line-height: 30px;
+  text-align: left;
+  }
+
+.colL, .colR {
+  width: 50%;
+  float:left;
+  }
+
+.colR {
+  float:right;
+  }
+
+ #main_top #title_tabs {
+  margin-top: 2px !important;
+  width: auto;
+  }
+
+
+/* HEADER ITEMS */
+
+#header-container .column {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  }
+
+ #header-container h1 {
+  width: 272px;
+  height: 66px;
+  text-indent: -999em;
+  background: url('../images/logo.png') no-repeat transparent;
+  }
+
+#header-container h1 a,
+#header-container h1 a:visited {
+  width: 272px;
+  height: 66px;
+  display:block;
+  }
+
+#menu-bar {
+  background: #C2D45B;
+  height: 56px;
+  padding: 0;
+  }
+
+#menu-bar ul {
+  height: 56px;
+  }
+  
+ul.nice-menu ul {
+    top: 4.3em;
+}
+
+#menu-bar li {
+ margin: 0;
+ padding: 0;
+ float:left;
+ line-height: 55px;
+ }
+
+#menu-bar li a {
+  display:block;
+  padding: 0 1em;
+  border-right: 1px solid #8e9a47;
+  color: #0A0A0A;
+  background-color:#C2D45B;
+  }
+
+#menu-bar li li a {
+  line-height: 35px;
+}
+
+#menu-bar li.last a {
+  border: none;
+  }
+
+#menu-bar li a:hover {
+  background-color: #e3f386;
+  color:#0A0A0A !important;
+  text-decoration: none;
+  }
+
+#menu-bar li a.active {
+  background-color:#B7C857;
+  }
+
+/* REMOVE ONCE RICHARD FIXES STUFF */
+
+.block-boxes-os_boxes_site_logo h2, .block-boxes-os_boxes_site_logo p {
+  display:none;
+  }

@@ -1,0 +1,5 @@
+name = Pale Blue
+description = A Pale Bleu Version of the scholor-theme-03 theme
+screenshot = screenshot.png
+
+css[] = pale_blue.css

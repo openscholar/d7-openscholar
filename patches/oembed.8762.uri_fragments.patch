@@ -1,0 +1,46 @@
+diff --git a/oembed.api.php b/oembed.api.php
+index 07ab93d..adbfed0 100644
+--- a/oembed.api.php
++++ b/oembed.api.php
+@@ -42,3 +42,22 @@ function hook_oembedprovider_formats_alter(&$formats) {
+     'callback' => '_oembedprovider_formats_jsonp',
+   );
+ }
++
++/**
++ * Allows adding fragments to an oembed url. These fragments are ignored by the oembed spec,
++ * but can be used to differentiate between different instances of the same URL.
++ *
++ * Ex.
++ *    https://www.youtube.com/watch?v=C8h4eZ4DL9Q#results/of/hook
++ *
++ * @param string $uri
++ *    URI being added to the system
++ *
++ * @return array $fragments
++ *    Array of strings to be appended to the uri as URL fragments
++ */
++function hook_oembed_uri_fragment($uri) {
++  return array(
++    'identifyingString'
++  );
++}
+\ No newline at end of file
+diff --git a/oembed.module b/oembed.module
+index d5591a9..444bfbb 100644
+--- a/oembed.module
++++ b/oembed.module
+@@ -850,7 +850,12 @@ function oembed_validate_response($embed) {
+  * @return type
+  */
+ function oembed_url_to_file($url, $create = FALSE) {
+-  $uri = 'oembed://'. drupal_encode_path($url);
++  $dir = module_invoke_all('oembed_uri_fragments', $url);
++  $extras = '';
++  if ($dir) {
++    $extras = '#' . implode('/', $dir);
++  }
++  $uri = 'oembed://' . drupal_encode_path($url) . $extras;
+   $file = file_uri_to_object($uri);
+   if (!isset($file->oembed)) {
+     $file->oembed = oembed_get_data($url);

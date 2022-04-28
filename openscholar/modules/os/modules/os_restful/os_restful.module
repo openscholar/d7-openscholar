@@ -1,0 +1,301 @@
+<?php
+
+if (!drupal_is_cli()) {
+  header('Access-Control-Allow-Origin: *');
+  header('Access-Control-Allow-Credentials: true');
+  header('Access-Control-Allow-Headers: Authorization, access-token');
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function os_restful_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'restful') {
+    return 'plugins/' . $plugin;
+  }
+  if ($module == 'entity_validator') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function os_restful_cron() {
+  $time = strtotime('-30 days');
+  db_delete('entities_deleted')
+    ->condition('deleted', $time, '<')
+    ->execute();
+}
+
+/**
+ * Implements hook_init().
+ */
+function os_restful_init() {
+  if (!empty($_SESSION['os_restful'])) {
+    $calls = $_SESSION['os_restful'];
+    foreach ($calls as $f => $arg_sets) {
+      if (is_callable($f)) {
+        foreach ($arg_sets as $args) {
+          call_user_func_array($f, $args);
+        }
+      }
+    }
+    $_SESSION['os_restful'] = array();
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function os_restful_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'entity_info_alter') {
+    unset($implementations['os_restful']);
+    $implementations['os_restful'] = true;
+  }
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function os_restful_entity_info_alter(&$info) {
+  if (!empty($info['user'])) {
+    $info['user']['access callback'] = 'os_restful_entity_metadata_user_access';
+  }
+}
+
+/**
+ * Override to allow special exceptions.
+ */
+function os_restful_entity_metadata_user_access($op, $entity = NULL, $account = NULL, $entity_type = NULL) {
+  $account = isset($account) ? $account : $GLOBALS['user'];
+  if (!empty($entity->is_new) && $account->uid == 0) {
+    return true;
+  }
+  return entity_metadata_user_access($op, $entity, $account, $entity_type);
+}
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function os_restful_entity_property_info_alter(&$info) {
+  $types = array('personal', 'project', 'department');
+
+  foreach ($types as $type) {
+    $info['node']['bundles'][$type]['properties']['preset'] = array(
+      'label' => t('Site preset'),
+      'setter callback' => 'os_restful_preset_set',
+      'getter callback' => 'os_restful_preset_get',
+    );
+
+    $info['node']['bundles'][$type]['properties']['domain'] = array(
+      'label' => t('Site purl'),
+      'setter callback' => 'os_restful_purl_set',
+      'getter callback' => 'os_restful_purl_get',
+    );
+  }
+
+  $info['node']['bundles']['biblio']['properties']['biblio_type'] = array(
+    'label' => t('Site purl'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'getter callback' => 'entity_property_verbatim_get',
+  );
+
+  $entity_info = entity_get_info('node');
+  foreach (array_keys($entity_info['bundles']) as $bundle) {
+    $info['node']['bundles'][$bundle]['properties']['path'] = array(
+      'label' => t('Site purl'),
+      'setter callback' => 'os_restful_page_path_set',
+      'getter callback' => 'os_restful_page_path_get',
+      'type' => 'unknown',
+    );
+  }
+
+  $info['taxonomy_vocabulary']['properties']['vsite'] = array(
+    'label' => t('Site purl'),
+    'setter callback' => 'os_restful_vocab_gid_set',
+    'getter callback' => 'os_restful_vocab_gid_get',
+    'type' => 'unknown',
+  );
+
+  $info['og_vocab']['properties']['vid']['setter callback'] = 'entity_property_verbatim_set';
+  $info['og_vocab']['properties']['entity_type']['setter callback'] = 'entity_property_verbatim_set';
+  $info['og_vocab']['properties']['bundle']['setter callback'] = 'entity_property_verbatim_set';
+  $info['og_vocab']['properties']['field_name']['setter callback'] = 'entity_property_verbatim_set';
+  $info['og_vocab']['properties']['settings']['setter callback'] = 'entity_property_verbatim_set';
+  $info['og_vocab']['properties']['settings']['type'] = 'unknown';
+
+  $info['file']['properties']['name']['setter callback'] = 'entity_property_verbatim_set';
+  $info['file']['properties']['timestamp']['setter callback'] = 'entity_property_verbatim_set';
+
+  foreach ($info['user']['properties'] as $k => $value) {
+    if (!empty($value['access callback']) && $value['access callback'] == 'entity_metadata_user_properties_access') {
+      $info['user']['properties'][$k]['access callback'] = 'os_restful_entity_metadata_user_properties_access';
+    }
+  }
+
+  foreach ($info['node']['properties'] as $k => $value) {
+    // dump these setter permissions that make it impossible to create nodes for anyone but a very high level user
+    unset ($info['node']['properties'][$k]['setter permission']);
+  }
+}
+
+/**
+ * Override to allow special exceptions
+ */
+function os_restful_entity_metadata_user_properties_access($op, $property, $entity = NULL, $account = NULL) {
+  $account = isset($account) ? $account : $GLOBALS['user'];
+  if (!empty($entity) && !empty($entity->is_new) && $account->uid == 0) {
+    // this will be the user's new account. let them do whatever they want with it
+    return TRUE;
+  }
+  return entity_metadata_user_properties_access($op, $property, $entity, $account);
+}
+
+/**
+ * Set the node path.
+ */
+function os_restful_page_path_set(&$data, $name, $value, $langcode, $type, $info) {
+  $data->{$name} = $value;
+}
+
+/**
+ * Get the node path.
+ */
+function os_restful_page_path_get($data, array $options, $name, $type, $info) {
+  if (empty($data->nid)) {
+    return;
+  }
+
+  if ($path = path_load(array('source' => 'node/' . $data->nid))) {
+    return $path['alias'];
+  }
+
+  return '';
+}
+
+/**
+ * Set the preset og property.
+ */
+function os_restful_preset_set(&$data, $name, $value, $langcode, $type, $info) {
+  $data->spaces_preset_og = $value;
+}
+
+/**
+ * Get the og preset property.
+ */
+function os_restful_preset_get($data, array $options, $name, $type, $info) {
+  if (!$space = vsite_get_vsite($data->nid)) {
+    return NULL;
+  }
+
+  return $space->controllers->variable->get('spaces_preset_og');
+}
+
+/**
+ * Set the purl property on the object.
+ */
+function os_restful_purl_set(&$data, $name, $value, $langcode, $type, $info) {
+  $data->purl = $value;
+}
+
+/**
+ * Return the value of the purl for the node.
+ */
+function os_restful_purl_get($data, array $options, $name, $type, $info) {
+  return $data->purl;
+}
+
+/**
+ * Get the gid for a given vocabulary.
+ */
+function os_restful_vocab_gid_get($data, array $options, $name, $type, $info) {
+  $relation = og_vocab_relation_get(taxonomy_vocabulary_machine_name_load($data->machine_name)->vid);
+
+  return $relation->gid;
+}
+
+/**
+ * Set the vsite property for the vocab.
+ */
+function os_restful_vocab_gid_set(&$data, $name, $value, $langcode, $type, $info) {
+  $data->vsite = $value;
+}
+
+/**
+ * Stores properties for later
+ */
+function _os_restful_store_props($key, $value = null) {
+  $stored = &drupal_static(__FUNCTION__, array());
+
+  if (!is_null($value)) {
+    $stored[$key] = $value;
+  }
+
+  return isset($stored[$key]) ? $stored[$key] : NULL;
+}
+
+function os_restful_restful_parse_request_alter(&$request) {
+  if (!empty($request['timestamp'])) {
+    _os_restful_store_props('timestamp', $request['timestamp']);
+  }
+
+  if (!empty($request['vsite'])) {    // find way to get vsite when it's not explicitly given
+    if ($vsite = vsite_get_vsite($request['vsite'])) {
+      $vsite->activate_user_roles();
+    }
+  }
+
+  if (!empty($request['file'])) {
+    $request['file']->type = file_get_type($request['file']);
+  }
+}
+
+/**
+ * Implements hook_file_presave().
+ *
+ * file_save() automatically sets the timestamp to REQUEST_TIME.
+ * If we want to change it, it has to be done in a file_presave or entity_presave hook.
+ *
+ * Also, make sure file->changed is always the current REQUEST_TIME
+ */
+function os_restful_file_presave($file) {
+  if ($timestamp = _os_restful_store_props('timestamp')) {
+    $file->timestamp = $timestamp;
+  }
+
+  $file->changed = REQUEST_TIME;
+}
+
+/**
+ * Implements hook_entity_delete().
+ *
+ * Logs all entities that are deleted so they can be returned in restful update results
+ */
+function os_restful_entity_delete($entity, $type) {
+  $wrapper = entity_metadata_wrapper($type, $entity);
+  $id = $wrapper->getIdentifier();
+
+  if ($id !== FALSE) {
+    $extra = module_invoke_all('os_restful_entity_delete_data', $type, $entity);
+    drupal_alter('os_restful_entity_delete_data', $extra);
+
+    db_insert('entities_deleted')
+      ->fields(array(
+        'entity_id' => $id,
+        'entity_type' => $type,
+        'deleted' => REQUEST_TIME,
+        'extra' => serialize($extra)
+      ))
+      ->execute();
+  }
+}
+
+/**
+ * Sends restful response that the batch has finished
+ */
+function os_restful_output_batch_finished($url, $options) {
+  if ($options['query']['op'] != 'start') {
+    drupal_goto($url, $options);
+  }
+}

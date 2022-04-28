@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * Implements hook_update_N() for 7001.
+ *
+ * Sets the custom taxonomy settings to the specified vsite,
+ * and deletes any erroneous global variable.
+ */
+function gkplus_update_7001() {
+  // Deletes any erroneous global value for this variable.
+  variable_del('os_taxonomy_term_page_options');
+  
+  // Loads the vsite and sets the new variable value.
+  if (module_exists('vsite') && $vsite = vsite_get_vsite(GKPLUS_SID)) {
+    // Overridden taxonomy settings for this site.
+    $options = array(
+      'tree' => TRUE,
+      'max_depth' => 3,
+      'description' => TRUE,
+      'nodeorder' => TRUE,
+    );
+
+    $vsite->controllers->variable->set('os_taxonomy_term_page_options', $options);
+  }
+
+}

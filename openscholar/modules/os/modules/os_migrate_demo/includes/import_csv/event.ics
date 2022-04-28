@@ -1,0 +1,36 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Drupal: Date iCal//NONSGML kigkonsult.se iCalcreator 2.16.12//
+METHOD:PUBLISH
+X-WR-CALNAME;VALUE=TEXT:Ical
+BEGIN:VTIMEZONE
+TZID:Europe/Helsinki
+BEGIN:STANDARD
+DTSTART:20131027T050000
+TZOFFSETFROM:+0300
+TZOFFSETTO:+0200
+TZNAME:EET
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:20140330T040000
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0300
+TZNAME:EEST
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:calendar.85.field_date.0@localhost
+DTSTAMP:20131017T123104Z
+DESCRIPTION:Testing the import from a iCal file \n  \n -------- DATE:  ----
+ --------------------------------------------------------- \n  \n Thursday\
+ \, October 17\\, 2013\\, 3:30pm \n  \n subscribe [1] iCal [2] \n  \n [1] w
+ ebcal://localhost/OpenScholarMake/www/john/calendar/export.ics/85 \n [2] h
+ ttp://localhost/OpenScholarMake/www/john/calendar/export.ics/85
+DTSTART;TZID=Europe/Helsinki:20201017T153000
+DTEND;TZID=Europe/Helsinki:20201017T153000
+LAST-MODIFIED:20131017T123058Z
+SUMMARY:Event from csv
+URL;TYPE=URI:http://localhost/OpenScholarMake/www/john/event/testing-import
+ ing
+END:VEVENT
+END:VCALENDAR

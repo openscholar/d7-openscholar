@@ -1,0 +1,84 @@
+/**
+ * Adjustments to the media browser
+ */
+
+/** Inline block is much cleaner looking than float */
+#media-browser-library-list li {
+	display: inline-block;
+	float: none;
+	vertical-align: top;
+}
+
+.ui-tabs .media-browser-tab.ui-tabs-panel {
+	position: relative;
+}
+
+.view-media-default {
+	margin-right: 230px;
+	border-right: 1px solid lightgray;
+}
+
+#file-edit-section {
+	position: absolute;
+	width: 205px;
+	top: 22px;
+	bottom: 42px;
+	right: 18px;
+	overflow: auto;
+	-webkit-transition: right 0.25s linear;
+}
+
+#file-edit-section:empty {
+	right: -205px;
+}
+
+#file-edit-section .form-actions a {
+	display: none;
+}
+
+#file-edit-no-selection {
+	text-align: center;
+	padding: 30px 10px;
+}
+
+#file-edit-section .actions input[type=submit],
+#file-edit-section .form-actions input[type=submit] {
+	display: inline-block;
+}
+
+#file-edit-section input.form-text,
+#file-edit-section input.form-file,
+#file-edit-section textarea {
+	max-width: 95%;
+}
+
+.views-exposed-form .views-exposed-widgets {
+	margin-bottom: .75em;
+	border-bottom: 1px solid lightgray;
+	padding-bottom: 0.5em;
+	margin-right: 5px;
+}
+
+.views-exposed-form .views-exposed-widget {
+	display: none;
+	padding-right: 0.2em;
+}
+
+.views-exposed-form .views-submit-button {
+	display: block;
+}
+
+.views-exposed-form .views-widget-filter-filename {
+	display: block;
+	padding-top: 0;
+}
+
+.form-actions {
+	text-align: right;
+}
+
+.view-id-media_default + .form-actions {
+  border-top: 1px solid lightgray;
+  padding-top: 10px;
+  margin-bottom: 0;
+}

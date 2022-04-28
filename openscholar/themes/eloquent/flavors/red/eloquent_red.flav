@@ -1,0 +1,5 @@
+name = Red
+description = A Red Version of the scholor-theme-06 theme
+screenshot = screenshot.png
+
+css[] = red.css

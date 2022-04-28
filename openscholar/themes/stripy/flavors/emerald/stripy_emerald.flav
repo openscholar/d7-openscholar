@@ -1,0 +1,5 @@
+name = Emerald
+description = A Emerald Version of the scholor-theme-03 theme
+screenshot = screenshot.png
+
+css[] = emerald.css

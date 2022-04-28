@@ -1,0 +1,499 @@
+<?php
+
+/**
+ * @file
+ * Vsite Register module allows users to register new vsites.
+ */
+
+/**
+ * Defines the menu path for the optional vsite welcome overlay message.
+ */
+define('VSITE_REGISTER_WELCOME_PATH', 'cp/welcome');
+
+/**
+ * Implements hook_menu().
+ */
+function vsite_register_menu() {
+  $items['site/register'] = array(
+    'title' => 'Create your web site',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('vsite_register_form'),
+    'access callback' => 'vsite_vsite_exists_access',
+    'file' => 'vsite_register.form.inc',
+  );
+
+  $items['admin/config/openscholar/vsite_register'] = array(
+    'title' => 'Vsite Register',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('vsite_register_admin_form'),
+    'file' => 'vsite_register.admin.inc',
+    'access arguments' => array('access administration pages'),
+    //'type' => MENU_LOCAL_TASK,
+  );
+
+  $items[VSITE_REGISTER_WELCOME_PATH] = array(
+    'title callback' => '_vsite_register_welcome_title',
+    'page callback' => '_vsite_register_welcome_page',
+    'access callback' => '_vsite_register_welcome_access',
+    'access arguments' => array(),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['site/login/once/%/%/%/%'] = array(
+    'title' => 'One-time login to website',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('vsite_register_site_login', 3, 4, 5, 6),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'vsite_register.form.inc',
+  );
+
+  $items['site/purls'] = array(
+    'title' => 'Get PURLs',
+    'page callback' => 'vsite_register_get_purls',
+    'access callback' => 'vsite_register_cors_access',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['site/register/validate/%/%'] = array(
+    'title' => 'Validate User Info',
+    'page callback' => 'vsite_register_validate',
+    'page arguments' => array(3, 4),
+    'access callback' => 'vsite_register_cors_access',
+    'type' => MENU_CALLBACK,
+    'file' => 'vsite_register.form.inc'
+  );
+
+  $items['site/user/exists/%'] = array(
+    'title' => 'Validate Username/Email',
+    'page callback' => 'vsite_register_user_exists',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'vsite_register.form.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Gets the node title from the welcome message node.
+ */
+function _vsite_register_welcome_title() {
+  $nid = variable_get('vsite_register_welcome_message');
+  $node = node_load($nid);
+  if (isset($node->title) && $node->title) {
+    return $node->title;
+  }
+  // Default to "Welcome" if the title is empty.
+  return t('Welcome');
+}
+
+/**
+ * Gets the node title from the welcome message node.
+ */
+function _vsite_register_welcome_page() {
+  // Prepares an empty build array.
+  $path = drupal_get_path('module', 'vsite_register');
+  $build = array(
+    'welcome_page' => array(
+      '#markup' => '',
+    ),
+  );
+
+  // Prepares the page content markup.
+  $nid = variable_get('vsite_register_welcome_message');
+  if ($node = node_load($nid)) {
+    $items = field_get_items('node', $node, 'body');
+    if (is_array($items) && count($items)) {
+      $body = array_shift($items);
+      if (isset($body['value']) && !empty($body['value'])) {
+        $build['welcome_page']['#markup'] = $body['value'];
+      } // Returns an empty string if no body value found.
+      else {
+        return $build;
+      }
+    }
+  }
+  else {
+    return $build;
+  }
+
+  // Optionally prepares a button "Okay" to dismiss the overlay.
+  if (overlay_get_mode() == 'child') {
+    $build['welcome_page']['#suffix'] = '<div class="vsite-welcome-okay"><a class="overlay-close os-blue-button" href="#">' . t('Okay') . '</a></div>';
+  }
+
+  return $build;
+}
+
+/**
+ * Gets the node title from the welcome message node.
+ */
+function _vsite_register_welcome_access() {
+  $nid = variable_get('vsite_register_welcome_message');
+  return is_numeric($nid) && ($nid !== 0);
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function vsite_register_block_info() {
+  return array(
+    'get_your_site_block' => array('info' => t('Vsite Registration'), 'status' => 0),
+  );
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function vsite_register_block_view($delta = '') {
+  global $user;
+  if (user_is_logged_in()) {
+    $vsites = vsite_get_vsite_by_owner($user->uid);
+  }
+  $block = array();
+  ctools_include('vsite', 'vsite');
+
+  switch ($delta) {
+    case 'get_your_site_block':
+      $path = 'site/register';
+      if (user_access('access administration pages')) {
+        $text = t('Create Your Site Here');
+      }
+      elseif (vsite_vsite_exists_access()) {
+        $text = variable_get('vsite_register_get_site_text', t('Create Your Site Here'));
+      }
+      elseif (isset($vsites) && user_is_logged_in()) {
+        if (count($vsites) > 1) {
+          $text = variable_get('vsite_register_max_site_text_single', t('Go to your sites'));
+          $path = 'user';
+        }
+        else {
+          $text = variable_get('vsite_register_max_site_text_plural', t('Go to your site'));
+          $path = $vsites[0]->og->purl;
+        }
+      }
+      break;
+  }
+
+  if (isset($text)) {
+    $options = array(
+      'attributes' => array(
+        'class' => array('get-your-site-button'),
+        'id' => 'get-your-site-block',
+      ),
+    );
+
+    $markup = l($text, $path, $options);
+    $block['content'] = array(
+      'content' => array(
+        '#markup' => $markup,
+      ),
+    );
+  }
+
+  return $block;
+}
+
+/**
+ * Implements hook_theme().
+ *
+ * Provides theming for form errors.
+ */
+function vsite_register_theme() {
+  $theme = array();
+  $theme['vsite_register_form_errors'] = array(
+    'render element' => 'form',
+    'function' => 'theme_vsite_register_form_errors',
+    'variables' => array('name' => NULL, 'errors' => array()),
+  );
+  return $theme;
+}
+
+/**
+ * Theme callback; returns a themed list of errors.
+ *
+ * @return string
+ *   HTML container with a list of errors.
+ */
+function theme_vsite_register_form_errors($vars) {
+  $list = theme('item_list', array('items' => $vars['errors'], 'type' => 'ul', 'attributes' => array('class' => array('error'))));
+  return '<div id="' . $vars['name'] . '-errors">' . $list . '</div>';
+}
+
+/**
+ * Generates the success message to display when vsite register form is submit.
+ *
+ * @return string $message
+ *   The message shown to site owners after a successful web site registration.
+ */
+function vsite_register_message($form, $domain) {
+  global $user, $base_url;
+
+  // Checks if the current user is logged in.
+  $user_is_anonymous = (bool) in_array('anonymous user', $user->roles);
+
+  // Checks if the current user may create sites on other users' behalf.
+  $may_create_on_behalf = (bool) user_access('create openscholar site on behalf of others');
+  // Displays "the site" or "your site" depending on current users' permission.
+  if ($may_create_on_behalf) {
+    $whose_site = 'the';
+  }
+  else {
+    $whose_site = 'your';
+  }
+
+  // Prepares the href attribute for the "Go there now" link.
+  $href = "$base_url/$domain";
+  // Checks if there is a welcome message node set to display
+  // when the user clicks the "Go there now" link and visits their new site.
+  $display_welcome = (bool) variable_get('vsite_register_welcome_message', FALSE);
+  if ($display_welcome) {
+    $fragment = 'overlay=' . VSITE_REGISTER_WELCOME_PATH;
+    $href .= "#$fragment";
+  }
+  $link = l(t('Go there now &raquo;'), $href, array(
+    'html' => TRUE,
+    'attributes' => array(
+      'title' => t('Visit your new site now'),
+      'class' => array('os-green-button')
+    )
+  ));
+
+  // Prepares an array of messages to display to the user,
+  // to be rendered each as individual paragraph elements.
+  $paragraphs = array();
+  $paragraphs[] = t('Success! @whose new site has been created.', array('@whose' => ucfirst($whose_site)));
+  if ($user_is_anonymous) {
+    $paragraphs[] = t('Check your email account for further details on how to login in to start adding features and content.');
+  }
+  $paragraphs[] = t('The url of @whose site is @base_url/@domain '. $link, array('@whose' => $whose_site, '@base_url' => $base_url, '@domain' => $domain));
+
+  // Prepares the build array for other modules to modify.
+  $build = array(
+    'container' => array(
+      '#type' => 'container',
+      '#attributes' => array(
+        'id' => 'success-message',
+        'class' => array('status'),
+      ),
+      'message_text' => array(
+        '#type' => 'markup',
+        '#markup' => '<p>' . implode('</p><p>', $paragraphs) . '</p>',
+      ),
+    ),
+  );
+
+  // Gives other modules a chance to alter message
+  module_invoke_all('vsite_register_message', $build, $form, $domain);
+  $message = drupal_render($build);
+
+  return $message;
+}
+
+
+/**
+ * Generates the success message to display when vsite register form is submit.
+ *
+ * @return string $message
+ * The function is called after submitting site creation form in Angular screen.
+ */
+function vsite_register_message_angular($form, $domain) {
+  global $user, $base_url;
+
+  // Checks if the current user is logged in.
+  $user_is_anonymous = (bool) in_array('anonymous user', $user->roles);
+
+  // Checks if the current user may create sites on other users' behalf.
+  $may_create_on_behalf = (bool) user_access('create openscholar site on behalf of others');
+  // Displays "the site" or "your site" depending on current users' permission.
+  if ($may_create_on_behalf) {
+    $whose_site = 'the';
+  }
+  else {
+    $whose_site = 'your';
+  }
+
+  // Prepares the href attribute for the "Go there now" link.
+  $href = "$base_url/$domain";
+  // Checks if there is a welcome message node set to display
+  // when the user clicks the "Go there now" link and visits their new site.
+  $display_welcome = (bool) variable_get('vsite_register_welcome_message', FALSE);
+  if ($display_welcome) {
+    $fragment = 'overlay=' . VSITE_REGISTER_WELCOME_PATH;
+    $href .= "#$fragment";
+  }
+  $link = l(t('Go there now &raquo;'), $href, array(
+    'html' => TRUE,
+    'attributes' => array(
+      'title' => t('Visit your new site now'),
+      'class' => array('os-green-button')
+    )
+  ));
+
+  // Prepares an array of messages to display to the user,
+  // to be rendered each as individual paragraph elements.
+  $paragraphs = array();
+  $paragraphs[] = $href;
+
+  // Gives other modules a chance to alter message
+  module_invoke_all('vsite_register_message', $paragraphs, $form, $domain);
+  $message = $href;
+
+  return $message;
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for vsite_register_form.
+ *
+ * Removes the notify element if the user is not logged in.
+ */
+function vsite_register_form_vsite_register_form_alter(&$form, &$form_state) {
+  if (!user_is_logged_in()) {
+    if (isset($form['notify'])) {
+      $form['notify']['#access'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Gets the overlay path from a welcome message value like "Note title [id: 13]"
+ */
+function _vsite_register_get_overlay($welcome_message) {
+  $nid = _vsite_register_welcome_message_nid($welcome_message);
+  if (!$nid) {
+    return FALSE;
+  }
+
+  return drupal_lookup_path('alias', "node/$nid");
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function vsite_register_admin_paths() {
+  // Adds the welcome message node alias to admin paths to generate overlay.
+  $paths = array(
+    VSITE_REGISTER_WELCOME_PATH => TRUE,
+  );
+
+  return $paths;
+}
+
+/**
+ * Adds an error message to the vsite register form.
+ *
+ * @see vsite_register_form_submit()
+ */
+function _vsite_register_form_error() {
+  return ajax_command_html('#submit-suffix', 'The web site cannot be created. Please fix the errors and try again.');
+}
+
+function vsite_register_cors_access() {
+  $master = variable_get('ossap_master_servers', array());
+  if (isset($_SERVER['HTTP_ORIGIN'])) {
+    foreach ($master as $name => $info) {
+      $domain = 'http://'.parse_url('http://'.$info['domain'], PHP_URL_HOST);
+      if ($_SERVER['HTTP_ORIGIN'] == $domain) {
+        drupal_add_http_header('Access-Control-Allow-Origin', $domain);
+        return true;
+      }
+    }
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Implements hook_node_insert()
+ */
+function vsite_register_node_insert($node){
+  if (og_is_group_type('node', $node->type)) {
+    if(($vsite = spaces_load('og', $node->nid))){
+      //PURL is needed but spaces_og_node_insert may not have fired yet
+      if (!isset($vsite->group->purl)) {
+        if (is_array($node->purl) && !empty($node->purl['value'])) {
+          $vsite->group->purl = $node->purl['value'];
+        }
+        elseif (is_string($node->purl)) {
+          $vsite->group->purl = $node->purl;
+      }
+    }
+
+	    // Emails user to inform them of new created site, email is always sent.
+	    // This function may additionally send a second email to a specified
+	    // administrator's email address.
+	    // @see form.inc
+	    module_load_include('form.inc', 'vsite_register');
+	    vsite_register_notify($vsite);
+    }
+  }
+}
+
+function vsite_register_get_purls() {
+  $q = db_select('purl', 'p')
+    ->fields('p', array('value'))
+    ->condition('provider', 'spaces_og')
+    ->execute();
+
+  $purls = array();
+  foreach ($q as $r) {
+    $purls[] = $r->value;
+  }
+  $output = array(
+    'domain' => $GLOBALS['base_url'],
+    'purls' => $purls
+  );
+
+  print drupal_json_encode($output);
+  exit;
+}
+
+/**
+ * Implements hook_contextual_links_view_alter().
+ *
+ * Adds a link for sitewide admins to configure Vsite Register from widget.
+ */
+function vsite_register_contextual_links_view_alter(&$element, $items) {
+  if (!isset($element['#element']['#block']->bid) || $element['#element']['#block']->bid != 'vsite_register-get_your_site_block') {
+    return;
+  }
+  if (!user_access('access administration pages')) {
+    return;
+  }
+
+  foreach ($element['#contextual_links'] as $delta => $links) {
+    $element['#links']['configure'] = array(
+      'title' => t('Configure'),
+      'href' => 'admin/config/openscholar/vsite_register',
+      'attributes' => array(
+        'class' => array('ctools-use-modal'),
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_mail_alter().
+ */
+function vsite_register_mail_alter(&$message) {
+  if (!in_array($message['id'], array('user_password_reset'))) {
+    return;
+  }
+
+  $params = array(
+    '@user_name' => $message['params']['account']->name,
+    '@one-time-login-url' => user_pass_reset_url($message['params']['account']),
+    '@site_name' => variable_get('vsite_register_owner_of_install'),
+  );
+
+  // Overwrite mail body in case of Reset Password mail
+  $message['body'][0] = t("Hello @user_name", $params);
+  $message['body'][1] = t("To reset your password, please copy and paste this link into a browser:", $params);
+  $message['body'][2] = t("@one-time-login-url", $params);
+  $message['body'][3] = t("For your security, this link can only be used once to log in and will lead you to a page where you can create a new password. It expires after one day and nothing will happen if it's not used.", $params);
+  if ($params['@site_name']) {
+    $message['body'][4] = t("-@site_name", $params);
+  }
+}

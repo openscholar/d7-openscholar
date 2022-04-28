@@ -1,0 +1,7 @@
+name = Vsite Access
+description = "This handles views and menu access to OpenScholar vsites"
+core = 7.x
+package = "OpenScholar vsite"
+php = "5.2.4"
+dependencies[] = ctools
+dependencies[] = vsite

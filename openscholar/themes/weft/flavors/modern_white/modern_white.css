@@ -1,0 +1,41 @@
+#extradiv {
+  background-image: url('images/fabric-strip-modern-white.png');
+  }
+
+body {
+  background-color: #414141;
+  }
+
+#menu-bar {
+  background: url('images/menu-strip-modern-white.png') #FFFFFF;
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color: #57737F;
+  }
+
+#columns .wrap {
+  background:#f3f3f3;
+  }
+
+#menu-bar li {
+  margin-top: 0;
+  height: 41px;
+  line-height: 41px;
+  }
+
+#menu-bar li a,
+#menu-bar li a:visited {
+  color: #fff;
+  padding-top: 0;
+  padding-bottom: 0;
+  color: #464441;
+  }
+
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar .active-trail a {
+  background: #e5e5e5;
+  color: #464441;
+  }

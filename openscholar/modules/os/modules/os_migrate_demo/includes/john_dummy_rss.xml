@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<rss version="2.0">
+  <channel>
+    <title>John F. Kennedy news</title>
+    <link>http://en.wikipedia.org/wiki/John_F._Kennedy</link>
+    <description>News about the president JFL</description>
+    <item>
+      <category>General</category>
+      <title>JFK was murdered</title>
+      <description><![CDATA[
+        The president JFK was murdered<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/Assassination_of_John_F._Kennedy</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/Assassination_of_John_F._Kennedy</guid>
+    </item>
+    <item>
+      <category>General</category>
+      <title>Lee Harvey Oswald</title>
+      <description><![CDATA[
+        Lee Harvey Oswald<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/Lee_Harvey_Oswald</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/Lee_Harvey_Oswald</guid>
+    </item>
+    <item>
+      <category>General</category>
+      <title>NASA</title>
+      <description><![CDATA[
+        The National Aeronautics and Space Administration<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/Nasa</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/Nasa</guid>
+    </item>
+    <item>
+      <category>General</category>
+      <title>Marilyn Monroe</title>
+      <description><![CDATA[
+        Marilyn Monroe<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/Marilyn_Monroe</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/Marilyn_Monroe</guid>
+    </item>
+    <item>
+      <category>General</category>
+      <title>Cuba</title>
+      <description><![CDATA[
+        Cuba<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/Cuba</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/Cuba</guid>
+    </item>
+    <item>
+      <category>General</category>
+      <title>The Cold War</title>
+      <description><![CDATA[
+        The Cold War<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/Cold_war</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/Cold_war</guid>
+    </item>
+    <item>
+      <category>General</category>
+      <title>John Fitzgerald Kennedy, Jr.</title>
+      <description><![CDATA[
+        John Fitzgerald Kennedy, Jr.<img src="https://upload.wikimedia.org/wikipedia/en/0/02/Harvard_shield-College.png" />
+        ]]></description>
+      <link>http://en.wikipedia.org/wiki/John_F._Kennedy,_Jr.</link>
+      <pubDate>Fri, 22 Nov 1963 12:30:00 -0400</pubDate>
+      <guid>http://en.wikipedia.org/wiki/John_F._Kennedy,_Jr.</guid>
+    </item>
+  </channel>
+</rss>

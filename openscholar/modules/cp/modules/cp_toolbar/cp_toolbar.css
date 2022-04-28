@@ -1,0 +1,350 @@
+#toolbar {
+  background: #383838;
+  filter: none;
+}
+
+#toolbar .toolbar-left > ul {
+  float: left;
+}
+
+#toolbar .toolbar-right > ul {
+  float: right;
+}
+
+#toolbar .toolbar-right ul + ul {
+  border-right: 1px solid #666;
+}
+
+#toolbar a.toggle {
+  position: absolute;
+  right: 30px;
+  cursor: pointer;
+  text-indent: -9999px;
+  overflow: hidden;
+  width: 26px;
+  height: 25px;
+  z-index: 6;
+  top: 0;
+  background: url('images/toolbar_toggle.png') no-repeat left top transparent;
+}
+
+#toolbar a.toggle:focus,
+#toolbar a.toggle:hover {
+
+}
+
+#toolbar a.toggle-active {
+  background: url('images/toolbar_toggle.png') no-repeat -27px top transparent;
+}
+
+#toolbar a.toggle-active.toggle:focus,
+#toolbar a.toggle-active.toggle:hover {
+}
+
+.toolbar-drawer #toolbar {
+  height: 30px;
+}
+
+#toolbar .toolbar-menu,
+#toolbar #toolbar-drawer-anchor {
+  display: none;
+}
+
+.toolbar-drawer #toolbar .toolbar-menu {
+  z-index: 5;
+  display: block;
+  padding: 0 45px 0 0;
+}
+
+.toolbar-drawer #toolbar #toolbar-drawer-anchor {
+  display: block;
+}
+
+#toolbar-drawer-anchor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+}
+
+#toolbar-drawer-slider {
+  position: relative;
+  top: -25%;
+  width: 100%;
+  padding: 0 20px;
+  background-color: #383838;
+  -webkit-transition: top 0.25s;
+  -moz-transition: top 0.25s;
+  -o-transition: top 0.25s;
+  -ms-transition: top 0.25;
+  transition: top 0.25s;
+}
+
+#toolbar div.toolbar-drawer {
+  z-index: 4;
+}
+
+#toolbar-drawer-slider.active-path {
+  top: 100%;
+}
+
+#toolbar div.toolbar-drawer.active-path {
+  padding: 12px;
+  display: block;
+}
+
+#toolbar div.toolbar-drawer.active-path.collapsed {
+  display: none;
+}
+
+#toolbar .toolbar-drawer .drawer {
+  display: none;
+}
+
+#toolbar .toolbar-drawer .drawer.active-path {
+  display: block;
+}
+
+#toolbar div.toolbar-menu ul li a {
+  font-style: normal;  
+  border-radius: 0;
+  padding: 5px 15px;
+}
+
+#toolbar div.toolbar-menu ul li a.active:active,
+#toolbar div.toolbar-menu ul li a.active,
+#toolbar div.toolbar-menu ul li.active-trail a,
+#toolbar div.toolbar-menu ul li a:active {
+  background-color: #383838;
+  background-image: none;
+}
+
+#toolbar div.toolbar-menu ul li a.active:hover,
+#toolbar div.toolbar-menu ul li a.active:focus {
+  background-color: #383838;
+  background-image: none;
+}
+
+#toolbar div.toolbar-menu ul li a[data-drawer] {
+  background-image: url('images/toolbar_drawer_link_arrow.png');
+  background-repeat: no-repeat;
+  background-position: right center;
+  padding-right: 25px;
+}
+
+
+#toolbar div.toolbar-menu ul li a:hover,
+#toolbar div.toolbar-menu ul li a:focus {
+  background-color: #434343;
+}
+
+#toolbar div.toolbar-menu ul li a[data-drawer].active-path:hover,
+#toolbar div.toolbar-menu ul li a[data-drawer].active-path:active,
+#toolbar div.toolbar-menu ul li a[data-drawer].active-path,
+#toolbar div.toolbar-menu ul li.active-trail a[drawer] {
+  background-color: #383838;
+  background-repeat: no-repeat;
+  background-position: right center;
+  padding-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+#toolbar .toolbar-drawer .drawer ul {
+  background-color: rgba(255,255,255,.16);
+  background-position: 6px center;
+  background-repeat: no-repeat;
+  border: 1px solid #000;
+  margin-bottom: 5px;
+  border-radius: 3px;
+  padding: 5px 0;
+  float: left;
+}
+
+#toolbar .toolbar-drawer .drawer ul:before {
+  background: url("images/toolbar_arrow.png") no-repeat right center transparent;
+  float: left;
+  font-size: 11px;
+  font-weight: bold;
+  margin: -5px 0;
+  padding: 5px 8px 5px 5px;
+  text-transform: uppercase;
+}
+
+.toolbar-add:before {
+  content: "Add";
+}
+
+.toolbar-gear:before {
+  content: "Manage";
+}
+
+.toolbar-list:before {
+  content: "Find";
+}
+
+.toolbar-import:before {
+  content: "Import";
+}
+
+.toolbar-graph:before {
+  content: "View";
+}
+
+.toolbar-wrench:before {
+  content: "Wrench";
+}
+
+.toolbar-puzzle:before {
+  content: "Puzzle";
+}
+
+#toolbar div.toolbar-menu ul#toolbar-help li a {
+  background-image: url('images/toolbar_help.png');
+  background-repeat: no-repeat;
+  background-position: 10px center;
+  padding-left: 32px;
+}
+
+#toolbar div.toolbar-menu ul#toolbar-help li a.active,
+#toolbar div.toolbar-menu ul#toolbar-help li a:active {
+  padding-left: 32px;
+  background-position: 10px center;
+  background-color: #434343;
+}
+
+#toolbar .toolbar-drawer .drawer ul + ul {
+  margin-left: 10px;
+}
+
+#toolbar .toolbar-drawer .drawer ul li {
+  overflow: visible;
+  padding: 0 8px;
+}
+
+#toolbar .toolbar-drawer .drawer ul li a {
+  color: #ccc;
+}
+
+#toolbar .toolbar-drawer .drawer ul li a:hover,
+#toolbar .toolbar-drawer .drawer ul li a:focus {
+  color: #fff;
+  text-decoration: underline;
+}
+
+#toolbar .toolbar-drawer .drawer ul li a.active {
+  color: #fff;
+  border-bottom: 2px solid #fff;
+  margin-bottom: -6px;
+  padding-bottom: 3px;
+}
+
+#toolbar .toolbar-drawer .drawer ul li a.active:hover,
+#toolbar .toolbar-drawer .drawer ul li a.active:focus {
+  text-decoration: none;
+}
+
+#toolbar .toolbar-drawer .drawer ul li + li {
+  border-left: 1px solid rgba(204,204,204,.4);
+}
+
+#toolbar-home .dashboard a span {
+  background: url('images/toolbar_dashboard.png') no-repeat center center transparent;
+  width: 17px;
+}
+
+#toolbar .drawer-links a {
+  padding-right: 10px;
+}
+
+#toolbar .toolbar-tooltips {
+  font-size: 11px;
+  padding: 12px;
+  clear: left;
+}
+
+#toolbar .toolbar-drawer.active-path + .toolbar-tooltips {
+  display: block;
+  padding-top: 0;
+}
+
+#toolbar .toolbar-drawer.collapsed + .toolbar-tooltips {
+  display: none;
+}
+
+#toolbar #toolbar-user li {
+  margin: 0;
+}
+
+/**
+ * Theme "Add new" style links like for Publications, etc. 
+ *
+ * @see global.nav.css
+ */
+.cp-controls-wrapper {
+    margin: 15px 0 10px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    z-index: 500;
+}
+
+.cp-controls-wrapper a {
+  color:#293352;
+    font-family:helvetica;
+    font-style:normal;
+}
+
+.cp-controls-wrapper a:hover {
+  color:#293352;
+    text-decoration:none;
+}
+
+.cp-controls-wrapper .add_new {
+  float:left;
+  display:inline;
+   background: url("../images/scholarbase-sprite.png") no-repeat scroll 3px -379px #A1D4A1 !important;
+    border-radius: 5px 5px 5px 5px;
+    float: left;
+     margin: 0 22px 0 0;
+    padding: 0 8px 0 22px !important;
+    text-decoration:none !important;
+  }
+  
+/* Indents dependent (child) form items on admin/config/openscholar page */
+#edit-os-ga .dependent-options {
+  margin-left: 1.385em;
+}
+
+/* Special behavior for action link and help position on CP > Content > Find: Files */
+.view-id-cp_files .cp-controls-wrapper {
+    margin: 11px 29px 10px 0;
+}
+
+.view-id-cp_files .cp-controls-wrapper li {
+    list-style-type: none;
+}
+
+.view-id-cp_files .cp-controls-wrapper .add_new {
+    margin-right: 0;
+}
+
+
+.view-id-cp_files .cp-controls-wrapper .add_new {
+    line-height: 15px !important;
+    display: inline-block;
+    padding: 5px 10px !important;
+    border: none;
+    font-size: 13px;
+    font-weight: bold;
+    color: #FFF !important;
+    text-shadow: 0px -1px 0px rgba(30, 30, 30, 0.25);
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    background: rgb(61, 155, 19) !important;
+    text-decoration: none !important;
+}

@@ -1,0 +1,1264 @@
+<?php
+/**
+ * @file
+ *
+ * Main OpenScholar module update functions.
+ */
+
+function os_install() {
+  _os_date_formats();
+}
+
+/**
+ * Enable restws module
+ */
+function os_update_7001(&$sandbox) {
+  module_enable(array('restws'));
+}
+
+/**
+ * Enable the watchdog module.
+ */
+function os_update_7002() {
+  module_enable(array('dblog'));
+}
+
+/**
+ * Disable preventing anonymous cache in biblio.
+ */
+function os_update_7003() {
+  variable_set('biblio_prevent_anon_cache', FALSE);
+}
+
+/**
+ * Adds 3 new date formats
+ */
+function os_update_7004() {
+  _os_date_formats();
+}
+
+/**
+ * @function _os_date_formats()
+ *
+ * Enable the formats defined in os's date hooks
+ */
+function _os_date_formats() {
+  foreach (os_date_formats() as $fmt) {
+    $name = 'date_format_' . $fmt['type'];
+    variable_set($name, $fmt['format']);
+  }
+}
+
+/**
+ * Allow access to node/%.json to all of the users.
+ */
+function os_update_7005() {
+}
+
+/**
+ * Enable the OS WYSIWYG Link Module
+ */
+function os_update_7006() {
+  if (module_enable(array('os_wysiwyg_link'))) {
+    return t('OS Wysiwyg Link module installed.');
+  }
+
+  return t('OS Wysiwyg Link module already installed.');
+}
+
+/**
+ * Enable OS Mailchimp
+ **/
+function os_update_7007() {
+  if (module_enable(array('os_mailchimp'))) {
+    return t('OS Mailchimp module installed.');
+  }
+
+  return t('OS Mailchimp module already installed.');
+}
+
+/**
+ * Enable Elysia Cron
+ **/
+function os_update_7008() {
+  if (module_enable(array('elysia_cron'))) {
+    return t('Elysia Cron module installed.');
+  }
+
+  return t('Elysia Cron module already installed.');
+}
+
+/**
+ * Turn on the OG vocab term page access.
+ */
+function os_update_7009() {
+  variable_set('og_vocab_term_page_access', TRUE);
+}
+
+/**
+ * June 20 updates - Enable views_infinite_scroll and views_litepager modules, retire quinn theme,
+ * revert infinite scroll views, add mollom to event registration forms
+ */
+function os_update_7010() {
+  //enable infinite scrolling and revert the features that use it
+  module_enable(array('views_infinite_scroll', 'views_litepager'));
+  features_revert(array_fill_keys(array('os_faq','os_links','os_news','os_profiles'), array('view')));
+
+  //enable mollom on event signup pages
+  if (module_exists('mollom')) {
+    os_events_save_mollom_settings();
+  }
+
+  //quinn and its flavors -> eloquent
+  $flavors = array(
+    'quinn_blue' => 'outsidesidebars_blue',
+    'quinn_brown' => 'outsidesidebars_brown',
+    'quinn_dark_brown' => 'outsidesidebars_darkbrown',
+    'quinn_dark_grey' => 'outsidesidebars_darkgrey',
+    'quinn_green' => 'outsidesidebars_green',
+    'quinn_khaki' => 'outsidesidebars_khaki',
+    'quinn_orange_palatino' => 'outsidesidebars_orangepalatino',
+    'quinn_sage' => 'outsidesidebars_sage',
+    'quinn_white' => 'outsidesidebars_white',
+    'theme_04_dark_grey' => 'outsidesidebars_grey',
+    'theme_04_sage' => 'outsidesidebars_grey',
+    'default' => 'outsidesidebars_grey',
+  );
+
+  $query = db_select('spaces_overrides', 'theme');
+  $query->join('spaces_overrides', 'flavor', 'theme.id = flavor.id');
+
+  $query->condition('theme.object_type', 'variable');
+  $query->condition('theme.object_id', 'theme_default');
+  $query->condition('theme.value', serialize('quinn'));
+  $query->condition('flavor.object_type', 'variable');
+  $query->condition('flavor.object_id', 'os_appearance_quinn_flavor');
+
+  $query->fields('flavor', array('id', 'value'));
+  $results = $query->execute();
+  while ($row = $results->fetchObject()) {
+    $flavor = unserialize($row->value);
+    $new_flavor = (isset($flavors[$flavor])) ? $flavors[$flavor] : $flavors['default'];
+
+    //set theme
+    $t = db_update('spaces_overrides')
+      ->fields(array('value' => serialize('eloquent')))
+      ->condition('object_type', 'variable')
+      ->condition('id', $row->id)
+      ->condition('object_id', 'theme_default')
+      ->execute();
+
+    //set flavor
+    $flavor_set = db_update('spaces_overrides')
+      ->fields(array('value' => serialize($flavors[$flavor])))
+      ->condition('object_type', 'variable')
+      ->condition('id', $row->id)
+      ->condition('object_id', 'os_appearance_eloquent_flavor')
+      ->execute();
+
+    if (!$flavor_set) {
+      $flavor_set = 'insert: ' . db_insert('spaces_overrides')
+        ->fields(array(
+          'type' => 'og',
+          'value' => serialize($flavors[$flavor]),
+          'object_type' => 'variable',
+          'id' => $row->id,
+          'object_id' => 'os_appearance_eloquent_flavor',
+        ))->execute();
+
+    }
+    print("$row->id $flavor '$t' '$flavor_set'\n");
+
+  }
+
+}
+
+/**
+ * Turn on Subtheme and OS subtheme modules.
+ */
+function os_update_7011() {
+  module_enable(array('subtheme', 'os_subtheme'));
+}
+
+/**
+ * Allow access to file/*.json for all users
+ */
+function os_update_7012() {
+}
+
+/**
+ * Enables module services_basic_auth.
+ */
+function os_update_7013() {
+  $modules = array('services_basic_auth');
+  module_enable($modules);
+}
+
+/**
+ * Removes /home from the end links to home page
+ */
+function os_update_7014() {
+  $updates = array();
+
+
+  //main query for menu
+  $query = db_select('spaces_overrides', 'so')
+    ->condition('object_type', 'menus')
+    ->condition('so.value', '%home%', 'LIKE')
+    ->fields('so');
+
+  //subquery to get domain name
+  $subquery = db_select('spaces_overrides', 's')
+    ->condition('object_type', 'variable')
+    ->condition('object_id', 'vsite_domain_name')
+    ->fields('s', array('value', 'id'));
+
+  $query->leftJoin($subquery, 'sub', 'sub.id = so.id');
+  $query->addField('sub', 'value', 'vsite_domain_name');
+
+  //also need purl
+  $query->join('purl', 'p', 'p.id = so.id');
+  $query->condition('p.provider', 'spaces_og');
+  $query->addField('p', 'value', 'purl');
+
+  $results = $query->execute();
+  while ($row = $results->fetchObject()) {
+    $menus = unserialize($row->value);
+    global $base_url;
+    $domain = unserialize($row->vsite_domain_name);
+    $domain = ($domain) ? 'http://'.$domain : variable_get('purl_base_domain', $base_url);
+    $purl = $row->purl;
+
+    //check each menu item
+    foreach ($menus as $id => &$item) {
+      //list of replaceable items
+      $replace = array('home', '/home', $domain . '/home', "$domain/$purl/home");
+
+      if (in_array($item['link_path'], $replace)) {
+        $item['link_path'] = preg_replace('/home\/?$/', '', $item['link_path']);
+        $updates[$row->id] = TRUE;
+      }
+    }
+
+    //do the update
+    if ($updates[$row->id]) {
+      db_update('spaces_overrides')
+        ->fields(array('value' => serialize($menus)))
+        ->condition('type', $row->type)
+        ->condition('id', $row->id)
+        ->condition('object_type', $row->object_type)
+        ->condition('object_id', $row->object_id)
+        ->execute();
+    }
+  }
+
+  return t('Updated home links in @count sites', array('@count' => count($updates)));
+}
+
+/**
+ * Removes "view user profiles" permission in favor of new permission.
+ *
+ * The newly exported permission is 'access user autocomplete' and is granted to
+ * all authenticated users.
+ * @see os.features.user_permission.inc
+ */
+function os_update_7015() {
+  user_role_revoke_permissions(DRUPAL_AUTHENTICATED_RID, array('view user profiles'));
+}
+
+/**
+ * Update field redirection and grant to vsite admin and content editor the
+ * permission to watch unpublished group content.
+ */
+function os_update_7016() {
+  module_enable(array('og_moderation', 'field_redirection'));
+  os_grant_unpublished_viewing_permission();
+}
+
+/**
+ * Enable the OS importer module.
+ */
+function os_update_7017() {
+  module_enable(array('os_importer'));
+}
+
+/**
+ * Enable jQuery update module.
+ */
+function os_update_7018() {
+  module_enable(array('jquery_update'));
+}
+
+/**
+ * Enables module: os_tour.
+ */
+function os_update_7019() {
+  module_enable(array('os_tour'));
+}
+
+/**
+ * Enable secure pages and password policy
+ */
+function os_update_7020() {
+  module_enable(array('password_policy', 'secure_pages'));
+  variable_set('securepages_enable', '1');
+  variable_set('securepages_pages', 'user
+user/login');
+}
+
+/**
+ * Revert feature variables
+ */
+function os_update_7021() {
+  $comps = array('variable');
+  $features = array(
+    'os_biocv' => $comps,
+    'os_blog' => $comps,
+    'os_class' => $comps,
+    'os_news' => $comps,
+    'os_presentation' => $comps,
+    'os_reader' => $comps,
+    'os_software' => $comps
+  );
+
+  features_revert($features);
+}
+
+/**
+ * Remove promoted status that nodes shouldn't have
+ */
+function os_update_7022() {
+  db_update('node')
+    ->fields(array('promote' => 0))
+    ->execute();
+}
+
+/**
+ * Reverts `os` module's presets to use new HWPI theme defaults.
+ */
+function os_update_7023() {
+  // Removed in favor of os_update_7025().
+  //features_revert(array('os' => array('spaces_presets')));
+}
+
+/**
+ * Enable expire module
+ */
+function os_update_7024() {
+  module_enable(array('expire'));
+  //Setup defaults
+  variable_set('expire_debug', '0');
+  variable_set('expire_file_actions', array(1 => '1', 2 => '2'));
+  variable_set('expire_file_file', '1');
+  variable_set('expire_handler_file', 'OSExpireFile');
+  variable_set('expire_handler_node', 'OSExpireNode');
+  variable_set('expire_node_actions', array(1 => '1', 2 => '2', 3 => '3'));
+  variable_set('expire_node_node_page', '1');
+  variable_set('expire_status', '1');
+}
+
+/**
+ * Reverts `os` module's preset taking into account theme changes.
+ */
+function os_update_7025() {
+  $output = "Updating spaces_overrides for sites using presets with modified default themes.\n\n";
+
+  // These were the previous values for variable `default_theme` in presets:
+  $variable = 'theme_default';
+  $preset_themes_original = array(
+    'os_scholar' => 'cleanblue',
+    'os_project' => 'cleanblue',
+    'os_department_minimal' => 'ballard',
+  );
+  // This is the new theme that all 3 presets now use:
+  $new_default = 'hwpi_classic';
+
+  // Reverts spaces_presets -- things are temporarily broken!
+  $revert = array(
+    'os' => array(
+      'spaces_presets',
+    ),
+  );
+  features_revert($revert);
+
+  // Saves a new spaces_override variable values on all affected sites.
+  foreach ($preset_themes_original as $preset => $old_default) {
+    $output .= "Preset: {$preset}: ";
+    $add_override = _os_update_7025_add_override($preset, 'variable', $variable, $old_default);
+    foreach ($add_override as $gid) {
+      $vsite = vsite_get_vsite($gid);
+      if ($vsite) {
+        $vsite->controllers->variable->set($variable, $old_default);
+      }
+    }
+    $count = count($add_override);
+    $output .= "{$count} overrides added, ";
+
+    $remove_override = _os_update_7025_remove_override($preset, 'variable', $variable, $new_default);
+    foreach ($remove_override as $gid) {
+      $vsite = vsite_get_vsite($gid);
+      if ($vsite) {
+        // Since this matches defaults, this will delete the override.
+        // @see spaces_controller::set()
+        $vsite->controllers->variable->set($variable, $new_default);
+      }
+    }
+    $count = count($remove_override);
+    $output .= "{$count} removed.\n";
+    $output .= ' + (' . (empty($add_override) ? '' : implode(',', $add_override)) . ")\n";
+    $output .= ' - (' . (empty($remove_override) ? '' : implode(',', $remove_override)) . ")\n";
+    unset($add_override);
+    unset($remove_override);
+  }
+
+  return $output;
+}
+
+/**
+ * Returns site IDs for all sites which require a new override record.
+ *
+ * @see os_update_7025()
+ */
+function _os_update_7025_add_override($preset, $object_type, $object_id, $old) {
+  // First finds all vsites with this spaces preset type.
+  $all_preset_gids = _query_so_ids('variable', 'spaces_preset_og', $preset);
+
+  // Finds all unique site IDs with an override of the specific object.
+  // Excludes overrides that match the old value.
+  $overridden_non_old_default = _query_so_ids($object_type, $object_id, $old, '!=', $all_preset_gids);
+
+  // Candidates for sites that will need a new override record.
+  // Considers sites such that:
+  // - They have this spaces_preset (from $all_preset_gids above)
+  // - They have an overridden value for 'theme_default'
+  // - Their overridden value != $old
+  $uses_old_default_theme = array_diff($all_preset_gids, $overridden_non_old_default);
+
+  // Removes sites such that:
+  // - There is an overridden value for 'os_appearance_{$old}_flavor'
+  // - The value of 'os_appearance_{$old}_flavor' != "default".
+  $flavor_object_id = "os_appearance_{$old}_flavor";
+  $uses_non_old_default_flavor = _query_so_ids($object_type, $flavor_object_id, 'default', '!=');
+
+  // Determines which sites need a new override record.
+  // Sites such that:
+  // - They use the old default theme (from $uses_old_default_theme above)
+  // - They use the old default theme flavor.
+  $add_override = array_diff($uses_old_default_theme, $uses_non_old_default_flavor);
+
+  return $add_override;
+}
+
+/**
+ * Returns site IDs for all sites whose existing override can be deleted.
+ *
+ * @see os_update_7025()
+ */
+function _os_update_7025_remove_override($preset, $object_type, $object_id, $new) {
+  // First finds all vsites with this spaces preset type.
+  $all_preset_gids = _query_so_ids('variable', 'spaces_preset_og', $preset);
+
+  // Finds all unique site IDs with an override that will no longer be needed.
+  // Only includes overrides that match the new default value.
+  $uses_new_default_theme = _query_so_ids($object_type, $object_id, $new, '=', $all_preset_gids);
+
+  // Removes sites that use a non-default theme value.
+  $flavor_object_id = "os_appearance_{$new}_flavor";
+  $uses_non_new_default_flavor = _query_so_ids($object_type, $flavor_object_id, 'default', '!=');
+  $remove_override = array_diff($uses_new_default_theme, $uses_non_new_default_flavor);
+
+  return $remove_override;
+}
+
+/**
+ * Helper function; returns an array of OG Group IDs.
+ *
+ * @param $object_type
+ *   i.e. 'variable'
+ * @param $object_id
+ *   i.e. 'theme_default'
+ * @param bool $value
+ *   i.e. 'hwpi_classic'
+ * @param string $compare
+ *   one of '=' or '!='
+ * @param mixed $within
+ *   An array of OG group IDs to check against.
+ *
+ * @return array $ids
+ *   An array of int IDs matching the parameter constraints.
+ */
+function _query_so_ids($object_type, $object_id, $value = FALSE, $compare = '=', $within = FALSE) {
+  // Returns an empty array if an empty $within array was passed.
+  $ids = array();
+  if ($within !== FALSE && is_array($within)) {
+    if (empty($within)) {
+      return $ids;
+    }
+  }
+
+  // Initialize a new spaces_overrides query for this object type and id.
+  $query = db_select('spaces_overrides', 'so');
+  $query->fields('so', array('id'));
+  $query->condition('object_type', $object_type);
+  $query->condition('object_id', $object_id);
+
+  // Applies optional value condition.
+  if ($value && in_array($compare, array('=', '!='))) {
+    $length = strlen($value);
+    $value = "s:{$length}:\"{$value}\";";
+    $query->condition('value', $value, $compare);
+  }
+
+  // Applies "within" id array condition.
+  if ($within) {
+    $query->condition('id', $within, 'IN');
+  }
+
+  $result = $query->execute();
+  while ($record = $result->fetchAssoc()) {
+    $ids[] = $record['id'];
+  }
+
+  return $ids;
+}
+
+/**
+ * Reverts feature module `vsite_preset` component: spaces_presets.
+ *
+ * Note: although this might "belong" in vsite_preset.install, it needs to run
+ * AFTER os_update_7025().
+ */
+function os_update_7026() {
+  $revert = array(
+    'vsite_preset' => array(
+      'spaces_presets',
+    ),
+  );
+  features_revert($revert);
+}
+
+/**
+ * Installs modules new to 3.11
+ */
+function os_update_7027($ctx) {
+  $modules = array(
+    'nodeformcols',
+    'media_draggable',
+  );
+
+  module_enable($modules);
+
+  return t('Enabled new modules: @modules', array('@modules' => implode(', ', $modules)));
+}
+
+/**
+ * Revert variables of the app features
+ */
+function os_update_7028($ctx) {
+  $revert = array(
+    'os_biocv' => array(
+      'variable',
+    ),
+    'os_blog' => array(
+      'variable',
+    ),
+    'os_booklets' => array(
+      'variable',
+    ),
+    'os_classes' => array(
+      'variable',
+    ),
+    'os_events' => array(
+      'variable',
+    ),
+    'os_faq' => array(
+      'variable',
+    ),
+    'os_image_gallery' => array(
+      'variable',
+    ),
+    'os_links' => array(
+      'variable',
+    ),
+    'os_news' => array(
+      'variable',
+    ),
+    'os_pages' => array(
+      'variable',
+    ),
+    'os_presentations' => array(
+      'variable',
+    ),
+    'os_profiles' => array(
+      'variable',
+    ),
+    'os_publications' => array(
+      'variable',
+    ),
+    'os_software' => array(
+      'variable',
+    ),
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Enables metatag modules and reverts metatag config components.
+ */
+function os_update_7029() {
+  $modules = array(
+    'metatag',
+    'metatag_opengraph',
+    'metatag_twitter_cards',
+  );
+  module_enable($modules);
+  $message = t('Enabled new modules: @modules<br/>', array('@modules' => implode(', ', $modules)));
+
+  $modules = array(
+    'os',
+    'vsite',
+    'os_biocv',
+    'os_blog',
+    'os_booklets',
+    'os_events',
+    'os_image_gallery',
+    'os_links',
+    'os_news',
+    'os_presentations',
+    'os_profiles',
+    'os_publications',
+    'os_software',
+  );
+  foreach ($modules as $module) {
+    $revert = array(
+      $module => array(
+        'metatag',
+        'field_instance'
+      ),
+    );
+    features_revert($revert);
+  }
+  $message .= t('Reverted metatag and field_instance config for modules: @modules<br/>', array('@modules' => implode(', ', $modules)));
+  return $message;
+}
+
+/**
+ * Delete duplicated "calendar" and "publications" links in the primary menu.
+ */
+function os_update_7030() {
+  db_delete('menu_links')
+    ->condition('menu_name', 'primary-menu')
+    ->condition('link_path', array('calendar', 'publications'), 'IN')
+    ->condition('module', 'menu')
+    ->execute();
+}
+
+/**
+ * Remove 'Preview Changes' button from every node form
+ */
+function os_update_7031() {
+  $apps = array(
+    'os_biocv',
+    'os_blog',
+    'os_booklets',
+    'os_classes',
+    'os_events',
+    'os_faq',
+    'os_image_gallery',
+    'os_links',
+    'os_news',
+    'os_pages',
+    'os_presentations',
+    'os_profiles',
+    'os_reader',
+    'os_software'
+  );
+  $to_revert = array_fill_keys($apps, array('variable'));
+  features_revert($to_revert);
+  return t('Variable components of App features reverted.');
+}
+
+/**
+ * Enable the OS RSS module.
+ */
+function os_update_7032() {
+  module_enable(array('os_rss'));
+}
+
+/**
+ * Disable the RDF module.
+ */
+function os_update_7033() {
+  module_disable(array('rdf'));
+}
+
+/**
+ * Enables Advanced Aggregation modules and reverts variable exports related to it to ensure we have them.
+ */
+function os_update_7034() {
+  module_enable(array('advagg_js_compress', 'imageapi_optimize'));
+  features_revert(array('os' => array('variable')));
+  return t('Advanced Aggregation module enabled. Variables for OS module reverted.');
+}
+
+/**
+ * Reverts feeds importers to add "Created date" and "Path" to CSV import.
+ */
+function os_update_7035() {
+  $apps = array(
+    'os_biocv',
+    'os_blog',
+    'os_classes',
+    'os_events',
+    'os_faq',
+    'os_image_gallery',
+    'os_links',
+    'os_news',
+    'os_pages',
+    'os_presentations',
+    'os_profiles',
+    'os_reader',
+    'os_software'
+  );
+  $revert = array_fill_keys($apps, array('feeds_importer'));
+  features_revert($revert);
+}
+
+/**
+ * Revert blog and events views to add "sticky" sort criteria.
+ */
+function os_update_7036() {
+  $revert = array(
+    'os_events' => array('views_view'),
+    'os_blog' => array('views_view'),
+  );
+  features_revert($revert);
+}
+
+/**
+ * Install OS exporter.
+ */
+function os_update_7037() {
+  module_enable(array('os_exporter'));
+}
+
+/**
+ * Uninstall the os_biocv module
+ */
+function os_update_7038(&$sandbox) {
+  if (module_exists('os_biocv')) {
+    if (!isset($sandbox['dataset'])) {
+      $sandbox['notices'] = "";
+      $sandbox['completed'] = 0;
+      $dataset = _get_vsite_biocv_data();
+      $sandbox['dataset'] = $dataset;
+      $sandbox['total'] = count($dataset);
+      $sandbox['#finished'] = 0.0;
+    }
+
+    $vsites = array_splice($sandbox['dataset'], 0, 100);
+
+    $sandbox['notices'] .= _replace_biocvs_with_pages($vsites);
+    $sandbox['completed'] += count($vsites);
+    if ($sandbox['total']) {
+      $sandbox['#finished'] = (float)$sandbox['completed'] / (float)$sandbox['total'];
+    }
+    else {
+       $sandbox['#finished'] = 1;
+    }
+
+    if($sandbox['#finished'] >= 1) {
+      module_disable(array('os_biocv'), FALSE);
+      drupal_uninstall_modules(array('os_biocv'), FALSE);
+
+      $sandbox['#finished'] = 1;
+      return "Completed " . $sandbox['completed'] . " out of " . $sandbox['total'] . " migrations.<br/>" . $sandbox['notices'];
+    }
+  }
+}
+
+/**
+ * Remove bio and cv options from content list after the os_biocv module has been uninstalled
+ */
+function os_update_7039() {
+  features_revert(array('cp_content' => array('views_view')));
+}
+
+/**
+ * Uninstall fb_social module and remove instances of facebook widgets
+ */
+function os_update_7040() {
+  if (module_exists('fb_social')) {
+    $status = "";
+
+    $query = db_select('spaces_overrides', 'so')->fields('so', array('id','object_id','value'));
+    $query->condition("so.type", 'og');
+    $query->condition('so.object_type','boxes', '=');
+    $query->condition('so.value', '%"fb_plugin_name"%', 'like');
+    $results = $query->execute();
+
+    $count = "0";
+    // loop through instances of fb widget boxes
+    while ($box = $results->fetchObject()) {
+      $box_data = unserialize($box->value);
+
+      // make sure the box is really associated with an fb_social plugin
+      if(isset($box_data->fb_plugin_name)) {
+        $query = db_select('spaces_overrides', 'so')->fields('so', array('object_id', 'value'));
+        $query->condition("so.type", 'og');
+        $query->condition("so.id", $box->id);
+        $query->condition('so.object_type','context', '=');
+        $query->condition('so.value', '%' . $box->object_id . '%', 'like');
+        $contexts = $query->execute();
+
+        // loop through places where instance is placed on the site
+        while ($context = $contexts->fetchObject()) {
+          $boxes = unserialize($context->value);
+
+          // unset index for widget and update spaces_overrides row
+          if (isset($boxes['blocks']["boxes-" . $box->object_id])) {
+            unset($boxes['blocks']["boxes-" . $box->object_id]);
+            $update_query = db_update('spaces_overrides')
+              ->fields(array('type' => 'og', 'id' => $box->id, 'object_type' => 'context', 'object_id' => $context->object_id, 'value' => serialize($boxes)))
+              ->condition('id', $box->id, "=")
+              ->condition('object_id', $context->object_id, "=")
+              ->condition('object_type', 'context', "=")
+              ->execute();
+          }
+        }
+
+        // remove boxes spaces_overrides row for widget
+        $delete_query = db_delete('spaces_overrides')
+          ->condition('id', $box->id, "=")
+          ->condition('object_id', $box->object_id, "=")
+          ->condition('object_type', "boxes", "=")
+          ->execute();
+        $count++;
+      }
+    }
+    module_disable(array('fb_social'), FALSE);
+    drupal_uninstall_modules(array('fb_social'), FALSE);
+    $status = "$count instances of FB widgets have been removed. ";
+    return $status;
+  }
+}
+
+/**
+ * Enabling OS Restful, and the new Media Browser.
+ *
+ * Revert modules that use the new feature.
+ */
+function os_update_7041() {
+  module_enable(array('os_app_base', 'os_restful', 'media_browser'));
+
+  $revert = array(
+    'field_instance'
+  );
+  $modules = array(
+    'os_blog' => $revert,
+    'os_booklets' => $revert,
+    'os_classes'  => $revert,
+    'os_events' => $revert,
+    'os_faq' => $revert,
+    'os_links' => $revert,
+    'os_news' => $revert,
+    'os_pages' => $revert,
+    'os_presentations' => $revert,
+    'os_profiles' => $revert,
+    'os_publications' => $revert,
+    'os_software' => $revert,
+  );
+  features_revert($modules);
+
+  return t('Upgraded the Media Browser across the whole site.');
+}
+
+/**
+ * Setting the default jquery version
+ */
+function os_update_7042() {
+  variable_set('jquery_update_jquery_version', '1.8');
+
+  return t('Updated JQuery to 1.8.');
+}
+
+/**
+ * Install OS Reports module.
+ */
+function os_update_7043() {
+  module_enable(array('os_reports'));
+  return t('Enabled OS Reports module.');
+}
+
+/**
+ * Override redirect_passthrough_querystring var
+ */
+function os_update_7044() {
+  features_revert(array('os' => array('variable')));
+}
+
+/**
+ * Clear entity cache.
+ */
+function os_update_7045() {
+  // Empty update to clear entity cache.
+  return t('entity cache cleared.');
+}
+
+/**
+ * Enable enhanced settings forms
+ */
+function os_update_7046() {
+  module_enable(array('ap_settings_form', 'restful_message'));
+  return t('Enhanced settings forms enabled.');
+}
+
+/**
+ * Update has_children field of parent menus having 0 children
+ */
+function os_update_7047() {
+
+  $childless_parent_menus = db_query('SELECT mlid FROM menu_links m ' .
+      'WHERE (has_children > 0) AND ' .
+      '(NOT EXISTS (SELECT * FROM menu_links m2 WHERE m.mlid = m2.plid))');
+
+  $mlids = array_keys($childless_parent_menus->fetchAllKeyed());
+
+  $db_update_result = db_update('menu_links')
+    ->fields(array('has_children' => 0))
+    ->condition('mlid', $mlids, 'IN')
+    ->execute();
+
+  $message = t('@count parent menus with no children links have been updated.', array('@count' => sizeof($mlids)));
+  drupal_set_message($message);
+}
+
+/**
+ * Revert feature variables
+ */
+function os_update_7048() {
+  // Update the secure_pages settings.
+  $features = array(
+    'os' => array('variable'),
+  );
+
+  features_revert($features);
+}
+
+/**
+ * Disable the deprecated os_tours module.
+ */
+function os_update_7050() {
+  module_disable(array('os_tour'));
+}
+
+/**
+ * Install OS Revisions module
+ */
+function os_update_7051() {
+  module_enable(array('os_revisions', 'node_revision_restrict'));
+  module_disable(array('diff'));
+
+  // One time os_revisions init tasks.
+  module_load_include('install', 'os_revisions');
+
+  $features = array(
+    'os_blog' => array('variable'),
+    'os_booklets' => array('variable'),
+    'os_faq' => array('variable'),
+    'os_links' => array('variable'),
+    'os_news' => array('variable'),
+    'os_pages' => array('variable'),
+    'os_profiles' => array('variable'),
+    'os_publications' => array('variable'),
+    'os' => array('user_permission'),
+  );
+  features_revert($features);
+  variable_set('date_format_medium', 'm/d/Y - h:i a');
+
+  return t('Enabled OS content revisions module.');
+}
+
+/**
+ * Remove drush errors and warnings for
+ * "The following module is missing from the file system"
+ */
+function os_update_7052() {
+  remove_missing_modules_entry_from_DB();
+}
+
+/**
+ * Copy og:image metatag configs to twitter:image
+ */
+function os_update_7053() {
+  features_revert(array('os' => array('metatag')));
+}
+
+/**
+ * Set twitter:description to [node:field_site_description]
+ */
+function os_update_7054() {
+  features_revert(array('os' => array('metatag')));
+}
+
+/**
+ * Set twitter:description to [node:title], which is more likely to be set
+ */
+function os_update_7055() {
+  features_revert(array('os' => array('metatag')));
+}
+
+/**
+ * Revoke insert link into wysiwyg permission for default roles
+ */
+function os_update_7056() {
+  // Get all group types.
+  $node_info = module_invoke_all('vsite_og_node_type_info');
+  $group_bundles = array_keys($node_info, 'group');
+
+  // Iterate over all existing group permissions, and change them according to
+  // the default ones.
+  foreach ($group_bundles as $bundle) {
+    $og_roles = og_roles('node', $bundle);
+
+    foreach ($og_roles as $rid => $name) {
+      // Revoke permission
+      og_role_revoke_permissions($rid, array('insert link into wysiwyg'));
+    }
+  }
+}
+
+/**
+ * Adding day to the os_date_abbreviated format
+ */
+function os_update_7057() {
+  variable_set('date_format_os_date_abbreviated', 'D M j, g:ia');
+}
+
+/**
+ * Setting metatag_token_sanitize as true to filter out media tags
+ */
+function os_update_7058() {
+  $revert = array('os' => array('variable'));
+  features_revert($revert);
+}
+
+/**
+ * Enable the honeypot module to protect against spam
+ */
+function os_update_7060() {
+  //Enable honeypot module and set variable to enable honeypot for password reset form
+  module_enable(array('honeypot'));
+  variable_set('honeypot_form_user_pass', 1);
+
+  //Disable mollom as it is no longer used
+  module_disable(array('mollom'));
+}
+
+/**
+ * Configure Honeypot.
+ */
+function os_update_7061() {
+  variable_set('honeypot_time_limit', 2);
+
+  db_delete('honeypot_user')
+    ->condition('uid', 0)
+    ->execute();
+}
+
+/**
+ * Enable the os_site_creation module for new site creation forms.
+ */
+function os_update_7062() {
+  module_enable(array('os_site_creation'));
+}
+
+/**
+ * Revert the os_importer feature module to set elysia cron settings.
+ */
+function os_update_7063() {
+  $revert = array('os_importer' => array('elysia_cron'));
+  features_revert($revert);
+}
+
+/**
+ * Update page feeds importer with pathauto clean.
+ */
+function os_update_7064() {
+  $revert = array('os_pages' => array('feeds_tamper'));
+  features_revert($revert);
+}
+
+/**
+ * Update hook to add "is decorative" field to a file image.
+ */
+function os_update_7065() {
+  $field_name = 'field_file_is_decorative';
+  // Make sure the field doesn't already exist.
+  if (!field_info_field($field_name)) {
+    // Create the field.
+    $field = array(
+      'field_name' => $field_name,
+      'active' => 1,
+      'cardinality' => 1,
+      'deleted' => 0,
+      'entity_types' => array(),
+      'indexes' => array(
+        'value' => array(
+          0 => 'value',
+        ),
+      ),
+      'locked' => 0,
+      'module' => 'list',
+      'settings' => array(
+        'allowed_values' => array(
+          0 => '',
+          1 => '',
+        ),
+        'allowed_values_function' => '',
+      ),
+      'translatable' => 0,
+      'type' => 'list_boolean',
+    );
+    field_create_field($field);
+
+    // Create the instance.
+    $instance = array(
+      'field_name' => $field_name,
+      'bundle' => 'image',
+      'default_value' => array(
+        0 => array(
+          'value' => 0,
+        ),
+      ),
+      'deleted' => 0,
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 5,
+        ),
+        'full' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 5,
+        ),
+        'media_gallery_block_thumbnail' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'media_gallery_detail' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'media_gallery_lightbox' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'media_gallery_thumbnail' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_large' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_link' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_link_icon' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_med' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_small' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_thumbnail' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_title' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_xlarge' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'os_files_xxlarge' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'preview' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+        'teaser' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+      ),
+      'entity_type' => 'file',
+      'label' => 'Is decorative',
+      'required' => 0,
+      'settings' => array(
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'options',
+        'settings' => array(
+          'display_label' => 0,
+        ),
+        'type' => 'options_onoff',
+        'weight' => 32,
+      ),
+    );
+    field_create_instance($instance);
+
+    watchdog('os', t('!field_name was added successfully.', array('!field_name' => $field_name)));
+  }
+  else {
+    watchdog('os', t('!field_name already exists.', array('!field_name' => $field_name)));
+  }
+}

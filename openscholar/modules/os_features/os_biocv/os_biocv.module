@@ -1,0 +1,607 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code left for the OS Bio/CV feature so that it can be uninstalled, if necessary.
+ */
+
+/**
+ * Get bio and cv data, add to data array and return
+ */
+function _get_vsite_biocv_data() {
+  $query = db_select('og_membership', 'ogm')
+    ->condition('ogm.entity_type', 'node', '=');
+  $query->innerJoin('node', 'n', "ogm.etid = n.nid AND (n.type = 'cv' OR n.type = 'bio') AND n.status = 1");
+  $query->leftJoin('field_data_body', 'body', 'n.nid = body.entity_id AND body.deleted <> 1 AND n.vid = body.revision_id');
+  $query->leftJoin('field_data_field_biocv_pdf_upload', 'pdf', 'n.nid = pdf.entity_id');
+  $query->leftJoin('spaces_overrides', 'so', "so.id = ogm.gid AND so.object_type='variable' AND so.object_id = 'os_biocv_use_pdf_as_cv'");
+  $query = $query->fields('ogm', array('gid'))
+                 ->fields('n', array('nid','title', 'uid', 'type'))
+                 ->fields('body', array('body_value'))
+                 ->fields('pdf', array('field_biocv_pdf_upload_fid'))
+                 ->fields('so', array('value'));
+  $query->addExpression('MIN(n.created)');
+  $query->groupBy('ogm.gid');
+  $query->groupBy('n.type');
+  $results = $query->execute();
+
+  $vsites = array();
+  while ($row = $results->fetchObject()) {
+    if($row->gid) {
+      if (!isset($vsites[$row->gid . ".0"])) {
+        $values = array();
+      }
+      else {
+        $values = $vsites[$row->gid . ".0"];
+      }
+      if($row->type == "bio") {
+        $values['uid'] = $row->uid;
+        $values['bio_nid'] = $row->nid;
+        _os_biocv_set_not_empty($values, 'bio_title', $row->title);
+        _os_biocv_set_not_empty($values, 'bio_body', $row->body_value);
+
+        // figure out if vsite was set up to display Bio & CV as tabs
+        switch($row->value) {
+          case 'b:1;':
+            $setting = 0;
+            break;
+          case 'i:1;':
+            $setting = 0;
+            break;
+          case 's:1:"1";':
+            $setting = 0;
+            break;
+          case 'i:0;':
+            $setting = 1;
+            break;
+          case 's:1:"0";':
+            $setting = 1;
+            break;
+          case 's:4:"b:0;";':
+            $setting = 1;
+            break;
+          default:
+            $setting = 1;
+        }
+        $values['tabs'] = $setting;
+        $vsites[$row->gid . ".0"] = $values;
+      }
+      else {
+        $values['cv_nid'] = $row->nid;
+        _os_biocv_set_not_empty($values, 'cv_title', $row->title);
+        _os_biocv_set_not_empty($values, 'cv_body', $row->body_value);
+        _os_biocv_set_not_empty($values, 'cv_fid', $row->field_biocv_pdf_upload_fid);
+
+        if (!isset($values['uid'])) {
+          $values['uid'] = $row->uid;
+        }
+        $vsites[$row->gid . ".0"] = $values;
+      }
+    }
+  }
+  return $vsites;
+}
+
+/**
+ * converts all used bio & cv content nodes to pages;
+ * converts bio widget instances into Featured Posts widget with "Hide Titles" checked
+ */
+function _replace_biocvs_with_pages($vsite_data) {
+  global $conf;
+  $conf['expire_status'] = 0;
+  $output = "";
+  foreach ($vsite_data as $gid => $vsite_values) {
+    $gid = (int)$gid;
+    $vsite_obj = vsite_get_vsite($gid);
+
+    if (!$vsite_values['uid']) {
+      $vsite_values['uid'] = 1;
+    }
+
+    // prepare body content for bio page
+    $bio_body = isset($vsite_values['bio_body']) ? $vsite_values['bio_body'] : "";
+
+    // if user has cv content, add link to either cv page or cv file
+    $cv_link = "";
+    $cv_file_obj = FALSE;
+    if (isset($vsite_values['cv_body']) || isset($vsite_values['cv_fid'])) {
+      if (isset($vsite_values['tabs']) && $vsite_values['tabs'] && isset($vsite_values['cv_body'])) {
+        $cv_link = '<span class="os-cvlinkwrap"><a href="/' . $vsite_obj->group->purl . '/biocv/cv" class="os-cvlink">Curriculum Vitae</a></span><br /><br />';
+      }
+      elseif (isset($vsite_values['cv_fid'])) {
+        // add link to CV file and attach file to vsite so that when CV node is deleted, the file won't be
+        $cv_file_obj = file_load($vsite_values['cv_fid']);
+
+        if ($cv_file_obj === FALSE) {
+          $output .= "Unable to load cv file object for vsite [" . $gid . "]. ";
+          continue;
+        }
+        else {
+          $cv_link = '<span class="os-cvlinkwrap"><a href="' . file_create_url($cv_file_obj->uri) . '" class="os-cvlink" data-fid="' . $vsite_values['cv_fid'] . '">Curriculum Vitae</a></span><br /><br />';
+        }
+      }
+    }
+
+    // create bio page node
+    $bio_body = $cv_link . $bio_body;
+    $vsite_values['bio_title'] = isset($vsite_values['bio_title']) ? $vsite_values['bio_title'] : "Bio";
+    $bio_node = os_create_node($vsite_values['bio_title'], 'page', $vsite_values['uid']);
+
+    if (!$bio_node) {
+      $output .= "Unable to create bio page for vsite " . $gid . ". ";
+      continue;
+    }
+
+    if ($cv_file_obj && (!isset($vsite_values['tabs']) || !$vsite_values['tabs'] || !isset($vsite_values['cv_body']))) {
+      file_usage_add($cv_file_obj, "os_files", "node", $bio_node->nid);
+    }
+
+    // get all files (if any) attached to old bio node, besides CV file
+    if (isset($vsite_values['bio_nid'])) {
+      $old_bio_node = node_load($vsite_values['bio_nid']);
+      $fileObj = NULL;
+      if(is_array($old_bio_node->field_upload) && count($old_bio_node->field_upload)) {
+        foreach ($old_bio_node->field_upload[LANGUAGE_NONE] as $bio_file) {
+          $fileObj = NULL;
+          if (!isset($vsite_values['cv_fid']) || $bio_file['fid'] != $vsite_values['cv_fid']) {
+            $fileObj = file_load($bio_file['fid']);
+            if ($fileObj) {
+              file_usage_add($fileObj, "os_files", "node", $bio_node->nid);
+            }
+          }
+        }
+      }
+    }
+
+    // Add the new page to the vsite
+    vsite_add_node($bio_node, $gid, FALSE);
+
+    $bio_node_wrapper = entity_metadata_wrapper('node', $bio_node);
+    $bio_node_wrapper->body->set(array('value' => $bio_body, 'format' => 'filtered_html'));
+    node_save($bio_node);
+
+    // Get primary menu info for bio cv link
+    $bio_menu = array();
+    foreach (_vsite_menu_get_menu_links('primary-menu',  $vsite_obj) as $mlid => $menu_item) {
+      if (isset($menu_item['link_path']) && $menu_item['link_path'] == "biocv") {
+        $bio_menu = $menu_item;
+        break;
+      }
+    }
+
+    // give the new page the right url alias
+    $path = array(
+      "source" => "node/" . $bio_node->nid,
+      "alias" => $vsite_obj->group->purl . "/biocv"
+    );
+    path_save($path);
+
+    // create new menu item for bio page node
+    if (count($bio_menu)) {
+      $new_bio_menu = array(
+        "menu_name" => $bio_menu['menu_name'],
+        "router_path" => "node/%",
+        "options" => $bio_menu['options'],
+        "weight" => $bio_menu['weight'],
+        "module" => $bio_menu['module'],
+        "hidden" => $bio_menu['hidden'],
+        "external" => $bio_menu['external'],
+        "plid" => $bio_menu['plid'],
+      );
+      $mlid = vsite_menu_create_menu_link($bio_menu['link_title'], 'node/' . $bio_node->nid, $gid, $bio_menu['plid'], $new_bio_menu);
+    }
+
+    // create cv page (if necessary)
+    $cv_node = NULL;
+    if (isset($vsite_values['tabs']) && $vsite_values['tabs'] && isset($vsite_values['cv_nid']) && isset($vsite_values['cv_body'])) {
+      $cv_body = "";
+      if(isset($vsite_values['cv_body'])) {
+        $cv_body = $vsite_values['cv_body'];
+      }
+
+      $old_cv_node = NULL;
+      if(isset($vsite_values['cv_fid'])) {
+        if (!$cv_file_obj) {
+          $cv_file_obj = file_load($vsite_values['cv_fid']);
+        }
+        $old_cv_node = node_load($vsite_values['cv_nid']);
+        $cv_display = array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'file_default',
+        );
+        $cv_body .= render(field_view_field('node', $old_cv_node, 'field_biocv_pdf_upload', $cv_display, LANGUAGE_NONE));
+      }
+
+      $vsite_values['cv_title'] = isset($vsite_values['cv_title']) ? $vsite_values['cv_title'] : "CV";
+      $cv_node = os_create_node($vsite_values['cv_title'], 'page', $vsite_values['uid']);
+      if (!$cv_node) {
+         $output .= "Unable to create cv page for vsite " . $gid . ". ";
+         continue;
+      }
+
+      if ($cv_file_obj) {
+        file_usage_add($cv_file_obj, "os_files", "node", $cv_node->nid);
+      }
+
+      // get all files (if any) attached to old CV node, besides CV file
+      if (isset($vsite_values['cv_nid'])) {
+        if(!$old_cv_node) {
+          $old_cv_node = node_load($vsite_values['cv_nid']);
+        }
+        $fileObj = NULL;
+        if(isset($old_cv_node->field_upload) && is_array($old_cv_node->field_upload) && count($old_cv_node->field_upload)) {
+          foreach ($old_cv_node->field_upload[LANGUAGE_NONE] as $cv_file) {
+            $fileObj = NULL;
+            if (!isset($vsite_values['cv_fid']) || $cv_file['fid'] != $vsite_values['cv_fid']) {
+              $fileObj = file_load($cv_file['fid']);
+              if ($fileObj) {
+                file_usage_add($fileObj, "os_files", "node", $cv_node->nid);
+              }
+            }
+          }
+        }
+      }
+      // Add the new page to the vsite
+      vsite_add_node($cv_node, $gid, FALSE);
+
+      $cv_node_wrapper = entity_metadata_wrapper('node', $cv_node);
+      $cv_node_wrapper->body->set(array('value' => $cv_body, 'format' => 'filtered_html'));
+      node_save($cv_node);
+
+      // give the new page the right url alias
+      $path = array(
+        "source" => "node/" . $cv_node->nid,
+        "alias" => $vsite_obj->group->purl . "/biocv/cv"
+      );
+      path_save($path);
+    }
+
+    // if either a new bio page or a new cv page has been created, make sure os_pages app is enabled
+    if ($bio_node || $cv_node) {
+      // get all bio and cv nodes associated with vsite and then delete them
+      $query = db_select('spaces_overrides', 'so');
+      $query->condition("so.type", 'og');
+      $query->condition("id", $gid, "=");
+      $query->condition("so.object_id", array('spaces_features'), '=');
+      $query = $query->fields('so', array('object_type', 'object_id', 'value'));
+      $results = $query->execute();
+
+      // if there are existing app settings, make sure os_pages is enabled
+      if ($results->rowCount()) {
+        while ($settings = $results->fetchObject()) {
+          $apps = unserialize($settings->value);
+          $update = NULL;
+          if (isset($apps['os_biocv'])) {
+            unset($apps['os_biocv']);
+            $update = 1;
+          }
+          if(!isset($apps['os_pages']) || $apps['os_pages'] == 0) {
+            $apps['os_pages'] = 1;
+            $update = 1;
+          }
+          if ($update) {
+            db_update('spaces_overrides')
+              ->fields(array('type' => 'og', 'id' => $gid, 'object_type' => 'variable', 'object_id' => 'spaces_features', 'value' => serialize($apps)))
+              ->condition('id', $gid, "=")
+              ->condition('object_id', 'spaces_features', "=")
+              ->condition('object_type', $settings->object_type, "=")
+              ->execute();
+          }
+        }
+      }
+    }
+
+    // get all bio and cv nodes associated with vsite and then delete them
+    $query = db_select('node', 'n');
+    $or = db_or();
+    $or->condition("n.type",'bio', '=');
+    $or->condition("n.type",'cv', '=');
+    $query->condition($or);
+    $query->innerJoin('og_membership', 'ogm', "n.nid = ogm.etid AND gid = $gid AND entity_type = 'node'");
+    $query = $query->fields('n', array('nid'));
+    $all_bio_nids = $query->execute()->fetchAllKeyed($key_index = 0, $value_index = 0);
+    node_delete_multiple(array_keys($all_bio_nids));
+
+    // find out if this vsite has a customized instance of the bio widget
+    $query = db_select('spaces_overrides', 'so');
+    $query->condition("so.type", 'og');
+    $query->condition("id", $gid, "=");
+    $query->condition("so.object_type", array('boxes','context'), 'in');
+    $or = db_or();
+    $or->condition("so.value",'%bio_teaser%', 'like');
+    $or->condition("so.value",'%os_boxes_bio%', 'like');
+    $query->condition($or);
+    $query = $query->fields('so', array('object_type', 'object_id', 'value'))
+                  ->orderBy('so.object_type', 'ASC');
+    $results = $query->execute();
+
+    // set flag to track whether or not new bio widget has been created
+    $bio_widget_created_flag = 0;
+    // the user has changed the default display for the bio widget
+    if ($results->rowCount()) {
+      $existing_bio_widget = NULL;
+      while ($row = $results->fetchObject()) {
+        // if user has a bio_teaser entry, save settings for when/if the new bio widget is created
+        if($row->object_id == "bio_teaser" && $results->rowCount() > 1) {
+          $existing_bio_widget = unserialize($row->value);
+        }
+        // if user has only a bio_teaser entry, then there will be layout data in the db, so set up default
+        elseif($row->object_id == "bio_teaser") {
+          $existing_bio_widget = unserialize($row->value);
+          $vsite_values['options'] = $existing_bio_widget->options;
+          if (!$bio_widget_created_flag) {
+            $featured_delta = _os_biocv_create_bio_featured_posts_widget($gid, $vsite_values, $bio_node->nid, "converted-bio");
+            $bio_widget_created_flag = 1;
+          }
+        }
+        else {
+          $row_values = unserialize($row->value);
+          foreach ($row_values as $value => $instances) {
+            if (is_array($instances)) {
+              foreach ($instances as $type => $data) {
+                if (is_array($data) && ((isset($data['plugin']) && $data['plugin'] == "os_boxes_bio") || (isset($data['delta']) && $data['delta'] == "bio_teaser"))) {
+                  $transaction = db_transaction();
+                  try {
+                    // replace implemented bio widget with new featured posts widget
+                    if($data['region']) {
+                      if($existing_bio_widget) {
+                        $vsite_values['options'] = $existing_bio_widget->options;
+                      }
+                      if (!$bio_widget_created_flag) {
+                         $featured_delta = _os_biocv_create_bio_featured_posts_widget($gid, $vsite_values, $bio_node->nid, "converted-bio");
+                        $bio_widget_created_flag = 1;
+                      }
+
+                      $box_position = array(
+                        "region" => $data['region'],
+                        "weight" => $data['weight'],
+                        "module" => $data['module'],
+                        "delta" => $featured_delta,
+                        "status" => 0,
+                        "title" => NULL,
+                      );
+
+                      $instances["boxes-" . $featured_delta] = $box_position;
+                    }
+                    // remove entry in serialized array for bio widget and update database entry
+                    unset($instances[$type]);
+                    db_update('spaces_overrides')
+                      ->fields(array('type' => 'og', 'id' => $gid, 'object_type' => $row->object_type, 'object_id' => $row->object_id, 'value' => serialize(array($value => $instances))))
+                      ->condition('id', $gid, "=")
+                      ->condition('object_id', $row->object_id, "=")
+                      ->condition('object_type', $row->object_type, "=")
+                      ->execute();
+
+                    // delete instance of bio widget
+                    db_delete('spaces_overrides')
+                      ->condition('id', $gid, "=")
+                      ->condition('object_id', "bio_teaser", "=")
+                      ->condition('object_type', "boxes", "=")
+                      ->execute();
+                  }
+                  catch (Exception $e) {
+                    $transaction->rollback();
+                    $output .= "DB transaction error trying to replace bio widget with featured posts widget: " . $e->getMessage() . "\n";
+                    throw $e;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // the user hasn't changed the default display,
+    // but we still need to add in the featured posts bio widget
+    else {
+      if (!$bio_widget_created_flag) {
+        $featured_delta = _os_biocv_create_bio_featured_posts_widget($gid, $vsite_values, $bio_node->nid, "converted-bio");
+        $bio_widget_created_flag = 1;
+      }
+    }
+    // find out if this vsite has List of Posts or Featured Posts widgetd that reference the old bio or cv node
+    $conditions = 0;
+
+    $query = db_select('spaces_overrides', 'so');
+    $or = db_or();
+    if (isset($vsite_values['bio_nid']) && isset($vsite_values['bio_body'])) {
+      $conditions = 1;
+      $or->condition("so.value",'%"content_type";s:3:"bio"%', 'like');
+      $or->condition("so.value", _os_biocv_serial_snippet("nid", $vsite_values['bio_nid']), 'like');
+    }
+    if (isset($vsite_values['cv_nid']) && isset($vsite_values['cv_body'])) {
+      $conditions = 1;
+      $or->condition("so.value",'%"content_type";s:2:"cv"%', 'like');
+      $or->condition("so.value", _os_biocv_serial_snippet("nid", $vsite_values['cv_nid']), 'like');
+    }
+
+    if ($conditions) {
+      $query->condition("type", 'og');
+      $query->condition("id", $gid, "=");
+      $query->condition("object_type", "boxes", "=");
+      $query->condition($or);
+      $query = $query->fields('so', array('object_type', 'object_id', 'value'));
+      $results = $query->execute();
+
+      if ($results->rowCount()) {
+        while ($box = $results->fetchObject()) {
+          $box_data = unserialize($box->value);
+          // box is a featured posts widget, so the node id(s) need to be replaced
+          if ($box_data->plugin_key == "os_boxes_manual_list") {
+            foreach ($box_data->options['nodes'] as $index => $featured_node) {
+              if ($featured_node['nid'] == $vsite_values['bio_nid']) {
+                if (isset($bio_node)) {
+                  $box_data->options['nodes'][$index]['nid'] = $bio_node->nid;
+                }
+                else {
+                  unset($box_data->options['nodes'][$index]);
+                }
+              }
+              elseif ($featured_node['nid'] == $vsite_values['cv_nid']) {
+                if (isset($cv_node)) {
+                  $box_data->options['nodes'][$index]['nid'] = $cv_node->nid;
+                }
+                else {
+                  unset($box_data->options['nodes'][$index]);
+                }
+              }
+            }
+            $update_query = db_update('spaces_overrides')
+              ->fields(array('type' => 'og', 'id' => $gid, 'object_type' => $box->object_type, 'object_id' => $box->object_id, 'value' => serialize($box_data)))
+              ->condition('id', $gid, "=")
+              ->condition('object_id', $box->object_id, "=")
+              ->condition('object_type', $box->object_type, "=")
+              ->execute();
+          }
+          // otherwise, it's a list of posts widget, so we need to convert it to a featured posts widget
+          else {
+            // create new featured posts widget based on LOP options
+            $vsite_values['options']['additional_classes'] = isset($box_data->options['additional_classes']) ? $box_data->options['additional_classes'] : "";
+            $vsite_values['options']['make_embeddable'] = isset($box_data->options['make_embeddable']) ? $box_data->options['make_embeddable'] : "";
+            $vsite_values['options']['style'] = isset($box_data->options['display']) ? $box_data->options['display'] : "";
+            if ($box_data->options['content_type'] == "bio" && $bio_node) {
+              $featured_delta = _os_biocv_create_bio_featured_posts_widget($gid, $vsite_values, $bio_node->nid, "converted-bio", 1);
+            }
+            elseif ($box_data->options['content_type'] == "cv" && $cv_node) {
+              $featured_delta = _os_biocv_create_bio_featured_posts_widget($gid, $vsite_values, $cv_node->nid, "converted-bio", 1);
+            }
+
+            // check for where LOP widget was being used and replace with new Featured Posts widget
+            if($featured_delta) {
+              $query = db_select('spaces_overrides', 'so')->fields('so', array('object_type', 'object_id', 'value'));
+              $query->condition("type", 'og');
+              $query->condition("id", $gid, "=");
+              $query->condition("object_type", "context", "=");
+              $query->condition("value", "%" . $box->object_id . "%", "like");
+              $contexts = $query->execute();
+
+              while ($context = $contexts->fetchObject()) {
+                $context_data = unserialize($context->value);
+                foreach ($context_data['blocks'] as $block_id => $block_data) {
+                  if($block_id == "boxes-" . $box->object_id) {
+                    if (isset($context_data['blocks']['boxes-' . $box->object_id]['plugin'])) {
+                      unset($context_data['blocks']['boxes-' . $box->object_id]['plugin']);
+                    }
+                    $context_data['blocks']["boxes-" . $featured_delta] = $context_data['blocks']['boxes-' . $box->object_id];
+                    $context_data['blocks']["boxes-" . $featured_delta]['delta'] = $featured_delta;
+                    unset($context_data['blocks']['boxes-' . $box->object_id]);
+                    break;
+                  }
+                }
+                // update context data in db
+                $update_query = db_update('spaces_overrides')
+                  ->fields(array('type' => 'og', 'id' => $gid, 'object_type' => $context->object_type, 'object_id' => $context->object_id, 'value' => serialize($context_data)))
+                  ->condition('id', $gid, "=")
+                  ->condition('object_id', $context->object_id, "=")
+                  ->condition('object_type', $context->object_type, "=")
+                  ->execute();
+              }
+            }
+            // delete instance of old widget
+            $delete_query = db_delete('spaces_overrides')
+              ->condition('id', $gid, "=")
+              ->condition('object_id', $box->object_id, "=")
+              ->condition('object_type', "boxes", "=")
+              ->execute();
+          }
+        }
+      }
+    }
+  }
+  return $output;
+}
+
+/**
+ * helper function to make the distinction between a field
+ * with only whitespace, HTML tags and/or HTML entities in it
+ * and actual content and only set an indexed array value
+ * if there is actual content
+ */
+function _os_biocv_set_not_empty(&$array, $key, $value) {
+  $pattern = '/\s/';
+  if (preg_replace($pattern, "", html_entity_decode(strip_tags($value))) != "") {
+    // remove file metadata to avoid problems when creating new nodes with existing content
+    $value = preg_replace('/\<[^>]*data-file_info=".*?"[^>]*>[^<]*\<\/[^>]*>/', '\1', $value);
+    $array[$key] = $value;
+  }
+}
+
+/**
+ * helper function to create the featured posts object the replaces the bio widget
+ */
+function _os_biocv_create_bio_featured_posts_widget($vsite_id, $vsite_values, $bio_nid, $class = "", $context = NULL) {
+  $featured_delta = "og-" . $vsite_id . "-" . substr(md5(time()), -8);
+  $featured_box = new stdClass();
+  $featured_box->changed = NULL;
+  $featured_box->delta = $featured_delta;
+  $featured_box->title = NULL;
+  $featured_box->description = "Bio";
+  $featured_box->options = array(
+    "make_embeddable" => 0,
+    "nodes" => array(array("nid" => $bio_nid, "title" => $vsite_values['bio_title'])),
+    "random" => 0,
+    "additional_classes" => $class,
+    "hide_title" => ((isset($vsite_values['options']['show_title']) && $vsite_values['options']['show_title']) ? NULL : 1),
+  );
+
+  $featured_box->embed_as = array("iframe", "oembed");
+  $featured_box->plugin_key = "os_boxes_manual_list";
+
+  if (isset($vsite_values['options']) && isset($vsite_values['options']['teaser']) && ($vsite_values['options']['teaser'] != "full")) {
+    $featured_box->options['style'] = "teasers";
+  }
+  elseif (isset($vsite_values['options']) && isset($vsite_values['options']['style'])) {
+    $featured_box->options['style'] = $vsite_values['options']['style'];
+  }
+  else {
+    $featured_box->options['style'] = "full";
+  }
+
+  try {
+    db_insert('spaces_overrides')
+      ->fields(array('type' => 'og', 'id' => $vsite_id, 'object_type' => 'boxes', 'object_id' => $featured_delta, 'value' => serialize($featured_box)))
+      ->execute();
+
+    if (!$context) {
+      // if a context doesn't exist for this widget, create one
+      $query = db_select('spaces_overrides', 'so')->fields('so');
+      $query->condition("so.type", 'og');
+      $query->condition('so.id', $vsite_id, '=');
+      $query->condition('so.object_type','context', '=');
+      $query->condition('so.object_id', "os_front:reaction:block", '=');
+      $results = $query->execute();
+
+      if (!$results->rowCount()) {
+        $box_position = array(
+          "region" => "content_top",
+          "weight" => "-10",
+          "module" => "boxes",
+          "delta" => $featured_delta,
+          "status" => 0,
+          "title" => NULL,
+        );
+
+        db_insert('spaces_overrides')
+          ->fields(array('type' => 'og', 'id' => $vsite_id, 'object_type' => 'context', 'object_id' => "os_front:reaction:block", 'value' => serialize(array('blocks' => array("boxes-" . $featured_delta => $box_position)))))
+          ->execute();
+      }
+    }
+    return $featured_delta;
+  }
+  catch (Exception $e) {
+    throw new Exception("DB error trying to create featured posts widget for vsite $vsite_id: " . $e->getMessage());
+    return FALSE;
+  }
+}
+
+/**
+ * helper function return the serial data snippet to search for
+ */
+function _os_biocv_serial_snippet($key, $value) {
+  if ($key && $value) {
+    return "%s:" . strlen($key) . ":\"$key\";s:" . strlen($value) . ":\"$value\";%";
+  }
+}
+

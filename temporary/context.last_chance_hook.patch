@@ -1,0 +1,24 @@
+diff --git a/context.module b/context.module
+index a3beee2..aca34ca 100644
+--- a/context.module
++++ bcontext.module
+@@ -228,6 +228,19 @@ function context_load($name = NULL, $reset = FALSE) {
+     }
+   }
+   if (isset($name)) {
++    // Allow modules a last-ditch effort to define a context with a given name
++    if (!isset($contexts[$name])) {
++      foreach (module_implements('context_custom') as $module) {
++        $function = $module.'_context_custom';
++        if (function_exists($function)) {
++          $context = $function($name);
++          if (is_object($context)) {
++            $contexts[$name] = $context;
++            break;
++          }
++        }
++      }
++    }
+     // Allow other modules to alter the value just before it's returned.
+     if (isset($contexts[$name]) && !isset($altered[$name])) {
+       $altered[$name] = TRUE;

@@ -1,0 +1,20 @@
+diff --git a/includes/entity.wrapper.inc b/includes/entity.wrapper.inc
+index 06b89ad..2ed1c5c 100644
+--- a/includes/entity.wrapper.inc
++++ b/includes/entity.wrapper.inc
+@@ -80,6 +80,7 @@ abstract class EntityMetadataWrapper {
+    */
+   public function value(array $options = array()) {
+     if (!$this->dataAvailable() && isset($this->info['parent'])) {
++      return [];
+       throw new EntityMetadataWrapperException('Missing data values.');
+     }
+     if (!isset($this->data) && isset($this->info['name'])) {
+@@ -332,6 +333,7 @@ class EntityStructureWrapper extends EntityMetadataWrapper implements IteratorAg
+       return $this->propertyInfo['properties'];
+     }
+     if (!isset($this->propertyInfo['properties'][$name])) {
++      return $this->info['property defaults'] + $this->propertyInfoDefaults;
+       throw new EntityMetadataWrapperException('Unknown data property ' . check_plain($name) . '.');
+     }
+     return $this->propertyInfo['properties'][$name] + $this->info['property defaults'] + $this->propertyInfoDefaults;

@@ -1,0 +1,13 @@
+name = Grouper
+description = Bridge module between OpenScholar and Grouper.
+core = 7.x
+package = Other
+dependencies[] = features
+dependencies[] = os_common
+dependencies[] = pinserver_authenticate
+dependencies[] = vsite_access
+features[features_api][] = api:2
+features[field_base][] = field_grouper_path
+features[field_instance][] = user-user-field_grouper_path
+features[user_permission][] = bypass grouper restriction
+mtime = 1503330374

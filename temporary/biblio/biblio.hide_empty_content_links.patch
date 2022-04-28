@@ -1,0 +1,47 @@
+diff --git a/modules/contrib/biblio/includes/biblio.pages.inc b/modules/contrib/biblio/includes/biblio.pages.inc
+index 8b572f5..2ba1759 100644
+--- a/modules/contrib/biblio/includes/biblio.pages.inc
++++ b/modules/contrib/biblio/includes/biblio.pages.inc
+@@ -112,23 +112,28 @@ function biblio_page_header($filter = array()) {
+       'search_form' => drupal_get_form('biblio_search_form'),
+     );
+   }
+-  $header += array(
+-    'export_links' => array(
+-      '#prefix' => '<div class="biblio-export">',
+-      '#node'    => NULL,
+-      '#filter' => $filter,
+-      '#theme'  => 'biblio_export_links',
+-      '#suffix' => '</div>',
+-    ),
+-  );
+ 
+-  if ( !biblio_access('export')) {
+-    global $pager_total_items;
+-    $header['export_links']['#markup'] = t('Found @count results', array('@count' => $pager_total_items[0]));
+-    unset($header['export_links']['#theme']);
++
++  global $pager_total_items;
++  if ($pager_total_items[0]) {
++    $header += array(
++      'export_links' => array(
++        '#prefix' => '<div class="biblio-export">',
++        '#node'    => NULL,
++        '#filter' => $filter,
++        '#theme'  => 'biblio_export_links',
++        '#suffix' => '</div>',
++      ),
++    );
++
++    if ( !biblio_access('export')) {
++      $header['export_links']['#markup'] = t('Found @count results', array('@count' => $pager_total_items[0]));
++      unset($header['export_links']['#theme']);
++    }
+   }
++
+   // Add some links to the top of the page to change the sorting/ordering...
+-  if (user_access('show sort links')) {
++  if (user_access('show sort links') && $pager_total_items[0]) {
+     $header += array(
+       'sort_links' => array(
+         '#markup' => _biblio_sort_tabs(),

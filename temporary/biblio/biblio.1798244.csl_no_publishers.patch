@@ -1,0 +1,13 @@
+diff --git a/modules/CiteProc/CSL.inc b/modules/CiteProc/CSL.inc
+index 4f32815..e46836c 100644
+--- a/modules/CiteProc/CSL.inc
++++ b/modules/CiteProc/CSL.inc
+@@ -1616,7 +1616,7 @@ class csl_mapper {
+           'translator'                  => 'biblio_contributors:3',
+           'recipient'                   => ':',
+           'interviewer'                 => ':',
+-          'publisher'                   => 'biblio_publisher:',
++          'publisher'                   => 'biblio_publisher',
+           'composer'                    => ':',
+       ));
+     }

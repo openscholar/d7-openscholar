@@ -1,0 +1,41 @@
+#cp-layout-layout-select .form-type-radio {
+  display: inline-block;
+  margin-left: 10px;
+  text-align: center;
+}
+
+#cp-layout-layout-select .form-type-radio input {
+  display: none;
+}
+
+#cp-layout-layout-select .form-type-radio label {
+  display: block;
+  background-repeat: no-repeat;
+  height: 60px;
+  width: 60px;
+  background: url('../../../../../themes/adaptivetheme/at_core/layouts/core/three_col_grail/page-layouts-sprite.png');
+  text-indent: -999em;
+  border: 3px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#cp-layout-layout-select .form-type-radio input:checked + label {
+  border: 3px solid #00CC00;
+}
+
+#cp-layout-layout-select .form-type-radio #edit-layout-three-col-grail + label {
+  background-position: 0 0;
+}
+
+#cp-layout-layout-select .form-type-radio #edit-layout-two-sidebars-left + label {
+  background-position: -61px 0;
+}
+
+#cp-layout-layout-select .form-type-radio #edit-layout-two-sidebars-right + label {
+  background-position: -122px 0;
+}
+
+.lt-ie9 #cp-layout-layout-select .form-type-radio input {
+  display: inline-block;
+}

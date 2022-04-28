@@ -1,0 +1,71 @@
+#header {
+    background: #EFEFEF;
+}
+
+#menu-bar {
+    background: #293352;
+}
+
+#footer {
+    background: rgb(230, 230, 230);
+background: -moz-linear-gradient(90deg, rgb(230, 230, 230) 30%, rgb(245, 245, 245) 70%);
+background: -webkit-linear-gradient(90deg, rgb(230, 230, 230) 30%, rgb(245, 245, 245) 70%);
+background: -o-linear-gradient(90deg, rgb(230, 230, 230) 30%, rgb(245, 245, 245) 70%);
+background: -ms-linear-gradient(90deg, rgb(230, 230, 230) 30%, rgb(245, 245, 245) 70%);
+background: linear-gradient(180deg, rgb(230, 230, 230) 30%, rgb(245, 245, 245) 70%);
+border-top:3px solid #DDD;
+}
+
+
+
+#menu-bar ul.nice-menu a {
+    color: #FFFFFF;
+}
+
+#menu-bar ul.nice-menu ul {
+  background: #293352;
+}
+
+#menu-bar ul.nice-menu .menuparent a:before {
+  background-position: 0 -566px; /* White Arrow */
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active {
+   color:#FFF;
+}
+
+#menu-bar ul.nice-menu ul .menuparent.over > a,
+#menu-bar ul.nice-menu ul .menuparent a:hover,
+#menu-bar ul.nice-menu ul .menuparent a.active {
+   color:#FFF;
+}
+
+.sidebar .block, .front #content-column .block, .node-person .block-inner, .comment-wrapper {
+  border-top: none;
+}
+
+.front .region-content-top .block.block-boxes-os_slideshow_box {
+  border-top: 3px solid #D16103;
+}
+
+#columns h2.block-title {
+    background:#EFEFEF;
+    font-size: 14px;
+    text-transform: none;
+    padding: 3px 7px;
+    margin-bottom: 10px;
+ 
+}
+
+
+a.rslides_nav {
+    background-color: #D16103;
+}
+
+
+.search-block-form input.form-submit, .search-block-form #edit-submit,
+#search-block-form input.form-submit, #search-block-form #edit-submit, #search-form #edit-submit {
+    background-position: 2px -373px;
+}
+

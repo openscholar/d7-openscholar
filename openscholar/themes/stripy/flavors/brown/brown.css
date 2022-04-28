@@ -1,0 +1,16 @@
+/* Brown*/
+
+
+#menu-bar {
+  background: rgb(101, 85, 0);
+background: -moz-linear-gradient(270deg, rgb(101, 85, 0) 30%, rgb(128, 111, 63) 70%);
+background: -webkit-linear-gradient(270deg, rgb(101, 85, 0) 30%, rgb(128, 111, 63) 70%);
+background: -o-linear-gradient(270deg, rgb(101, 85, 0) 30%, rgb(128, 111, 63) 70%);
+background: -ms-linear-gradient(270deg, rgb(101, 85, 0) 30%, rgb(128, 111, 63) 70%);
+background: linear-gradient(0deg, rgb(101, 85, 0) 30%, rgb(128, 111, 63) 70%);
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color: #658ab2;
+  }

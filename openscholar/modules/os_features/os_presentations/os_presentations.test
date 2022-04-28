@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * @file
+ * A test case for the OpenScholar Presentations (OS Presentations) feature module.
+ */
+
+/**
+ * Provides a functional test case
+ *
+ * Exercises a particular sequence of actions through the web UI.
+ *
+ * @see DrupalWebTestCase
+ */
+class OpenscholarPresentationsTestCase extends OSProfileTestCase {
+  protected $profile = 'openscholar';
+  protected $user;
+  protected $vsite_node;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'OpenScholar Presentations',
+      'description' => 'Ensure that the os_presentations components provided function properly.',
+      'group' => 'Features',
+    );
+  }
+
+  // Creates admin user, creates vsite node, and enables presentations feature module
+  public function setUp() {
+    parent::setUp('spaces', 'og', 'spaces_og', 'vsite', 'os_presentations');
+    $user = $this->osCreateVsiteAdminUser();
+    $this->drupalLogin($user);
+
+    // Creates an OS Site node and sets as og space
+    /*
+    $vsite_node = array(
+        'title' => 'My Test Site',
+        'type' => 'vsite',
+        'purl' => 'mytestsite',
+    );
+    $this->vsite_node = $this->drupalCreateNode($vsite_node);
+    $vsite = spaces_load('og', $this->vsite_node->nid);
+    spaces_set_space($vsite);
+    $this->drupalGet('node/' . $this->vsite_node->nid);
+    debug($this->url);
+    $this->verbose($this->url);
+    $this->clickLink('Site Building');
+    debug($this->url);
+    $this->verbose($this->url);
+
+    // Enables the OS Presentations feature module
+
+    $cp_path      = $vsite_node['purl'] . '/cp/build';
+    $enable_value = 'Public'; // Public option value
+
+    $edit = array();
+    $edit['spaces_features[os_presentations]'] = $enable_value;
+    $submit_value = t('Save for ') . $vsite_node['title'];
+    $this->drupalPost($cp_path, $edit, $submit_value);
+    $this->assertText(t('The configuration options have been saved for @title.', array('@title' => $vsite_node['title'])));
+    */
+  }
+
+  // Creates a Presentations entry node using the node form
+  public function testOpenscholarPresentationsCreate() {
+    // Creates node to edit.
+    $edit = array();
+    $edit['title'] = $this->randomName(8);
+    $edit["body[und][0][value]"] = $this->randomName(16);
+    $this->drupalPost('/node/add/presentation', $edit, t('Save'));
+    $this->assertText(t('Presentations entry @title has been created.', array('@title' => $edit['title'])));
+  }
+
+  // Creates a Presentation node and loads the node edit form.
+  public function testOpenscholarPresentationsEdit() {
+    $settings = array(
+      'type' => 'presentation',
+      'title' => $this->randomName(32),
+      'body' => array(LANGUAGE_NONE => array(array($this->randomName(64)))),
+    );
+    $node = $this->drupalCreateNode($settings);
+
+    // For debugging, only outputs when testing settings are set as 'verbose'
+    $this->verbose('Presentation entry node created: ' . var_export($node, TRUE));
+    // Runs normal test not on the testbot
+    /* Untested after lastest change.
+    if (!$this->runningOnTestbot()) {
+      debug('We are not running on the PIFR testing server, so will go ahead and catch the failure.');
+      $this->drupalGet("node/{$node->nid}/edit");
+
+      // Asserts we don't get a 401 unauthorized response
+      $this->assertResponse(200, t('User is allowed to edit the content.'));
+
+      // Asserts page contains title text, indicates edit form render success
+      $this->assertText(t("@title", array('@title' => $settings['title'])), "Found title in edit form");
+    }
+    */
+  }
+
+  // Create a Presentation node and views it displayed on page and archive block.
+  public function testOpenscholarViewContent() {
+    $settings = array(
+      'type' => 'presentation',
+      'title' => $this->randomName(32),
+      'body' => array(LANGUAGE_NONE => array(array($this->randomName(64)))),
+    );
+    $node = $this->drupalCreateNode($settings);
+
+    // For debugging, only outputs when testing settings are set as 'verbose'
+    $this->verbose('Presentation node created: ' . var_export($node, TRUE));
+    /* Untested after latest change
+    // Runs normal test not on the testbot
+    if (!$this->runningOnTestbot()) {
+      debug('We are not running on the PIFR testing server, so will go ahead and catch the failure.');
+      $this->drupalGet("node/{$node->nid}/edit");
+
+      // Asserts we don't get a 401 unauthorized response
+      $this->assertResponse(200, t('User is allowed to edit the content.'));
+
+      // Asserts page contains title text, indicates edit form render success
+      $this->assertText(t("@title", array('@title' => $settings['title'])), "Found title in edit form");
+    }
+    */
+  }
+
+  /**
+   *
+   */
+  public function osCreateVsiteAdminUser($permissions = array()) {
+    static $vsite_admin = 'vsite admin';
+    $roles = user_roles();
+    $index = array_search($vsite_admin, $roles);
+    $perms = user_role_permissions(array(array_search($vsite_admin, $roles) => $vsite_admin));
+    $perms = array_keys($perms[array_search($vsite_admin, $roles)]);
+    $admin = $this->drupalCreateUser($perms);
+    $user->roles[$index] = $vsite_admin;
+    return user_save($user);
+  }
+  /**
+   * Detect if we're running on PIFR testbot
+   *
+   * @return boolean
+   *   TRUE if running on testbot.
+   */
+  public function runningOnTestbot() {
+    return (file_exists("../checkout") || file_exists("../site_under_test"));
+  }
+}

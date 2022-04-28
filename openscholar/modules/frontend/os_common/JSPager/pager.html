@@ -1,0 +1,6 @@
+<div class="results" ng-show="collectionLength">
+    <ng-transclude></ng-transclude>
+</div>
+<button ng-disabled="!pager.canPage(-1)" ng-click="pager.changePage(-1)">&laquo;</button>
+{{pager.currentPage()}}/{{pager.numPages()}}
+<button ng-disabled="!pager.canPage(1)" ng-click="pager.changePage(1)">&raquo;</button>

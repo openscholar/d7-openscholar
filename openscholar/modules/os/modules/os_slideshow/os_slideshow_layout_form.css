@@ -1,0 +1,38 @@
+/*
+ * @file os_slideshow_layout_form.css
+ *
+ * Styles the slideshow's layhot form.  Radio buttons are replaced
+ * by their labels, which are images of the option being selected.  A box
+ * shadow highlights the selected box (same shadow as cp/appearance)
+ */
+
+#form-item-layout {
+  clear: both;
+}
+
+#edit-layout>.form-item-layout {
+  display: inline-block;
+}
+
+#edit-layout>.form-item-layout>input {
+	visibility: hidden;
+}
+
+#edit-layout>.form-item-layout>input+label {
+  display: block;
+  margin: 30px;
+  box-shadow: 0 0 7px #111;
+  text-align: center;
+}
+#edit-layout>.form-item-layout>input:checked+label {
+  display: block;
+  box-shadow: 0 0 30px #4a7d06;
+  -moz-box-shadow: 0 0 30px #4a7d06;
+  -webkit-box-shadow: 0 0 30px #4a7d06;
+  text-align: center;
+}
+
+#edit-layout>.form-item-layout>input+label img {
+  display: block;
+
+}

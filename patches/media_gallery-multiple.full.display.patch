@@ -1,0 +1,92 @@
+diff --git a/media_gallery.addimage.js b/media_gallery.addimage.js
+index 2341b6e..babe9db 100644
+--- a/media_gallery.addimage.js
++++ b/media_gallery.addimage.js
+@@ -11,6 +11,10 @@ Drupal.media_gallery = {};
+ Drupal.media_gallery.open_browser = function (event) {
+   event.preventDefault();
+   event.stopPropagation();
++ 
++  // get node id for the link that was clicked and save to settings (id attribute for parent article is node-[id])
++  Drupal.settings.mediaGalleryNodeNid = $(this).closest("article.contextual-links-region").attr('id').substring(5);
++
+   var pluginOptions = { 'id': 'media_gallery', 'multiselect' : true , 'types': Drupal.settings.mediaGalleryAllowedMediaTypes};
+   Drupal.media.popups.mediaBrowser(Drupal.media_gallery.add_media, pluginOptions);
+ };
+@@ -26,7 +30,7 @@ Drupal.media_gallery.add_media = function (mediaFiles) {
+     //console.warn('Error: Media not added.');
+   };
+ 
+-  var src = Drupal.settings.mediaGalleryAddImagesUrl;
++  var src = Drupal.settings.mediaGalleryAddImagesBaseUrl + Drupal.settings.mediaGalleryNodeNid + '/' + Drupal.settings.mediaGalleryToken;
+ 
+   var media = [];
+ 
+diff --git a/media_gallery.dragdrop.js b/media_gallery.dragdrop.js
+index 8af15cd..59794c6 100644
+--- a/media_gallery.dragdrop.js
++++ b/media_gallery.dragdrop.js
+@@ -3,6 +3,14 @@ Drupal.behaviors.mediaGallerySort = {};
+ 
+ Drupal.behaviors.mediaGallerySort.attach = function (context, settings) {
+   var $ = jQuery;
++  var nid = null;
++
++  // if this is a node view page, set the mediaGalleryNodeNid setting
++  if ($("body").attr("class").match("page\-node\-[^ ]+")) {
++    nid = $("body").attr("class").match("page\-node\-[^ ]+").toString().substring(10);
++    settings.mediaGalleryNodeNid = nid;
++  }
++
+   // Create a drag-and-drop editor for gallery collections.
+   var $collection = $('.media-gallery-collection', context).once('media-gallery-sortable');
+   $('.media-collection-item-wrapper', $collection).once('media-gallery-draggable', Drupal.mediaGallerySort.addDraggableIcon);
+@@ -15,7 +23,7 @@ Drupal.behaviors.mediaGallerySort.attach = function (context, settings) {
+     $collection.bind('sortstop', Drupal.mediaGallerySort.setHeight);
+   }
+   // Create a drag-and-drop editor for individual gallery grid pages.
+-  var $gallery = $('.media-gallery-view-full.media-gallery-media > .field-items').once('media-gallery-sortable');
++  var $gallery = $('article#node-' + nid + ' .media-gallery-view-full.media-gallery-media > .field-items').once('media-gallery-sortable');
+   $('.media-gallery-item-wrapper', $gallery).once('media-gallery-draggable', Drupal.mediaGallerySort.addDraggableIcon);
+   if ($gallery.length && settings.mediaGallerySortGalleryUrl) {
+     $gallery.sortable();
+@@ -47,8 +55,13 @@ Drupal.mediaGallerySort.setHeight = function (event) {
+  */
+ Drupal.mediaGallerySort.addDraggableIcon = function () {
+   var $ = jQuery;
+-  $(this).addClass('draggable');
+-  $(this).prepend($('<div class="draggable-wrapper"><a class="draggable-handle">Drag</a></div>'));
++
++  // only add drag and drop functionality if this is a view node page and only apply it to that media gallery
++  var nid = $(this).closest("article.contextual-links-region").attr('id').substring(5);
++  if (Drupal.settings.mediaGalleryNodeNid != null && Drupal.settings.mediaGalleryNodeNid == nid) {
++    $(this).addClass('draggable');
++    $(this).prepend($('<div class="draggable-wrapper"><a class="draggable-handle">Drag</a></div>'));
++  }
+ }
+ 
+ /**
+diff --git a/media_gallery.module b/media_gallery.module
+index 6e0848c..d68f939 100644
+--- a/media_gallery.module
++++ b/media_gallery.module
+@@ -313,11 +313,17 @@ function media_gallery_view($node, $view_mode) {
+     $instance = field_info_instance('node', 'media_gallery_file', $node->type);
+     $token = drupal_get_token('media_gallery');
+     $gallery_js_settings = array(
+-      'mediaGalleryAddImagesUrl' => url('media-gallery/add-images/' . $node->nid . '/' . $token),
+-      'mediaGallerySortGalleryUrl' => url('media-gallery/sort/gallery/' . $node->nid . '/' . $token),
++      'mediaGalleryToken' => $token,
++      'mediaGalleryNodeNid' => '',
++      'mediaGalleryAddImagesBaseUrl' => url('media-gallery/add-images/'),
+       'mediaGalleryAllowedMediaTypes' => array_filter($instance['widget']['settings']['allowed_types']),
+     );
+ 
++    // only set the js sort URL if in view node page and that node is the one being rendered
++    if (arg(1) && arg(1) == $node->nid) {
++      $gallery_js_settings['mediaGallerySortGalleryUrl'] = url('media-gallery/sort/gallery/' . $node->nid . '/' . $token);
++    }
++
+     // When viewing the full node, add front-end resources for drag-and-drop
+     // sorting.
+     if ($view_mode == 'full') {

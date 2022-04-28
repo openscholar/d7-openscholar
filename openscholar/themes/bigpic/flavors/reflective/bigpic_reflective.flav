@@ -1,0 +1,5 @@
+name = Reflective
+description = A version of the BigPic theme featuring a bright 'reflective' image
+screenshot = screenshot.png
+
+css[] = reflective.css

@@ -1,0 +1,91 @@
+diff --git a/js/views_infinite_scroll.js b/js/views_infinite_scroll.js
+index b1d1465..a654dc5 100644
+--- a/js/views_infinite_scroll.js
++++ b/js/views_infinite_scroll.js
+@@ -29,6 +29,8 @@ Drupal.behaviors.views_infinite_scroll = {
+             var img_location     = view_selector + ' > div.view-content';
+             var img_path         = settings.img_path;
+             var img              = '<div id="views_infinite_scroll-ajax-loader"><img src="' + img_path + '" alt="loading..."/></div>';
++            var noAutoScroll     = settings.no_autoscroll;
++            
+             $(pager_selector).hide();
+             var handle = $.autopager({
+               appendTo: content_selector,
+@@ -41,7 +43,8 @@ Drupal.behaviors.views_infinite_scroll = {
+               load: function() {
+                 $('div#views_infinite_scroll-ajax-loader').remove();
+                 Drupal.attachBehaviors(this);
+-              }
++              },
++              noAutoScroll: noAutoScroll,
+             });
+ 
+             // Trigger autoload if content height is less than doc height already
+diff --git a/theme/views_infinite_scroll_theme.inc b/theme/views_infinite_scroll_theme.inc
+index 3193238..c9a7227 100644
+--- a/theme/views_infinite_scroll_theme.inc
++++ b/theme/views_infinite_scroll_theme.inc
+@@ -14,6 +14,7 @@ function theme_views_infinite_scroll_pager($variables) {
+   $img_path = $variables['img_path'];
+   $parameters = $variables['parameters'];
+   $quantity = $variables['quantity'];
++  $no_autoscroll = $variables['no_autoscroll'];
+ 
+   $PAGER_CLASS = 'pager';
+   global $pager_page_array, $pager_total;
+@@ -80,6 +81,7 @@ function theme_views_infinite_scroll_pager($variables) {
+           'content_selector' => $content_selector,
+           'items_selector' => $items_selector,
+           'img_path' => $img_path,
++          'no_autoscroll' => $no_autoscroll,
+         ),
+       ),
+     );
+@@ -90,6 +92,9 @@ function theme_views_infinite_scroll_pager($variables) {
+     // If libraries module is installed, check for the plugin in libraries dir.
+     if (module_exists('libraries') && file_exists(libraries_get_path('autopager') .'/jquery.autopager-1.0.0.js')) {
+       drupal_add_js(libraries_get_path('autopager') .'/jquery.autopager-1.0.0.js');
++      if (file_exists(libraries_get_path('autopager') .'/autopager.css')) {
++        drupal_add_css(libraries_get_path('autopager') .'/autopager.css');
++      } 
+     }
+     // else, load it from views_infinite_scroll/js dir.
+     else {
+diff --git a/views_plugin_pager_infinite_scroll.inc b/views_plugin_pager_infinite_scroll.inc
+index f585fe0..43cd256 100644
+--- a/views_plugin_pager_infinite_scroll.inc
++++ b/views_plugin_pager_infinite_scroll.inc
+@@ -21,7 +21,7 @@ class views_plugin_pager_infinite_scroll extends views_plugin_pager_full {
+   function render($input) {
+     global $base_url;
+     $content_selector = '';
+-    $style_options = $this->view->display_handler->default_display->options['style_options'];
++    $style_options = $this->view->style_options;
+     $items_selector = '';
+     $img_path = $base_url . '/' . drupal_get_path('module', 'views_infinite_scroll') . '/images/ajax-loader.gif';
+     switch ($this->view->plugin_name) {
+@@ -48,6 +48,23 @@ class views_plugin_pager_infinite_scroll extends views_plugin_pager_full {
+         break;
+     }
+     $pager_theme = views_theme_functions('views_infinite_scroll_pager', $this->view, $this->display);
+-    return theme($pager_theme, array('tags' => $input, 'quantity' => $this->options['items_per_page'], 'view_name' => $this->view->name, 'current_display' => $this->view->current_display, 'content_selector' => $content_selector, 'items_selector' => $items_selector, 'img_path' => $img_path, 'element' => $this->options['id']));
++    return theme($pager_theme, array('tags' => $input, 'quantity' => $this->options['items_per_page'], 'view_name' => $this->view->name, 'current_display' => $this->view->current_display, 'content_selector' => $content_selector, 'items_selector' => $items_selector, 'img_path' => $img_path, 'element' => $this->options['id'], 'no_autoscroll' => $this->options['no_autoscroll']));
++  }
++  
++  function option_definition() {
++    $options = parent::option_definition();
++    $options['no_autoscroll'] = array('default' => 4);
++    return $options;
++  }
++  
++  function options_form(&$form, &$form_state) {
++    parent::options_form($form, $form_state);
++    
++    $form['no_autoscroll'] = array(
++      '#title' => t('Suspend autoscroll after'),
++      '#type' => 'textfield',
++      '#description' => t('Every N pages, stop automatically scrolling.  Use 0 for no limit.'),
++      '#default_value' => $this->options['no_autoscroll'],
++    );
+   }
+ }

@@ -1,0 +1,122 @@
+#!/bin/bash
+set -xe
+
+usage()
+{
+cat << EOF
+usage: $0 options
+
+This script builds the openscholar application.
+
+OPTIONS:
+   -h      Show this message
+   -d      docroot directory name defaults to 'www'
+   -o      Directory to include OPS modules, not included otherwise ex. 'sites/default/'
+EOF
+}
+
+DOCROOT="www"
+OPSDIR=
+while getopts ":hd:o:" OPTION
+do
+     case $OPTION in
+         h ) usage
+             exit 1;;
+         d ) DOCROOT=$OPTARG;;
+         o ) OPSDIR=$OPTARG;;
+         ? ) usage
+             exit;;
+     esac
+done
+
+# Drush executable.
+[[ $DRUSH && ${DRUSH-x} ]] || DRUSH=drush
+
+# Bower executable
+[[ $BOWER && ${BOWER-x} ]] || BOWER=bower
+
+# Build base.
+[[ $BUILD_ROOT && ${BUILD_ROOT-x} ]] || BUILD_ROOT="."
+
+# Move to the top directory.
+ROOT="$(dirname $0)/.."
+cd $ROOT
+
+# Chores.
+(
+  for DIR in $BUILD_ROOT/www-build sites-backup openscholar/1 openscholar/modules/contrib openscholar/themes/contrib openscholar/libraries; do
+    rm -Rf $DIR
+  done
+)
+
+# Build the profile itself.
+(
+  cd openscholar
+  $DRUSH make --no-core --contrib-destination=. drupal-org.make .
+  # Download the git wrapper library using the composer.
+  # todo: don\'t do it on Travis-CI.
+  curl -s https://getcomposer.org/installer | php
+  php composer.phar install --prefer-source
+  cd ..
+)
+
+# Build core and move the profile in place.
+(
+  # Build core.
+  $DRUSH make openscholar/drupal-org-core.make $BUILD_ROOT/www-build
+
+  # Check if sites/default exists, which means it is an existing installation.
+  if [ -d $BUILD_ROOT/$DOCROOT/sites/default ]; then
+    cp -rp $BUILD_ROOT/$DOCROOT/sites/default sites-backup
+  fi
+
+  # Restore the sites directory.
+  if [ -d sites-backup ]; then
+    rm -Rf $BUILD_ROOT/www-build/sites/default
+    mv sites-backup/ $BUILD_ROOT/www-build/sites/default
+  fi
+
+  # Move the profile in place.
+  ln -s ../../openscholar $BUILD_ROOT/www-build/profiles/openscholar
+
+  # Fix permisions before deleting.
+  chmod -R +w $BUILD_ROOT/$DOCROOT/sites/* || true
+  rm -Rf $BUILD_ROOT/$DOCROOT || true
+
+  # Restore updated site.
+  mv $BUILD_ROOT/www-build $BUILD_ROOT/$DOCROOT
+)
+
+CUR_DIR=$(pwd)
+#Build the ops profile
+(
+  if [ -n "$OPSDIR" ] && [ -d $BUILD_ROOT/$DOCROOT/$OPSDIR ] ; then
+    cd $BUILD_ROOT/$DOCROOT/$OPSDIR
+    $DRUSH make --no-core --contrib-destination $CUR_DIR/$BUILD_ROOT/openscholar/os-ops.make .
+    cd $CUR_DIR
+  fi
+)
+
+# Copy unmakable contrib files
+(
+  cp -R temporary/* openscholar/modules/contrib/
+)
+
+# iCalcreator cannot be downloaded via make because a temporary token is needed,
+# so we have the library inside os_events directory and we copy it to libraries.
+(
+  cp -R openscholar/modules/os_features/os_events/iCalcreator/ openscholar/libraries/
+)
+
+# Copy our custom .htaccess file.
+(
+  rm $DOCROOT/.htaccess
+  cp .htaccess $DOCROOT
+)
+
+# Get the angualr components.
+(
+  cd $BUILD_ROOT/openscholar
+  $BOWER install --allow-root
+  cd -
+)

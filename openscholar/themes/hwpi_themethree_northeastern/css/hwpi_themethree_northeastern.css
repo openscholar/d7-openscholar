@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css?family=Libre+Baskerville');
+.not-front .field-name-body,
+#content-column p,
+.cke_editable *,
+#content-column li,
+body *,
+#content-column li,
+.region-header-third ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#menu-bar ul a,
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu .menuparent a,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.page-search #content-column p,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.view-os-events .views-field-colorbox,
+.field-name-body h2,
+.field-name-body h3,
+.field-name-body h4 {
+	font-family: 'Helvetica Neue', Helvetica, sans-serif;
+}
+#boxes-box-site_info a {
+	font-family: 'Libre Baskerville', serif;
+	color: #C00;
+}
+.branding-left img {
+	width: 150px;
+}
+.node-type-person #content-column .node-person h1.node-title,
+.block-title,
+h1#page-title {
+	text-transform: uppercase;
+}
+.ui-widget-content a,
+.region-header-third ul.nice-menu a,
+a,
+a:visited {
+	color: #337ab7;
+}
+.breadcrumb span,
+#footer a,
+.node-type-page .breadcrumb,
+.breadcrumb,
+.breadcrumb a {
+	color: #fff;
+}
+a.rslides_nav {
+	background-color: #337ab7;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+	background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat scroll 2px -441px #337ab7;
+}
+#layout_16_9_side .slide {
+	background: #66899c;
+	background: -moz-linear-gradient(top, #66899c 0%, #556167 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #66899c), color-stop(100%, #556167));
+	background: -webkit-linear-gradient(top, #66899c 0%, #556167 100%);
+	background: -o-linear-gradient(top, #66899c 0%, #556167 100%);
+	background: -ms-linear-gradient(top, #66899c 0%, #556167 100%);
+	background: linear-gradient(to bottom, #66899c 0%, #556167 100%);
+	filter: progid: DXImageTransform.Microsoft.gradient(startColorstr='#66899c', endColorstr='#556167', GradientType=0);
+}
+.branding-left {
+	margin: 7px 0 0 0;
+}
+.not-front #columns {
+	background-image: url(../images/standard-body-gradient.png?s1234);
+}
+.more-link:after {
+	background-image: none;
+}

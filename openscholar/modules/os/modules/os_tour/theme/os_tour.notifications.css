@@ -1,0 +1,71 @@
+div.hopscotch-bubble.os-tour-notifications .hopscotch-bubble-content {
+    margin: 0;
+}
+div.hopscotch-bubble.os-tour-notifications .hopscotch-bubble-number {
+    display: none;
+}
+#toolbar #os-tour-notifications-count {
+    display: inline-block;
+    min-width: 10px;
+    padding: 4px 6px 3px !important;
+    font-weight: bold !important;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    background-color: #ff0000;
+    font-size: 12px;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+#toolbar .os-tour-notifications-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-top: -1px;
+    line-height: 14px;
+    vertical-align: text-top;
+    background-image: url("white_bell_16x16.png");
+    background-position: 0px 0px;
+    background-repeat: no-repeat;
+}
+#toolbar #os-tour-notifications-menu-link {
+    display: none;
+}
+.os-tour-notifications .feed_item span {
+    font-style: normal;
+}
+.os-tour-notifications-readmore {
+    margin-top: 1em;
+    margin-bottom: -3.5em;
+}
+div.hopscotch-bubble .hopscotch-actions {
+    margin: 24px 0 0;
+}
+/* OVERRIDES FOR THE NOTIFICATIONS POPOUT */
+
+ .os-tour-notifications.hopscotch-bubble:after {
+    display: none;
+}
+.os-tour-notifications.hopscotch-bubble[style] {
+    top: 69px !important;
+    left: auto !important;
+    right: 168px !important;
+    color: #1e1e1e;
+    border: 1px solid #CCC;
+    -webkit-box-shadow: 3px 3px 3px 0px rgba(50, 50, 50, 0.3);
+    -moz-box-shadow: 3px 3px 3px 0px rgba(50, 50, 50, 0.3);
+    box-shadow: 3px 3px 3px 0px rgba(50, 50, 50, 0.3);
+}
+.os-tour-notifications .hopscotch-bubble-arrow-container {
+    display: none;
+}
+.os-tour-notifications.hopscotch-bubble .hopscotch-bubble-close {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0 -926px no-repeat;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    top: 2px;
+    right: 2px;
+}

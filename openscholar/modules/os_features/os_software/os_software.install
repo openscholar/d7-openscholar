@@ -1,0 +1,27 @@
+<?php
+/**
+ * @file
+ * Install file of the OS Software module.
+ */
+
+/**
+ * Change the formatter for software teaser.
+ */
+function os_software_update_7000() {
+  features_revert(array('os_software' => array('field_instance')));
+}
+
+/**
+ * Remove the data of the rbuild packaging method.
+ */
+function os_software_update_7001() {
+  db_update('field_data_field_software_method')
+   ->fields(array('field_software_method_value' => 'Manual upload'))
+   ->condition('field_software_method_value', 'Rbuild repository', '=')
+   ->execute();
+
+  db_update('field_revision_field_software_method')
+    ->fields(array('field_software_method_value' => 'Manual upload'))
+    ->condition('field_software_method_value', 'Rbuild repository', '=')
+    ->execute();
+}

@@ -1,0 +1,311 @@
+@import url('https://fonts.googleapis.com/css?family=Arvo:400,400i,700');
+
+
+
+.region-header-third ul.nice-menu a,
+a, a:visited {
+    color: #0075BE;
+}
+
+/* Main wrappers */
+html,
+ body {
+	background: #fff;
+	color: #1e1e1e;
+	font-family:  Helvetica, sans-serif;
+}
+
+
+/* Header */
+#header {
+	background: #e6e6e3;
+	color: #303030;
+}
+#boxes-box-site_info,
+#boxes-box-site_info a {  
+  color: #303030;
+}
+
+
+/* Menu bar */
+#menu-bar {
+	background: #f3f3f1;
+}
+#content-panels .block-inner,
+.sidebar .block-inner {
+margin-top: 12px;
+}
+
+.sidebar #block-os-search-db-site-search,
+#content-panels .block-boxes-os_slideshow_box .block-inner {
+    margin-top: 0;
+}
+
+/* Titles & Type */
+#page-title,
+.node-title, 
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.section-nav a,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+.cke_editable h2,
+.cke_editable h3,
+.cke_editable h4,
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info, #boxes-box-site_info a {
+	font-family: 'Arvo', Baskerville, Palatino, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+}
+
+.cke_editable *  {
+	font-family: arial;
+}
+
+/*SECTION NAV OVERRIDES*/
+.section-nav a {
+	font-size: 16px;
+}
+
+.section-nav .menu-depth-1 > a {
+    background: none repeat scroll 0 0 #365375 !important;
+}
+
+.section-nav .expanded.menu-depth-2 > a {
+	background-color: #3a72ab;
+	color: #fff;
+}
+
+.section-nav .expanded.menu-depth-2 > a:hover {
+	background-color: #365375 !important;
+}
+
+ .block-boxes-os_boxes_facetapi_vocabulary.navigation a,
+.block-boxes-os_taxonomy_fbt.navigation a {
+	font-size: 16px;
+	font-family:'Arvo';
+
+	}
+
+
+
+h1#page-title,
+h1.node-title, 
+.page-search .title a,
+.boxes-box-content h2 {
+	font-weight: normal;
+	font-size: 18px;
+	margin-bottom: 18px;
+}
+
+
+.sidebar .block-boxes-os_sv_list_box .node.node-person.article h1.node-title {
+
+	margin-bottom: 0;
+}
+.cke_editable h2,
+.cke_editable h3,
+.cke_editable h4,
+#content-column .field-name-body h2,
+#content-column .field-name-body h3,
+#content-column .field-name-body h4 {
+	margin-bottom: 16px;
+	font-weight: normal;
+}
+
+
+
+#content-column .field-name-body h2 {
+	font-size: 25px;
+}
+
+
+#content-column .field-name-body h3 {
+	font-size: 22px;
+}
+
+
+#content-column .field-name-body h4 {
+	font-size: 19px;
+}
+
+
+.boxes-box-content h2 {
+    font-size: 24px;
+    line-height: 28px;
+}
+
+h1#page-title {
+	font-size: 30px;
+	margin: 15px 0 30px;
+}
+
+.page-node h1#page-title {
+	margin-bottom: 15px;
+}
+
+h2.block-title {
+	text-transform:uppercase;
+	font-size:12px;
+	font-weight:normal;
+	letter-spacing:0.1em;
+	font-weight:bold;
+	font-family:arial !important;
+	margin-bottom:8px;
+}
+
+
+
+#content-column h2.field-label {font-family: arial;}
+
+.page-search h1#page-title {
+  margin-top:10px;
+}
+
+ 
+article.node-teaser.node-person .field-name-field-person-photo ~ .node-content {
+ margin-left: 0;
+}
+
+.sidebar article.node-teaser.node-person .field-name-field-person-photo ~ .node-content {
+margin-left:6em;
+}
+
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link {
+  text-decoration:underline;
+}
+
+.page-search #content-column p,
+.not-front #content-column p {
+}
+
+.links li a {
+    font-size: 13px;
+}
+
+.block-boxes-os_sv_list_box .sv-list-view-title h1 {font-family:arial;}
+
+/* Border control */
+.not-front.two-sidebars #content-column .content-inner {
+	border-right: 1px solid #e7e7e7;
+}
+
+.sidebar .block,
+.front #content-column .block,
+#content-column .block.block-boxes-os_boxes_columns .block,
+.node-person .block-inner,
+.comment-wrapper {
+	border-top: 3px solid #0075BE;
+	margin-top:12px;
+}
+
+
+.sidebar #block-os-search-db-site-search,
+#content-column .block.block-boxes-os_boxes_columns,
+.front #content-column .block.block-boxes-os_boxes_columns,
+.block-boxes-os_sv_list_box .block-inner,
+.block-boxes-os_boxes_manual_list, 
+.sidebar .block.section-nav,
+#content-column .block.section-nav  {
+	border-top: none;
+}
+
+.front #content-column .block.block-boxes-os_boxes_manual_list.styled {
+    border-top: 1px solid #CCCCCC;
+}
+
+.front #content-column .block.block-boxes-os_boxes_manual_list.converted-bio {
+    border-top: none;
+}
+
+
+
+
+#content-column .item-list ul.pager li {
+    font-family: arial;
+}
+
+.region-content-first .block,
+.region-content-second .block,
+.region-content-bottom .block {
+	margin-bottom:12px;
+}
+
+/* Footer */
+#footer {
+	background: url(../images/footer-top-gradiant.png) repeat-x 0 0 #f3f3f1;
+}
+
+#footer ul.menu a {
+	text-transform: none;
+	font-size: 12px;
+}
+
+#footer ul.menu li.menuparent {
+
+    font-weight: bold;
+
+}
+
+#footer ul.menu li.menuparent ul li {
+
+    font-weight: normal;
+
+}
+
+
+#footer ul.menu li a {
+    font-family:arial;
+    text-transform: uppercase;
+}
+
+#footer ul.menu li ul li a {
+    font-family:arial;
+    text-transform: none;
+    font-family:'Arvo';
+    font-size:16px;
+}
+
+
+/** SLIDESHOW **/
+	
+a.rslides_nav {
+    background-color:#0075BE;
+}
+
+#layout_16_9_below a.rslides_nav {
+    background-color: #365375;
+}
+
+
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2 {
+  font-family: 'Arvo',arial;
+  font-size:28px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+  font-weight:normal;
+
+}
+/* TWEAK THE POSITION OF THE BENTLEY IN THE HEADER */
+.branding-left {
+  
+    margin: 5px 0 0 -30px;
+   
+}	
+
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+       background-position: 2px -440px;
+    background-color: #0075BE;
+}
+

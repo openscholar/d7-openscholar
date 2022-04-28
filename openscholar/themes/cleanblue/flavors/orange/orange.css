@@ -1,0 +1,35 @@
+#menu-bar, 
+#menu-bar #block-os-primary-menu {
+	background: #C75A26 !important;
+}
+
+
+#menu-bar ul.nice-menu a {
+	color: #FFF;
+}
+
+#menu-bar ul li a {
+	background: none;
+	color: #FFFFFF;
+	border-bottom: none;
+}
+
+#menu-bar li a.active, 
+#menu-bar li.active-trail a {
+	background: #D4D4D5;
+	color: #C75A26;
+}
+
+
+
+#header-container h1 a, 
+#header-container h1 a:visited {
+	color: #C75A26;
+}
+
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+background-position: 0 -566px;
+}
+
+

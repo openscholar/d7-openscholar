@@ -1,0 +1,19 @@
+diff --git a/sites/all/modules/contrib/spaces/plugins/spaces_controller_variable.inc b/sites/all/modules/contrib/spaces/plugins/spaces_controller_variable.inc
+index d62d8b1..08d4b56 100644
+--- a/sites/all/modules/contrib/spaces/plugins/spaces_controller_variable.inc
++++ b/sites/all/modules/contrib/spaces/plugins/spaces_controller_variable.inc
+@@ -26,11 +26,9 @@ class spaces_controller_variable extends spaces_controller {
+ 
+     // If we have overridden 'site_frontpage', we need to do some extra
+     // work to reinit the drupal path.
+-    // TODO: Is purl_language_strip still needed?
+-    //if ($this->get('site_frontpage') !== $this->get('site_frontpage', 'original') && function_exists('purl_language_strip')) {
+-    //  $_GET['q'] = purl_language_strip($_REQUEST['q']);
+-    //  drupal_path_initialize();
+-    //}
++    if ($this->get('site_frontpage') !== $this->get('site_frontpage', 'original')) {
++      drupal_path_initialize();
++    }
+   }
+ 
+   /**

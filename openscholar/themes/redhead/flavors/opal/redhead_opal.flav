@@ -1,0 +1,5 @@
+name = Opal
+description = A Opal Version of the scholor-theme-02 theme
+screenshot = screenshot.png
+
+css[] = opal.css

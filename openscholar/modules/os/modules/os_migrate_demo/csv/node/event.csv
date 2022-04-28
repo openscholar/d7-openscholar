@@ -1,0 +1,9 @@
+ID,Title,Body,Timestamp,Site,Terms,UID,user2
+event1,John F. Kennedy birthday,John's 103rd birthday.,2020-05-29 20:00:00;2020-05-29 20:00:00,personal1,,user2
+event2,Lou Gehrig birthday,Lou's 97th birthday,2020-06-19 21:00:00;2020-06-19 21:00:00,project1,,user2
+event3,2016 election day,The election day in 2016,2016-11-06 21:00:00;2016-11-06 21:00:00,personal2,,user2
+event4,Halleys Comet,Halley's Comet appearing,2062-05-29 21:00:00;2062-05-29 21:00:00,personal1,authorTerm1|authorTerm2|authorTerm3,user2
+event5,Testing event,Testing event body,now;now,personal1,authorTerm2,user2
+event6,Past event,Past event body,2011-06-19 21:00:00;2011-06-19 21:00:00,personal1,scienceTerm2,user2
+event7,More recent past event,More recent past event body,-1day;-1day,personal1,,user2
+event8,"Future event","Testing event body","+1 day;+1 day",personal1,authorTerm2,user2,

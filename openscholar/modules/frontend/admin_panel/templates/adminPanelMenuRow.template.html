@@ -1,0 +1,9 @@
+<div ng-switch="menuRow.type">
+    <span ng-switch-when="heading" toggle-open class="close-siblings" id="os-am-{{key}}" ng-class="{'toggleable': menuRow.children, 'active': isActive(menuRow)}">{{ menuRow.label }}</span>
+    <a ng-switch-when="link" ng-attr-href="{{menuRow.href || '#'}}" toggle-open class="close-siblings" id="os-am-{{ key }}" ng-class="{'toggleable': menuRow.children, 'active': isActive(menuRow)}">{{ menuRow.label }}</a>
+    <span ng-switch-when="directive" admin-panel-directive-link ng-class="{'toggleable': menuRow.children, 'active': isActive(menuRow)}"><span id="{{ menuRow.directive.form }}">{{ menuRow.label }}</span></span>
+</div>
+<ul ng-if="menuRow.children" ng-style="getListStyle('os-am-{{key}}')">
+    <li class='submenu' ng-class="{'has-sub': child.children, 'heading': child.type == 'heading'}" ng-repeat="(subkey, child) in menuRow.children" admin-panel-menu-row menu-row="child" key="{{ key + '-' + subkey }}" ng-if="child.access">
+    </li>
+</ul>

@@ -1,0 +1,10 @@
+name = Control Panel: Users
+description = OpenScholar User Management UI.
+core = 7.x
+package = Control Panel
+php = 5.2.4
+dependencies[] = cp
+dependencies[] = ctools
+dependencies[] = os
+features[user_permission][] = access content overview
+features[user_role][] = viewer

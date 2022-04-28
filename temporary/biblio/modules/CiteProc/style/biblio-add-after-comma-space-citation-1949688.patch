@@ -1,0 +1,13 @@
+diff --git a/modules/contrib/biblio/modules/CiteProc/style/chicago-author-date.csl b/modules/contrib/biblio/modules/CiteProc/style/chicago-author-date.csl
+index 5921820..7735f8b 100644
+--- a/modules/contrib/biblio/modules/CiteProc/style/chicago-author-date.csl
++++ b/modules/contrib/biblio/modules/CiteProc/style/chicago-author-date.csl
+@@ -42,7 +42,7 @@
+    <macro name="container-contributors">
+       <choose>
+          <if type="chapter paper-conference" match="any">
+-            <group prefix="," delimiter=", ">
++            <group prefix=", " delimiter=", ">
+                <choose>
+                   <if variable="author">
+                      <names variable="editor">

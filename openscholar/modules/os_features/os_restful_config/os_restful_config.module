@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Openscholar: restful config feature.
+ */
+
+include_once 'os_restful_config.features.inc';

@@ -1,0 +1,4 @@
+ID,Title,Body,Site,Terms,UID
+news1,I opened a new personal,This is a new site generated via the vsite options in open scholar.,personal1,ScienceTerm1|ScienceTerm2|ScienceTerm3,user2
+news2,Lou's site news,This is a project generated via the vsite Options in open scholar,project1,,user2
+news3,More tests to the semester,There are more tests available on the tests list,personal1,ScienceTerm2,user2

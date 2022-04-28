@@ -1,0 +1,5 @@
+name = Khaki
+description = A Khaki Version of the scholor-theme-01 theme
+screenshot = screenshot.png
+
+css[] = khaki.css

@@ -1,0 +1,196 @@
+@import url(https://fonts.googleapis.com/css?family=IM+Fell+English);
+
+.region-page-top .region-inner {
+    padding-top: 0;
+}
+
+body {
+  color:#555;
+  font-family: 'IM Fell English', Times, Georgia, serif;
+  background: #6d2a01;
+  }
+  
+ #columns {
+	overflow:hidden;
+} 
+  
+  #content-column, .region-sidebar-first, .region-sidebar-second {
+margin-bottom: -2000px;
+padding-bottom: 2000px;
+}  
+
+#content-column,#header-container,#menu-bar {background:#fbf4e2;}
+
+#menu-bar {
+	border-top:1px solid #6d2a01;
+	border-bottom:1px solid #6d2a01;
+}
+
+#menu-bar ul.nice-menu ul {
+	background:#fbf4e2;
+	top: 1.9em;
+	border-top: none;
+}
+
+.region-sidebar-first {
+    background-image: url('../images/sidebar_left.png');
+    }
+
+.region-sidebar-second {
+    background-image: url('../images/sidebar_right.png');
+    }
+
+
+/* TYPOGRAPHY */
+.biblio-title a, .biblio-title-chicago a,
+a,
+a:visited {
+    color:#953a0d;
+    text-decoration: none;
+    }
+
+.title a,
+.title a:visited {
+  color:#870202;
+  font-size: 1.2em;
+  }
+
+a:hover, a.active,
+.active-trail a {
+  color:#000;
+  text-decoration: underline;
+  }
+
+h2,
+h3,
+.region-sidebar-second a,
+.region-sidebar-first a,
+.title a,
+.title a:visited {
+    font-weight: bold;
+    text-decoration: none !important;
+    }
+
+h2, h3, h4 {
+  margin-bottom: 0;
+  margin-top: 1em;
+  }
+
+h1#page-title {
+  margin:0 0 1em 1em;
+   font-size: 1.4em;
+  }
+
+#block-menu-primary-links {
+    text-transform: uppercase;
+    }
+
+#header-container h1 {
+    font-size: 27px;
+    }
+
+#header-container, #header-container a, #header-container a:visited {
+    font-variant: small-caps;
+    color:#414040;
+    }
+
+#header-container h1 a,
+#header-container h1 a:visited {
+    text-decoration: none;
+    padding: 0;
+    }
+
+#header-container h2 {
+    font-size: 16px;
+    margin-top: 0;
+    }
+
+#header-container a, #header-container a:visited {
+    text-decoration: none;
+    }
+
+.region-sidebar-first {
+  text-align:right;
+  }
+
+.region-sidebar-first ul.menu {
+  text-transform: uppercase;
+  text-align:right;
+  }
+
+#boxes-box-site_logo img {
+  width: 166px;
+  }
+
+
+/*CONTENT AREA */
+
+.region-sidebar-first,
+.region-sidebar-second {
+  font-size: 13px;
+  line-height: 112%;
+  }
+
+.region-sidebar-first li,
+.region-sidebar-second li {
+  margin-bottom: .7em;
+  }
+
+#content-column,
+.region-sidebar-second,
+.region-sidebar-first {
+  padding-top: 0;
+  }
+
+/* HEADER ELEMENTS*/
+
+
+#scholar-shield {
+ padding-top: 10px;
+ text-align: center;
+ }
+
+#menu-bar {
+  padding: 5px 15px;
+  }
+
+#menu-bar li {
+  font-weight: bold;
+  margin-right: 3px;
+  font-variant: small-caps;
+  }
+
+ul.nice-menu a,
+#menu-bar a:hover,
+#menu-bar a.active {
+  color: #993300;
+  }
+
+#content-column #content {
+  padding-left: 30px;
+  padding-right: 30px;
+  }
+
+/* FOOTER */
+
+#footer a,
+#footer {
+  color: #FFF;
+  }
+
+
+/* Nodes */
+
+.submitted {
+  color: #a1b1b1;
+  display:block;
+  }
+
+
+.breadcrumb {
+    margin: 15px 0 0 30px;
+}
+
+.node-type-page .breadcrumb {
+    margin: 15px 0 15px 20px;
+}

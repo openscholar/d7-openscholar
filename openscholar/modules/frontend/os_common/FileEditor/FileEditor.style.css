@@ -1,0 +1,135 @@
+.ui-dialog.file-editor .ui-dialog-titlebar {
+  display: none;
+}
+
+div[file-edit] .full-url {
+    float: left;
+    padding: 5px 0;
+}
+div[file-edit] .fe-filepath-wrapper {
+    display: block;
+    overflow: hidden;
+    padding-right: 18px;
+}
+div[file-edit] .control button {
+    margin-right: 0 !important;
+}
+div[file-edit] input[type="text"] {
+    margin-bottom: .1em;
+    width: 95%;
+}
+div[file-edit] button {
+    padding: 3px 5px;
+}
+div[file-edit] div.description {
+    margin-bottom: 1.75em;
+}
+div[file-edit] div.display_inline {
+    vertical-align: top;
+}
+div[file-edit] div.decorative_checkbox {
+    padding-top: 1.2em;
+}
+div[ng-include="fileEditAddt"] {
+    background: #efefef;
+    width: 97%;
+    margin: 20px 0;
+    padding-left: 10px;
+}
+.file-entity-loading {
+    background-color: white;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    position: absolute;
+    z-index: 50;
+}
+.alert-message {
+    font-size: 1.2em;
+    color: #000 !important;
+    border: none !important;
+}
+.success {
+    background-color: #dff0d8;
+    padding: 7px;
+}
+.error {
+    background-color: #dff0d8;
+    padding: 7px;
+}
+.warning {
+    background-color: #fcf8e3;
+}
+.file-entity-loading-message {
+    position: absolute;
+    top: calc(50% - 259px/2);
+    left: calc(50% - 175px/2);
+    text-align: center;
+    font-size: large;
+    font-weight: bolder;
+}
+.file-entity-loading-message img {
+    padding: 10px 0;
+}
+div[file-edit] h4,
+[file-edit] .control,
+[file-edit] .fe-replace-wrapper,
+[file-edit] label {
+    margin-top: 10px;
+}
+/* Error window */
+
+[file-edit] .warning.float {
+    position: absolute;
+    top: 30%;
+    left: calc(50% - (500px / 2));
+    padding: 20px;
+    cursor: pointer;
+    width: 450px;
+}
+[file-edit] span {
+    white-space: pre-line;
+}
+[file-edit] .warning .error-close {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 5px;
+    font-size: .85em;
+    color: #a94442;
+}
+[file-edit] input.error,
+[file-edit] .ng-invalid {
+    border-color: red !important;
+    outline-color: red !important;
+}
+.file-retrieve-spinner {
+    width: 60px;
+    height: 60px;
+    margin-left: 42%;
+}
+#fe-file-name + div {
+    position: relative;
+}
+#fe-file-name + div::before {
+    content: "Label can not be empty!";
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: red;
+    color: white;
+    border: 1px solid darkred;
+    padding: 3px;
+    display: none;
+    z-index: 2;
+}
+
+#fe-file-name.error + div::before {
+    display: block;
+}
+
+.select2-search-field,
+.select2-search-field input {
+    width: auto !important;
+}

@@ -1,0 +1,359 @@
+#biblio-filter ul {
+    padding: 1px;
+    margin: 1px;
+    width: 100%;
+}
+#biblio-buttons {
+    float: left;
+    margin-left: 0.5em;
+    margin-top: 1em;
+}
+.biblio-alpha-line {
+    text-align: center;
+}
+dl.bibliomultiselect dd.b,
+dl.bibliomultiselect dd.b .form-item,
+dl.bibliomultiselect dd.b select {
+    font-family: inherit;
+    font-size: inherit;
+    width: 14em;
+}
+dl.bibliomultiselect dd.a,
+dl.bibliomultiselect dd.a .form-item {
+    width: 8em;
+}
+dl.bibliomultiselect dt,
+dl.bibliomultiselect dd {
+    float: left;
+    line-height: 1.75em;
+    padding: 0;
+    margin: 0 1em 0 0;
+}
+dl.bibliomultiselect .form-item {
+    height: 1.75em;
+    margin: 0;
+}
+#biblio-authors table,
+#biblio-tertiary-authors table {
+    width: 100%;
+}
+#biblio-authors .form-text {
+    width: 95%;
+}
+#biblio-authors td.biblio-contributor,
+#biblio-secondary-authors td.biblio-contributor,
+#biblio-tertiary-authors td.biblio-contributor,
+#biblio-subsidiary-authors td.biblio-contributor,
+#biblio-corp-authors td.biblio-contributor {
+    width: 98%;
+}
+#biblio-authors #biblio-tertiary-authors .draggable a.tabledrag-handle {
+    padding: 0;
+}
+.biblio-head {
+    width: 97%;
+    color: Black;
+    font-weight: normal;
+    background-color: #EAEAEA;
+    border: medium solid;
+    border-left-color: #F0F8FF;
+    border-right-color: Gray;
+    border-bottom-color: Gray;
+    border-top-color: #F0F8FF;
+    padding: 3px;
+}
+.biblio-head a:link,
+.biblio-head a.active,
+.biblio-head a:visited,
+.biblio-head a:focus,
+.biblio-head a:hover {
+    color: black;
+}
+.biblio-current-filters {
+    background-color: #ffe1e1;
+}
+.biblio-separator-bar {
+    color: #000000;
+    font-weight: bold;
+    background: none !important;
+    border: none !important;
+    border-bottom: 1px solid #ccc !important;
+    margin-top: 1.5em;
+    padding: 0;
+}
+.biblio-toolbar {
+    width: 97%;
+    color: Red;
+    font-weight: bold;
+    background-color: Silver;
+    border: medium solid;
+    border-left-color: #F0F8FF;
+    border-right-color: Gray;
+    border-bottom-color: Gray;
+    border-top-color: #F0F8FF;
+    padding: 3px;
+}
+.biblio-publisher {
+    font-style: oblique;
+    font-weight: bold;
+}
+.biblio-title a,
+.biblio-title-chicago a {
+    font-weight: bold !important;
+    text-decoration: none !important;
+    font-style: inherit !important;
+    line-height: normal;
+    text-align: left;
+    font-family: inherit;
+}
+.biblio-title a p {
+    display: inline;
+}
+.biblio-authors a {
+    font-weight: normal;
+    text-decoration: none;
+    font-style: normal;
+}
+.biblio_type-1 {
+    background-color: #F2F2D9;
+}
+.biblio_type-2 {
+    background-color: #D9E6F2;
+}
+.biblio_type-3 {
+    background-color: #E5F2D9;
+}
+.biblio_type-4 {
+    background-color: #D9F2E6;
+}
+.biblio_type-5 {
+    background-color: #F2E6D9;
+}
+.biblio_type-6 {
+    background-color: #D9E6F2;
+}
+.biblio_type-7 {
+    background-color: #D9E6F2;
+}
+.biblio_type-8 {
+    background-color: #D9E6F2;
+}
+.biblio_type-9 {
+    background-color: #D9E6F2;
+}
+/*
+.biblio-export {
+  text-align: right;
+  text-decoration: none;
+  float: right;
+}
+*/
+
+#biblio-header img {
+    border: none;
+}
+a.biblio-abstract-link {
+    text-decoration: none;
+    font-style: normal;
+    font-weight: normal;
+    margin: 0 8px;
+    display: inline;
+    font-size: 99%;
+}
+a.biblio-abstract-link.toggle {
+    padding-left: 12px;
+    background: url('../images/scholarbase-sprite.png') 0 -399px no-repeat;
+    text-decoration: none;
+}
+a.biblio-abstract-link.toggle.expanded {
+    padding-left: 12px;
+    background: url('../images/scholarbase-sprite.png') 0 -412px no-repeat;
+    text-decoration: none;
+}
+.biblio-abstract-display {
+    line-height: 1.5em;
+    display: none;
+    background: #FAFAFA;
+    padding: 8px;
+    border: 1px solid #CCC;
+}
+.biblio-abstract-display ol {
+    margin: 0 0 1.5em 25px;
+}
+/* ADD A LEFT MARGIN TO THE ABSTRACT SLIDER WHEN A BIBLIO THUMBNAIL IS USED */
+
+.field-name-field-biblio-image ~ .biblio-abstract-display {
+    margin-left: 68px;
+}
+.biblio-export-links {
+    float: right;
+    text-align: left;
+    text-decoration: none;
+    font-style: normal;
+    font-weight: normal;
+}
+.node a.ctools-dropdown-link:before,
+.biblio-entry a.ctools-dropdown-link:before,
+h2.title a.ctools-dropdown-link:before,
+.block a.ctools-dropdown-link:before,
+.view a.ctools-dropdown-link:before {
+    background: url("../images/scholarbase-sprite.png") no-repeat scroll 0 -94px transparent !important;
+    height: 16px;
+    padding: 1px 0 3px 20px !important;
+    height: 16px;
+    content: '';
+}
+ul.biblio-export-buttons,
+ul.biblio-export-buttons li {
+    background: transparent;
+    list-style-image: none;
+    list-style-type: none;
+    display: inline;
+    border-bottom: 0px;
+    border-right: 1px;
+    padding: 0;
+    margin: 0.1em;
+}
+.biblio-annotation {
+    text-align: left;
+    text-decoration: none;
+    margin-left: 2.5em;
+    margin-top: 0.5em;
+    margin-right: 2.5em;
+}
+.biblio-sort {
+    text-decoration: none;
+    text-align: left;
+}
+.biblio-openurl-text {
+    text-align: right;
+    text-decoration: none;
+    float: right;
+}
+.biblio-left-td {
+    text-align: right;
+    vertical-align: top;
+    width: 20%;
+}
+#biblio-header {
+    display: block;
+}
+body.node-type-biblio .node-type-biblio .field-field-biblio-image {
+    padding-top: .6em;
+}
+.field-name-field-biblio-image {
+    float: left;
+    margin: 0 1.5em 0.5em 0;
+}
+/* ATTACHMENTS*/
+
+.node-biblio.node-teaser .field-name-field-upload {
+    display: inline-block;
+}
+.node-type-biblio .itu-attachments {
+    display: inline-block;
+    vertical-align: top;
+}
+.node-type-biblio .itu-attachment-list {
+    width: auto;
+    border: none !important;
+    border-spacing: 0;
+}
+.os-files-other-list tr {
+    border: 1px solid #ccc;
+    background: #FFF;
+}
+.os-files-other-list tr:hover {
+    background: #EEE;
+}
+.os-files-other-list tr td {
+    padding: 3px 6px;
+}
+.os-files-other-list tr td.file,
+.os-files-other-list tr td.mime,
+.os-files-other-list tr td.size {
+    padding: 3px;
+}
+.os-files-other-list tr td.mime {
+    width: 18px;
+}
+.os-files-other-list tr td.size {
+    font-size: 10px;
+    font-weight: bold;
+    width: 55px;
+    text-align: right;
+}
+.node-teaser.node-type-biblio .itu-attachment-list td {
+    padding: 0 .4em;
+}
+.node-teaser table.itu-attachment-list .mime {
+    display: none;
+}
+.node-teaser table.itu-attachment-list .size {
+    display: none;
+}
+.node.node-type-biblio img {
+    border: 1px solid #777;
+    max-width: 100%;
+}
+.node.node-type-biblio img.imagecache-book_cover {
+    max-width: none;
+}
+.biblio-entry .flL {
+    width: 60px;
+}
+.biblio-entry ul.links {
+    clear: none;
+}
+.bib-neg-indent {
+    text-indent: 0 !important;
+}
+#citation-wrapper,
+body.node-type-biblio .biblio-export {
+    display: block;
+    border: 1px solid #ccc;
+    overflow: visible;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+#citation-wrapper h3 {
+    margin-top: 0;
+}
+dd.biblio-citation {
+    margin-bottom: 0;
+}
+body.node-type-biblio .biblio-export {
+    border-top: none;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+    padding-top: 0;
+}
+#biblio-node span.biblio-authors {
+    font-weight: bold;
+}
+.biblio-separator-bar {
+    clear: both;
+}
+.node-unpublished p.unpublished,
+.comment-unpublished p.unpublished {
+    color: #FFF;
+    font-family: Impact, "Arial Narrow", Helvetica, sans-serif;
+    font-size: 0;
+    font-weight: normal;
+    height: 0;
+    line-height: 0;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    text-align: center;
+    text-transform: uppercase;
+    word-wrap: break-word;
+}
+.os_sv_list_box .node-biblio.node-teaser .field-name-field-upload .field-item:not(:last-child):after,
+.node-biblio.node-teaser .file:not(:last-child):after {
+	margin-right: 5px;
+    content: ",";
+}
+.page-publications .biblio_file_links img.file-icon {
+    margin-left: 5px;
+}

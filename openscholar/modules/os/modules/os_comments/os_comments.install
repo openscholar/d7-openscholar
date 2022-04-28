@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Implement hook_install().
+ *
+ * Perform install time config.
+ */
+function os_comments_install() {
+  // Include the admin form inc file.
+  // module_load_include('inc', 'ctools','includes/export-ui');
+}

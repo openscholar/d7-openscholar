@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * Reverts cp_content view to add VBO for adding/removing terms from content.
+ */
+function cp_content_update_7000() {
+  features_revert(array('cp_content' => array('views')));
+}
+
+/**
+ * Reverts cp_content view to hide temporary files from the list of files view.
+ */
+function cp_content_update_7001() {
+  features_revert(array('cp_content' => array('views')));
+}
+
+/**
+ * Reverts cp_content views.
+ */
+function cp_content_update_7002() {
+  features_revert(array('cp_content' => array('views')));
+}
+
+/**
+ * Reverts cp_content views to remove invalid content types from filter.
+ */
+function cp_content_update_7003() {
+  features_revert(array('cp_content' => array('views')));
+  return t('CP Content Views reverted to defaults.');
+}
+
+/**
+ * Reverts cp_content views to bring back the "Used in" column.
+ */
+function cp_content_update_7004() {
+  features_revert(array('cp_content' => array('views_view')));
+  return t('CP Content Views reverted to defaults.');
+}
+
+/**
+ * Reverts cp_content views to disable Comments view when Blog is disabled.
+ */
+function cp_content_update_7005() {
+  features_revert(array('cp_content' => array('views_view')));
+  return t('CP Content Views reverted to defaults.');
+}
+/**
+ * Reverts cp_content views to make publish field sortable.
+ */
+function cp_content_update_7006() {
+  features_revert(array('cp_content' => array('views_view')));
+  return t('CP Content Views reverted to defaults.');
+}
+/**
+ * Revert view.
+ */
+function cp_content_update_7007() {
+  features_revert(array('cp_content' => array('views_view')));
+}
+
+/**
+ * Removes comment admin screen.
+ */
+function cp_content_update_7008() {
+  features_revert(array('cp_content' => array('views_view')));
+}
+
+/**
+ * Disable selecting files from other pages when selecting all the files.
+ */
+function cp_content_update_7009() {
+  features_revert(array('cp_content' => array('views_view')));
+}
+/**
+ * Reverts cp_content views to delete cp comments.
+ */
+function cp_content_update_7010() {
+  features_revert(array('cp_content' => array('views_view')));
+  return t('CP Comments Views has been deleted.');
+}
+
+/**
+ * Expose filename field in cp_files view.
+ */
+function cp_content_update_7011() {
+  features_revert(array('cp_content' => array('views_view')));
+}

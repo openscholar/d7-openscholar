@@ -1,0 +1,6 @@
+name = OS Site Creation
+core = 7.x
+version = 0.1
+
+dependencies[] = os_restful
+dependencies[] = os_common

@@ -1,0 +1,7 @@
+name = Vsite Register
+description = OpenScholar Vsite Registration
+core = 7.x
+package = OpenScholar vsite
+dependencies[] = vsite
+
+configure = admin/config/openscholar/vsite_register

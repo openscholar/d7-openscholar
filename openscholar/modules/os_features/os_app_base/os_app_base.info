@@ -1,0 +1,10 @@
+name = Base App
+description = Common exports that all Apps use.
+core = 7.x
+package = Features
+dependencies[] = features
+dependencies[] = file
+dependencies[] = text
+features[features_api][] = api:2
+features[field_base][] = body
+features[field_base][] = field_upload

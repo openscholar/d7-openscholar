@@ -1,0 +1,98 @@
+@media (max-width: 1008px) {
+
+#header-container .block-boxes-os_boxes_site_info {
+    min-height: 0 !important;
+    padding: 0 0 20px 0;
+}
+
+#boxes-box-site_info {
+    min-height: 0;
+    padding-top: 0;
+	 margin-left: 14px;
+}
+#boxes-box-site_info h1 {
+    line-height: 35px;
+}
+#boxes-box-site_info {
+    margin-bottom: 0;
+    padding-top: 10px !important;
+}
+.search-block-form .form-item label,
+#search-block-form .form-item label {
+    display: none;
+}
+.search-block-form,
+#search-block-form {
+    margin-left: 12px;
+    padding-bottom: 0!important;
+}
+.ui-tabs .ui-state-default a,
+.ui-tabs .ui-state-default a:link, 
+.ui-tabs .ui-state-default a:visited,
+.ui-tabs .ui-state-hover,
+.ui-tabs .ui-widget-content .ui-state-hover, 
+.ui-tabs .ui-widget-header .ui-state-hover, 
+.ui-tabs .ui-state-focus, 
+.ui-tabs .ui-widget-content .ui-state-focus, 
+.ui-tabs .ui-widget-header .ui-state-focus, .ui-tabs .ui-state-active, 
+.ui-tabs .ui-widget-content .ui-state-active, .ui-tabs .ui-widget-header .ui-state-active, 
+.ui-tabs .ui-state-hover a, 
+.ui-tabs .ui-state-hover a:hover, 
+.ui-tabs .ui-state-active a, 
+.ui-tabs .ui-state-active a:link, 
+.ui-tabs .ui-state-active a:visited {
+   min-height: 35px;
+    
+}
+.search-block-form input.form-submit, .search-block-form #edit-submit,
+#search-block-form input.form-submit, #search-block-form #edit-submit, #search-form #edit-submit {
+    margin: 0 0 0 -49px !important;
+}
+
+
+}
+
+@media (max-width: 479px){
+	#boxes-box-site_info {
+    padding-top: 0 !important;
+}
+	
+	
+}
+
+/*--------------------------------------------------------*/
+@media (max-width: 768px) {
+
+.search-block-form .container-inline .form-item .form-text,
+#search-block-form .container-inline .form-item .form-text {
+    width: 100%;
+}
+
+#content-column .block.block-boxes-os_boxes_manual_list.styled {
+    padding: 0!important;
+}
+
+
+.sv-list-layout-grid .file {
+width: 100% !important;
+}
+
+.sv-list-layout-grid .file .file-info {
+clear: left;
+}
+
+.ui-tabs ul.ui-tabs-nav li {
+    display: block !important;
+}
+.ui-tabs ul.ui-tabs-nav li a {
+    padding: 10px 20px !important;
+}
+
+
+}
+
+@media (max-width: 479px){
+
+/* TABS CSS WAS HERE */
+
+}

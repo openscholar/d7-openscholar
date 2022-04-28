@@ -1,0 +1,1498 @@
+<?php
+// $Id$
+
+include_once ('os_pages.features.inc');
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_pages_os_app_info() {
+  $apps = array();
+
+  $apps['os_pages'] = array(
+    'path' => '',
+    'nodetypes' => array(
+      'page',
+    ),
+    'importers' => array(
+      'page' => array(
+        'csv' => 'os_pages',
+      ),
+    ),
+    'browse_pages' => array(
+      'page' => array(
+        'url' => 'browse/pages',
+        'title' => t('Pages'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'pages',
+      ),
+    ),
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function os_pages_menu() {
+  $items = array();
+
+  $items['os/pages/%node'] =
+  $items['os/pages/%node/outline'] = array(
+    'title' => 'Section Outline',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('book_admin_edit', 2),
+    'access callback' => '_book_outline_access',
+    'access arguments' => array(2),
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 2,
+    'file' => 'book.admin.inc',
+    'file path' => drupal_get_path('module', 'book'),
+  );
+
+  $items['os/pages/%node/subpage'] = array(
+    'title' => 'Add Existing Page',
+    'title callback' => 'os_pages_add_subpage_title',
+    'title arguments' => array(2),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_pages_add_subpage_form', 2),
+    'type' => MENU_CALLBACK,
+    'access callback' => 'spaces_menu_access',
+    'access arguments' => array('update', 2, 'node_access'),
+  );
+
+  $items['os/pages/autocomplete'] = array(
+    'title' => 'Pages Autocomplete',
+    'page callback' => 'os_pages_autocomplete',
+    'access arguments' => array('access content'),
+    'file' => 'os_pages.autocomplete.inc',
+  );
+
+  // Provides an ajax callback to generate alias previews on page node forms.
+  $items['os/pages/alias-preview'] = array(
+    'title' => 'Alias preview',
+    'page callback' => 'os_pages_alias_preview_ajax',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Uses the name of the parent node in the title of the form
+ */
+function os_pages_add_subpage_title($node) {
+  return t('Add Existing Page as Subpage of @title', array('@title' => $node->title));
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function os_pages_admin_paths() {
+  return array(
+    'os/pages/*' => 'os/pages/*',
+  );
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_pages_vsite_og_node_type_info() {
+  return array(
+    'page' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function os_pages_theme() {
+  $reg = array();
+
+  $reg['os_pages_outline_table'] = array(
+    'render element' => 'form'
+  );
+
+  return $reg;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function os_pages_block_info() {
+  $blocks = array();
+
+  $blocks['main_content'] = array(
+    'info' => t('Page Content'),
+    'weight' => '-10',
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function os_pages_block_view($delta) {
+  $block = array();
+
+  switch ($delta) {
+    case 'main_content':
+      $block['subject'] = '';
+      $block['content'] = drupal_set_page_content();
+      break;
+  }
+
+  return $block;
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function os_pages_block_view_alter(&$render, $block) {
+  if ($block->delta == 'os_pages_section_nav' && !empty($render['content'])) {
+    $node = menu_get_object();
+    $render['content']['#contextual_links']['section'] = array(
+      'os/pages',
+      array($node->book['bid']),
+    );
+  }
+  elseif ($block->delta == 'main_content') {
+    // make sure this block has contextual links users can access
+    // we replace them completely later
+    $node = menu_get_object();
+    $render['content']['#contextual_links']['node'] = array('node', array($node->nid));
+  }
+}
+
+/**
+ * Implements hook_menu_contextual_links_alter().
+ *
+ * Adds a link to the main_content widget to edit the content of the page.
+ */
+function os_pages_menu_contextual_links_alter(&$links, $router_item, $root_path) {
+  // Add custom edit contextual link to main_content widget
+  if ($root_path == 'os/widget/%/%' && $router_item['map'][3] == 'main_content') {
+    $node = menu_get_object();
+    if (!is_object($node) || !node_access('update', $node)) {
+      return;
+    }
+
+    // add revisions link if user has permissions and the node has them
+    $item = menu_get_item('node/' . $node->nid . '/revisions');
+    if ((count(node_revision_list($node)) > 1) && $item['access']) {
+      $links['page-revisions'] = $item;
+    }
+
+    $links['os_pages-edit'] = menu_get_item('node/'.$node->nid.'/edit');
+
+    $links = array_reverse($links, true);
+  }
+  // vsite users skip to here because they don't have access to any of the widget contextual links
+  elseif ($root_path == 'node/%' && !empty($router_item['page_arguments'])) {
+    if ($router_item['page_callback'] == 'restws_page_callback') {
+      if (empty($router_item['page_arguments'][2]) || empty($router_item['page_arguments'][2]->nid)) {
+        // Not a node.
+        return;
+      }
+      $node = $router_item['page_arguments'][2];
+    }
+    elseif (empty($router_item['page_arguments'][0]) || empty($router_item['page_arguments'][0]->nid)) {
+      // Not a node.
+      return;
+    }
+
+    if (empty($node)) {
+      $node = $router_item['page_arguments'][0];
+    }
+
+    // we don't want to mess with the links for other content types by accident
+    // only pages are edited at the node/nid/edit paths.
+    if ($node->type == 'page') {
+      $links = array();
+      $link = menu_get_item('node/'.$node->nid.'/edit');
+      if ($link['access']) {
+        $links['os_pages-edit'] = $link;
+      }
+      $link = menu_get_item('node/' . $node->nid . '/revisions');
+      if ((count(node_revision_list($node)) > 1) && $link['access']) {
+        $links['page-revisions'] = $link;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook os_layout_get_alter()
+ */
+function os_pages_os_layout_get_alter($context_name, &$blocks){
+  //Only allow the main-content block on os_pages contexts
+  @list($ctx_prefix, $level,) = explode('-', $context_name, 3);
+  if (($ctx_prefix != 'os_pages' || $level != 'page') && isset($blocks['os_pages-main_content'])) {
+    unset($blocks['os_pages-main_content']);
+  }
+  elseif (($ctx_prefix == 'os_pages' && $level == 'page') && !isset($blocks['os_pages-main_content'])) {
+    $default_widgets = os_pages_os_widget();
+    $blocks['os_pages-main_content'] = $default_widgets['os_pages-main_content'] + array(
+      'region' => FALSE,
+      'status' => 0,
+      'title' => '',
+      'weight' => 0,
+    );
+  }
+
+  if ($ctx_prefix != 'os_pages') {
+    unset($blocks['boxes-os_pages_section_nav']);
+  }
+  elseif ($level == 'section' && !isset($blocks['boxes-os_pages_section_nav'])){
+    module_load_include('box.inc', 'os_pages');
+    $default_boxes = os_pages_default_box();
+
+    $block = os_boxes_os_widget($default_boxes['os_pages_section_nav']);
+    $block['region'] = false;
+    $blocks['boxes-os_pages_section_nav'] = $block;
+  }
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function os_pages_preprocess_block(&$vars) {
+  $block = $vars['block'];
+
+  if ($block->delta == 'os_pages_section_nav') {
+    $vars['classes_array'][] = 'section-nav';
+  }
+}
+
+/**
+ * Implements hook_os_widget().
+ */
+function os_pages_os_widget() {
+  $widgets = array();
+
+  $widgets['os_pages-main_content'] = array(
+    'module' => 'os_pages',
+    'delta' => 'main_content',
+    'title' => '',
+    'info' => 'Page Content',
+  );
+
+  return $widgets;
+}
+
+/**
+ * Defines contexts for the page nodes
+ */
+function os_pages_context_custom($name) {
+  if (strpos($name, 'os_pages-page-') !== FALSE) {
+    $nid = str_replace('os_pages-page-', '', $name);
+    $context = (object)array(
+      'disabled' => FALSE,
+      'api_version' => 3,
+      'name' => 'os_pages-page-'.$nid,
+      'description' => 'Context active on a single page.',
+      'tag' => 'OpenScholar',
+      'weight' => 10,
+      'conditions' => array(),
+      'reactions' => array(
+        'block' => array(
+          'blocks' => array(
+            'os_pages-main_content' => array(
+              'module' => 'os_pages',
+              'delta' => 'main_content',
+              'region' => 'content_top',
+              'weight' => '-10',
+            ),
+          )
+        )
+      ),
+      'condition_mode' => 0,
+    );
+    return $context;
+  }
+  elseif (strpos($name, 'os_pages-section-') !== FALSE) {
+    $context = (object)array(
+      'disabled' => FALSE,
+      'api_version' => 3,
+      'name' => $name,
+      'description' => 'Context active on a group of pages.',
+      'tag' => 'OpenScholar',
+      'weight' => 5,
+      'conditions' => array(),
+      'reactions' => array(
+        'block' => array(
+          'blocks' => array(
+            'boxes-os_pages_section_nav' => array(
+              'module' => 'boxes',
+              'delta' => 'os_pages_section_nav',
+              'region' => 'sidebar_first',
+              'weight' => '-10',
+            ),
+          )
+        )
+      ),
+      'condition_mode' => 0,
+    );
+    return $context;
+  }
+}
+
+/**
+ * Implements hook_node_view().
+ *
+ * By manually triggering the context, we can circumvent the condition process entirely.
+ * Context won't have to chug through all the contexts to process them, since none of them
+ * will have reactions.
+ */
+function os_pages_node_view($node, $view_mode) {
+  if ($node->type == 'page' && $view_mode == 'full') {
+    // We are on a node page in the public part of the site.
+    if (node_is_page($node) && !path_is_admin(current_path())) {
+      $ctx = context_load('os_pages-page-'.$node->nid);
+      if ($ctx) {
+        context_set('context', $ctx->name, $ctx);
+      }
+
+      if (isset($node->book['bid']) && $ctx = context_load('os_pages-section-'.$node->book['bid'])) {
+        context_set('context', $ctx->name, $ctx);
+      }
+    }
+
+    unset($node->content['book_navigation']);
+
+    unset($node->content['links']['book']);
+  }
+}
+
+/**
+ * Implements hook_node_view_alter().
+ */
+function os_pages_node_view_alter(&$build, $type) {
+  if ($build['#view_mode'] == 'full' && $build['#node']->type == 'page') {
+    unset($build['#contextual_links']['node']);
+  }
+}
+
+/**
+ * Implements hook_translated_menu_link_alter().
+ *
+ * Allows users to see unpublished page if they have permission to do so
+ */
+function os_pages_translated_menu_link_alter(&$link, $map) {
+
+  // Anons can never see unpublished page. Bail out early
+  if (user_is_anonymous()) {
+    return;
+  }
+
+  // Non-site members can never see unpublished page.
+  // User 1 should be able to though
+  if ($vsite = vsite_get_vsite()) {
+    if ($GLOBALS['user']->uid != 1 && !og_is_member('node', $vsite->group->nid)) {
+      return;
+    }
+  }
+
+  if ($link['router_path'] == 'node/%') {
+    if (!$link['access']) {
+      // The $map saves the pieces of the path as strings, while elements in
+      // $path_map may be replaced with loaded objects.
+      // @see _menu_translate
+      $tmp_map = $map;
+
+      // _menu_translate has it's own method to keep from calling _menu_load_objects twice
+      // Since we know this is "node/%" and we will be calling node_load we fake it here
+      $loaded = ($link['load_functions'] && count($map) > 1 && is_object($map[1]));
+
+      // we can assume this is an unpublished or deleted node
+      // we should run proper access checks on it to determine if the user can access the node or not
+      if ($loaded || _menu_load_objects($link, $tmp_map)) {
+        // we know for sure the node is unpublished now. You can't load a deleted node
+        _menu_check_access($link, $tmp_map);
+        if ($link['access']) {
+          _menu_item_localize($link, $tmp_map, TRUE);
+          $link['localized_options']['attributes']['class'][] = 'unpublished';
+        }
+      }
+
+    }
+    else {
+      // children check
+      $visible_children = _os_pages_get_link_children($link, true);
+      $link['has_children'] = (int) !empty($visible_children);
+    }
+  }
+}
+
+/**
+ * Finds all the children of a given link that the user can see.
+ * We use this to set the 'has_children' flag on a conditional basis
+ */
+function _os_pages_get_link_children($link, $can_access = false) {
+  static $links = array();
+
+  $mlid = $link['mlid'];
+  if (!isset($links[$mlid])) {
+    $query = db_select('menu_links', 'ml', array('fetch' => PDO::FETCH_ASSOC));
+    $query->addTag('translatable');
+    $query->leftJoin('menu_router', 'm', 'm.path = ml.router_path');
+    $query->fields('ml');
+    $query->fields('m', array(
+      'load_functions',
+      'to_arg_functions',
+      'access_callback',
+      'access_arguments',
+      'page_callback',
+      'page_arguments',
+      'type',
+      'description',
+    ));
+    $query->condition('plid', $mlid);
+
+    $links[$mlid] = array();
+    foreach ($query->execute() as $item) {
+      if (!$item['hidden']) {
+        $links[$mlid][] = $item;
+      }
+    }
+  }
+
+  if (!$can_access) {
+    return $links[$mlid];
+  }
+
+  $return = array();
+  foreach ($links[$mlid] as $item) {
+    $map = explode('/', $item['link_path']);
+    if ($map[0] == 'node') {
+      $q = db_select('node', 'n')
+        ->condition('nid', $map[1])
+        ->fields('n', array('status'));
+
+      //if (user_access('view unpublished '))
+      if (_menu_load_objects($link, $map)) {
+        // we know for sure the node is unpublished now. You can't load a deleted node
+        _menu_check_access($link, $map);
+        if ($link['access']) {
+          $return[] = $link;
+        }
+      }
+    }
+  }
+  return $return;
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ */
+function os_pages_form_page_node_form_alter(&$form, &$form_state) {
+  // if page content widget has been removed, do not display body field
+  $page_context = context_load('os_pages-page-' . $form_state['node']->nid);
+  if (!isset($page_context->reactions['block']['blocks']['os_pages-main_content'])) {
+    if (isset($form['#node']->book) && $book_context = context_load('os_pages-section-'.$form['#node']->book['bid'])) {
+      if (!isset($book_context->reactions['block']['blocks']['os_pages-main_content'])) {
+        $form['body']['#access'] = FALSE;
+      }
+    }
+  }
+
+  // Adds a custom fieldset for the right-hand column to hold meta description.
+  $path = drupal_get_path('module', 'os_pages');
+  $form['os_seo'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Search Engine Optimization (SEO)'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'additional_settings',
+    'field_meta_description' => array(
+      '#markup' => '&nbsp;',
+    ),
+    '#attributes' => array(
+      'class' => array(
+        'field-meta-description',
+        'os-javascript-load',
+      ),
+    ),
+    '#attached' => array(
+      'js' => array(
+        "$path/os_pages.field_meta_description.js",
+      ),
+    ),
+  );
+
+  if (isset($form['field_os_css_class']) && module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    $form['os_css_class_fieldset'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Apply css'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#group' => 'additional_settings',
+      '#region' => 'right',
+      '#attributes' => array(
+        'class' => array(
+          'field-os-css',
+          'os-javascript-load',
+        ),
+      ),
+      '#access' => og_user_access('node', $vsite->group->nid, 'add widget custom class', NULL, FALSE, TRUE),
+    );
+
+    $form['os_css_class_fieldset']['field_os_css_class'] = $form['field_os_css_class'];
+    unset($form['field_os_css_class']);
+  }
+
+  $form['#validate'][] = '_os_pages_node_form_summary_submit';
+
+  // Adds JS and CSS to display ajax node alias (pathauto) preview.
+  os_pages_form_node_form_alter_add_assets($form, $form['#node']->type);
+
+  if (isset($_GET['parent_node'])) {
+    $form['#book_parent_node'] = $_GET['parent_node'];
+  }
+
+  if (isset($form_state['build_info']['args'][1])) {
+    $form['#after_build'][] = '_os_pages_show_portion';
+  }
+
+  // required for AJAX to work properly
+  $form_state['build_info']['files'][] = array(
+    'module' => 'node',
+    'type' => 'pages.inc',
+  );
+}
+
+/**
+ * Submit callback; syncs body summary value with field_meta_summary.
+ */
+function _os_pages_node_form_summary_submit($form, &$form_state) {
+  $summary = $form_state['values']['field_meta_description'][LANGUAGE_NONE][0]['value'];
+  $form_state['values']['body'][LANGUAGE_NONE][0]['summary'] = $summary;
+}
+
+/**
+ * @TODO document
+ */
+function os_pages_form_cp_layout_full_form_alter(&$form, &$form_state) {
+  $continue = false;
+  foreach ($form['context']['#value'] as $c) {
+    if (strpos($c, 'os_pages-page-') !== FALSE) {
+      $continue = true;
+    }
+  }
+  if (!$continue) return;
+
+  if (isset($form['layout']['#attributes'])) {
+    $layout_attr = &$form['layout']['#attributes'];
+    if (!in_array('content-regions', $layout_attr['class'])) {
+      $layout_attr['class'][] = 'content-regions';
+    }
+  }
+  else {
+    $form['layout']['#attributes']['class'][] = 'content-regions';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Alters the node delete confirm form to redirect to the parent page
+ */
+function os_pages_form_node_delete_confirm_alter(&$form, &$form_state) {
+  // When the destination is empty that mean we came here from the delete
+  // button in the node edit form. We need to change the cancel href to the node
+  // edit form.
+  if (empty($_GET['destination'])) {
+    $form['actions']['cancel']['#href'] = 'node/' . $form['#node']->nid . '/edit';
+  }
+
+  // plid is empty when it's the top level of the outline
+  // we only want to redirect when it isn't empty
+  // Adding book type in case of sub-booklet
+  if (isset($form['#node']->book) && $form['#node']->book['plid']) {
+    $form['#submit'][] = 'os_pages_node_delete_redirect';
+  }
+}
+
+/**
+ * Redirect to the parent page when the page node is deleted.
+ * We have to do it in a submit handler because node_delete_confirm_submit hard
+ * codes it the redirect to <front>.
+ */
+function os_pages_node_delete_redirect($form, &$form_state) {
+  $link = menu_link_load($form['#node']->book['plid']);
+  unset($_GET['destination']);
+  $form_state['redirect'] = $link['link_path'];
+}
+
+/**
+ * Form after_build callback for node_form.
+ *
+ * @see os_pages_form_node_form_alter()
+ */
+function _os_pages_show_portion($form, $form_state) {
+  $args = $form_state['build_info']['args'];
+  $toggle = array(
+    'body',
+    'field_upload',
+  );
+
+  $display_toggle = false;
+  switch ($args[1]) {
+    case 'body':
+      $display_toggle = true;
+      break;
+    case 'meta':
+      $display_toggle = false;
+      break;
+  }
+
+  foreach (element_children($form) as $c) {
+    if (!empty($form[$c]['#type']) && in_array($form[$c]['#type'], array('hidden', 'value', 'token'))) {
+      continue;
+    }
+
+    if ($display_toggle XOR in_array($c, $toggle)) {
+
+      $form[$c]['#prefix'] = '<div style="display:none">';
+      $form[$c]['#suffix'] = '</div>';
+    }
+  }
+  unset($form['actions']['#prefix'], $form['actions']['#suffix']);
+
+  return $form;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for book_admin_edit.
+ */
+function os_pages_form_book_admin_edit_alter(&$form, $form_state) {
+  if ($form['#node']->type == 'page') {
+    $form['#attached']['js'][] = drupal_get_path('module', 'os_pages').'/os_pages.outline.js';
+    $form['#attached']['css'][] = drupal_get_path('module', 'os_pages').'/os_pages.outline.css';
+
+    $form['table']['#theme'] = 'os_pages_outline_table';
+    $sections = os_pages_get_sections();
+
+    $options = array(
+      '0' => 'Select new section',
+    );
+    foreach ($sections as $s) {
+      if ($form['#node']->nid == $s['bid']) continue;
+
+      $options[$s['bid']] = $s['title'];
+    }
+
+    foreach (element_children($form['table']) as $key) {
+      $form['table'][$key]['hidden'] = array(
+        '#type' => 'checkbox',
+        '#default_value' => $form['table'][$key]['#item']['hidden']
+      );
+      if (count($options) > 1) {
+        $form['table'][$key]['move_to'] = array(
+          '#type' => 'select',
+          '#options' => $options,
+        );
+        $form['table'][$key]['move_to_sub'] = array(
+          '#type' => 'button',
+          '#value' => t('Move'),
+          '#name' => $key.'-op',
+          '#ajax' => array(
+            'callback' => 'os_pages_move_page_callback',
+            'wrapper' => 'book-outline'
+          )
+        );
+      }
+      else {
+        $form['table'][$key]['move_to'] = array(
+          '#markup' => t('No other sections to move this page to.')
+        );
+        // dummy so theme doesn't complain
+        $form['table'][$key]['move_to_sub'] = array(
+          '#markup' => '',
+        );
+      }
+    }
+
+    $form['save']['#value'] = t('Save Section Outline');
+    $form['#submit'][] = 'os_pages_book_admin_edit_submit';
+
+    overlay_request_page_refresh();
+    overlay_trigger_refresh();
+  }
+}
+
+function os_pages_get_sections() {
+  $q = db_select('book', 'b')
+    ->fields('b', array('bid'))
+    ->distinct();
+
+  $q->join('node', 'n', 'b.bid = n.nid');
+  $q->fields('n', array('title'))
+    ->condition('n.type', 'page');
+
+  if ($vsite = spaces_get_space()) {
+    $q->join('og_membership', 'ogm', 'ogm.etid = b.bid AND ogm.entity_type =\'node\'');
+    $q->condition('gid', $vsite->id);
+  }
+
+  $sections = array();
+  $f = $q->execute();
+  foreach ($f as $r) {
+    $sections[] = array(
+      'bid' => $r->bid,
+      'title' => $r->title
+    );
+  }
+
+  return $sections;
+}
+
+function os_pages_move_page_callback($form, $form_state) {
+  $output = $form['table'];
+
+  // remove link
+  $links = array_keys($form_state['values']['table']);
+  $selected_link = array_intersect($links, $form_state['triggering_element']['#array_parents']);
+  $selected_link = reset($selected_link);
+  $link = $form_state['values']['table'][$selected_link];
+  $node = node_load($link['nid']);
+
+  if ($link['move_to'] && $node->book['bid'] != $link['move_to']) {
+    $node->book['bid'] = $link['move_to'];
+    _book_update_outline($node);
+
+    $desc = _os_pages_get_children_links($output, $output[$selected_link]);
+
+    // unset the links
+    unset($output[$selected_link]);
+    foreach ($desc as $child) {
+      unset($output[$child]);
+    }
+  }
+  return $output;
+}
+
+function _os_pages_get_children_links($output, $parent) {
+  $children = array();
+  $plid = $parent['mlid']['#default_value'];
+  foreach (element_children($output) as $key) {
+    if ($output[$key]['plid']['#default_value'] == $plid) {
+      $children[$key] = $key;
+      $children += _os_pages_get_children_links($output, $output[$key]);
+    }
+  }
+
+  return $children;
+}
+
+/**
+ * Saves the hidden field of the menu link
+ */
+function os_pages_book_admin_edit_submit($form, $form_state) {
+  foreach (element_children($form['table']) as $key) {
+    if ($form['table'][$key]['#item']) {
+      $link = $form['table'][$key]['#item'];
+      if ($link['hidden'] != $form_state['values']['table'][$key]['hidden']) {
+        $link['hidden'] = $form_state['values']['table'][$key]['hidden'];
+        menu_link_save($link);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_node_submit().
+ */
+function os_pages_node_submit(&$node, $form, &$form_state) {
+  if (isset($form['#book_parent_node'])) {
+    // create a book out of our parent node
+    $parent_id = $form['#book_parent_node'];
+    os_pages_make_subpage($node, $parent_id);
+  }
+  if (isset($node->book['bid'])) {
+    $node->book['options']['alter'] = true;
+  }
+}
+
+/**
+ * Adds the passed node as a child page of the parent node ID.
+ */
+function os_pages_make_subpage(&$node, $parent_id) {
+  // Updates the parent node (book root).
+  $parent = node_load($parent_id);
+  if (!isset($parent->book)) {
+    $parent->book['bid'] = 'new';
+    $parent->book['options']['alter'] = true;
+    book_node_update($parent);
+  }
+
+  // Updates the child node (new subpage).
+  // $node->book has already been added to the node.
+  // nothing is done if these fields are empty
+  $node->book['bid'] = $parent->book['bid'];
+  $node->book['plid'] = $parent->book['mlid'];
+  $node->book['menu_name'] = $parent->book['menu_name'];
+
+  // Allows us to control whether unpublished nodes appear
+  $node->book['options']['alter'] = true;
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * If we're on a page node, change the Layout link to point to the right context.
+ * Also, if the context is active (i.e. it exists), tell the template to use the content regions
+ */
+function os_pages_preprocess_page(&$page) {
+  if (!$node = menu_get_object()) {
+    return;
+  }
+
+  if ($node->type != 'page') {
+    return;
+  }
+
+  if (context_isset('context', 'os_pages-page-'.$node->nid)) {
+    $page['use_content_regions'] = TRUE;
+
+    // Since we use the content regions we need to make sure the metatags are
+    // included as-well.
+    $page['page']['content_top']['metatags'] = $page['page']['content']['metatags'];
+  }
+
+  $links = &$page['title_suffix']['controls']['section_links']['#links'];
+
+  $section_links = array();
+  $ctxs = array_keys(context_active_contexts());
+
+  if (isset($node->book['bid'])) {
+    $section = array_diff($ctxs, array('os_pages-page-' . $node->nid));
+
+    $section_links['section-header'] = array(
+      'title' => t('This Section'),
+    );
+    $section_links['section-layout'] = array(
+      'title' => t('Layout'),
+      'href' => 'cp/build/layout/' . implode('/', $section),
+      'query' => drupal_get_destination(),
+    );
+    $section_links['page-header'] = array(
+      'title' => t('This Page'),
+    );
+
+    $page['classes_array'][] = 'os_pages-section-' . $node->book['bid'];
+  }
+
+  $item = menu_get_item('cp/build/layout/' . implode('/', $ctxs));
+  if ($item['access']) {
+    $section_links['page-layout'] = array(
+      'title' => t('Layout'),
+      'href' => 'cp/build/layout/' . implode('/', $ctxs),
+      'query' => drupal_get_destination(),
+    );
+  }
+  else {
+    unset($section_links['section-layout'], $section_links['section-header'], $section_links['page-header']);
+  }
+
+  $item = menu_get_item('node/' . $node->nid . '/edit');
+  if ($item['access']) {
+    $section_links['page-edit'] = array(
+      'title' => t('Edit'),
+      'href' => 'node/' . $node->nid . '/edit',
+      'query' => drupal_get_destination(),
+    );
+  }
+  else {
+    unset($section_links['page-edit']);
+  }
+
+  $item = menu_get_item('node/' . $node->nid . '/delete');
+  if ($item['access']) {
+    $section_links['page-delete'] = array(
+      'title' => t('Delete'),
+      'href' => 'node/' . $node->nid . '/delete',
+    );
+  }
+  else {
+    unset($section_links['page-delete']);
+  }
+
+  $links = $section_links;
+  $page['title_suffix']['controls']['section_links']['#access'] = count($links);
+}
+
+/**
+ * Implements hook_os_add_new_links_alter().
+ */
+function os_pages_os_add_new_links_alter(&$links) {
+  $node = menu_get_object();
+
+  if (node_is_page($node) && $node->type == 'page') {
+    if ((user_access('add content to books') || user_access('administer book outlines')) && node_access('create', 'page') && (!isset($node->book['depth']) || $node->book['depth'] < MENU_MAX_DEPTH)) {
+      $links['book_add_child'] = array(
+        'title' => t('Subpage') ,
+        'href' => 'node/add/page',
+        'query' => isset($node->book['mlid']) ? array('parent' => $node->book['mlid']) : array('parent_node' => $node->nid, 'destination' => 'node/' . $node->nid),
+      );
+      $links['book_move_child'] = array(
+        'title' => t('Existing Page to Section'),
+        'href' => 'os/pages/'.$node->nid.'/subpage'
+      );
+    }
+  }
+}
+
+/**
+ * Page callback for 'os/pages/%node/subpage.
+ * Allows user to add a subpage to this page
+ */
+function os_pages_add_subpage_form($form, &$form_state, $node) {
+  $form_state['node'] = $node;
+  include_once (drupal_get_path('module', 'vsite') . '/includes/nodeautocomplete.inc');
+  $form['add-page'] = array(
+    '#type' => 'textfield',
+    '#title' =>  t('Select a Page'),
+    '#maxlength' => 180,
+    '#autocomplete_path' => 'os/pages/autocomplete/'.$node->nid,
+    '#element_validate' => array(
+      'vsite_node_autocomplete_validate',
+      'os_pages_add_subpage_element_validate'
+    ),
+    '#description' => t('Start typing the title of an existing page. If this page is part of a section already, it and
+    all of its children pages will be moved to this section. '),
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    'save' => array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+    ),
+    'cancel' => array(
+      '#type' => 'submit',
+      '#limit_validation_errors' => array(),
+      '#submit' => array('os_pages_cancel_form'),
+      '#value' => t('Cancel'),
+    )
+  );
+
+  $form['#submit'] = array(
+    'os_pages_add_subpage_submit'
+  );
+
+  return $form;
+}
+
+/**
+ * Makes sure the given node is a page and in our site.
+ */
+function os_pages_add_subpage_element_validate($element, &$form_state) {
+  // If Provided autocomplete text is not resolved to a valid node id, then early returning.
+  if (!isset($form_state['vsite_autocomplete_nid']) || !is_numeric($form_state['vsite_autocomplete_nid'])) {
+    return;
+  }
+  $nid = $form_state['vsite_autocomplete_nid'];
+  $node = node_load($nid);
+  // If provided nid is not returning a valid drupal node object, then exiting from validate handler, exeption will be handled 
+  // by vsite_node_autocomplete_validate callback
+  if (!$node) {
+    return;
+  }
+
+  if ($node->type != 'page') {
+    form_error($element, t('Selected post is not a page.'));
+  }
+
+  if ($vsite = vsite_get_vsite()) {
+    $sites = field_get_items('node', $node, OG_AUDIENCE_FIELD);
+    $pass = false;
+    foreach ($sites as $delta => $value) {
+      if ($vsite->og->nid == $value['target_id']) {
+        $pass = true;
+      }
+    }
+
+    if (!$pass) {
+      form_error($element, t('Selected post is not a part of this site.'));
+    }
+  }
+}
+
+/**
+ * Adds the selected page to the given node as a child
+ * Turns the given node into a section, if it isn't already
+ * If the selected page is already in a section, moves it to its new parent
+ */
+function os_pages_add_subpage_submit($form, &$form_state) {
+  $nid = _vsite_node_autocomplete_title_to_nid($form_state['values']['add-page']);
+  $node = node_load($nid);
+  $parent = $form_state['node'];
+
+  os_pages_make_subpage($node, $parent->nid);
+  node_save($node);
+
+  $form_state['redirect'] = 'node/' . $node->nid;
+}
+
+/**
+ * From cancel buttons
+ * Close the overlay without doing anything
+ */
+function os_pages_cancel_form($form, &$form_state) {
+  overlay_close_dialog();
+  $form_state['no_redirect'] = true;
+}
+
+/**
+ * Page callback; provides ajax callback to generate preview.
+ *
+ * Gets the pattern for formatting urls for this node type,
+ * then tries to apply it and returns expected url alias.
+ */
+function os_pages_alias_preview_ajax() {
+  $path = _os_pages_make_alias($_GET['gid'], $_GET['type'], $_GET['title'], $_GET['purl']);
+
+  if ($path) {
+    $json = array('status' => TRUE, 'data' => $path, 'prefix' => $_GET['prefix']);
+  }
+  else {
+    $json = array('status' => FALSE, 'data' => NULL, 'prefix' => NULL);
+  }
+
+  drupal_json_output($json);
+}
+
+/**
+ * Generates the path alias for user to preview on "node/add/page" only.
+ *
+ * @see os_pages_alias_preview_ajax()
+ */
+function _os_pages_make_alias($gid, $type, $title, $purl = '') {
+  // Gets the pattern variable for this node type.
+  $pattern = trim(variable_get('pathauto_node_' . $type . '_pattern', FALSE));
+  if (empty($pattern)) {
+    $pattern = trim(variable_get('pathauto_node_pattern', FALSE));
+  }
+
+  // If applicable, processes this pattern for tokens.
+  if (isset($pattern) && strlen($pattern) > 0) {
+    // Makes a bare-minimum simple node object to pass to pathauto function.
+    $pattern = "[site:url]/$pattern";
+    $node = (object)array(
+      'title' => $title,
+      'type' => $type,
+      'spaces_og' => array('gid' => $gid),
+    );
+
+    module_load_include('inc', 'node', 'node.pages');
+    node_object_prepare($node);
+    $source = "";
+    // Lets pathauto apply tokens to path given our fake node.
+    module_load_include('inc', 'pathauto');
+    $alias = pathauto_create_alias('node', 'return', $source, array('node' => $node), $node->type, $node->language);
+    if (module_exists('vsite') && $purl) {
+      // We can have a string which can contain "[purl]/[purl]/title". Check if
+      // the alias contain twice the purl and verify the purl is in the start.
+      while (strpos($alias, "$purl/$purl/") === 0) {
+        // The purl appear twice, remove the first occurrence.
+        $alias = substr($alias, strlen($purl) + 1);
+      }
+    }
+    pathauto_alias_uniquify($alias, $source, $node->language);
+  }
+  return $alias;
+}
+
+/**
+ * Form alter callback; attaches JS and CSS for alias preview.
+ *
+ * Adds token-friendly settings to page for os_pages.alias_preview.js to use.
+ *
+ * @see os_pages_form_node_form_alter()
+ */
+function os_pages_form_node_form_alter_add_assets(&$form, $type = 'page') {
+  // First, adds necessary CSS and JS files.
+  // Loads path for this modules assets.
+  $module_path = drupal_get_path('module', 'os_pages');
+  // Formats the pathauto field to display inline URL prefix.
+  $asset_page_form_css = "$module_path/os_pages.form.css";
+  $form['#attached']['css'][] = $asset_page_form_css;
+  // Attaches javascript to node edit forms to generate alias previews.
+  $asset_alias_preview_js = "$module_path/os_pages.alias_preview.js";
+  $form['#attached']['js'][] = $asset_alias_preview_js;
+
+  // Next, prepares page-specific Drupal JS settings variables.
+  $data = array();
+
+  // Prepares this form for alias preview generation.
+  $data['alias_preview']['type'] = $type;
+  $data['alias_preview']['make_alias'] = TRUE;
+  $data['alias_preview']['url'] = url('os/pages/alias-preview');
+
+  // Integrates with vsite module.
+  if (module_exists('vsite')) {
+    $vsite = vsite_get_vsite();
+    if (isset($vsite->id)) {
+      // Stores vsite id (sid) as groups id (gid) for preview generation.
+      $data['alias_preview']['gid'] = $vsite->id;
+      if ($purl = vsite_get_purl($vsite)) {
+        // Stores the purl value for preview generation.
+        $data['alias_preview']['purl'] = $purl;
+        // Absolute path to homepage includes purl for standard & group sites.
+        if (module_exists('vsite_domain')) {
+          $prefix = rtrim(url('<front>', array('absolute' => TRUE)), '/');
+          // This prefix is prepended to aliases and inserted after "URL:".
+          $data['alias_preview']['prefix'] = $prefix;
+        }
+      }
+    }
+  }
+
+  // Adds necessary variables as javascript settings to the page.
+  $form['#attached']['js'][] = array(
+    'data' => $data,
+    'type' => 'setting',
+  );
+}
+
+/**
+ * Renders the section outline table
+ */
+function theme_os_pages_outline_table($variables) {
+  $form = $variables['form'];
+
+  drupal_add_tabledrag('book-outline', 'match', 'parent', 'book-plid', 'book-plid', 'book-mlid', TRUE, MENU_MAX_DEPTH - 2);
+  drupal_add_tabledrag('book-outline', 'order', 'sibling', 'book-weight');
+
+  $header = array(t('Title'), t('Hide From Section Navigation'), t('Move To Section Navigation'), t('Parent'), t('Weight'));
+
+  $link_options = array(
+    'attributes' => array(
+      'class' => array(
+        'visibility-toggle-link',
+        'button'
+      )
+    ),
+    'external' => TRUE,
+  );
+
+  $rows = array();
+  $destination = drupal_get_destination();
+  $access = user_access('administer nodes');
+  foreach (element_children($form) as $key) {
+    $nid = $form[$key]['nid']['#value'];
+    $href = $form[$key]['href']['#value'];
+
+    // Add special classes to be used with tabledrag.js.
+    $form[$key]['plid']['#attributes']['class'] = array('book-plid');
+    $form[$key]['mlid']['#attributes']['class'] = array('book-mlid');
+    $form[$key]['weight']['#attributes']['class'] = array('book-weight');
+
+    $data = array(
+      theme('indentation', array('size' => $form[$key]['depth']['#value'] - 2)) . drupal_render($form[$key]['title']),
+      /*l($form[$key]['hidden']['#default_value']?t('Hide'):t('Show'), $_GET['q'], $link_options).*/drupal_render($form[$key]['hidden']),
+      drupal_render($form[$key]['move_to']).drupal_render($form[$key]['move_to_sub']),
+      drupal_render($form[$key]['weight']),
+      drupal_render($form[$key]['plid']) . drupal_render($form[$key]['mlid']),
+    );
+    $row = array('data' => $data);
+    if (isset($form[$key]['#attributes'])) {
+      $row = array_merge($row, $form[$key]['#attributes']);
+    }
+    $row['class'][] = 'draggable';
+    $rows[] = $row;
+  }
+
+  return theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'book-outline'), 'empty' => t('No book content available.')));
+}
+
+/*
+ * Gets all parents for a given path
+ */
+function os_pages_get_subpage_parents() {
+  $paths = &drupal_static(__FUNCTION__, array());
+
+  if (empty($paths)) {
+    $node = menu_get_object();
+    if (isset($node->book)) {
+      for ($i=1;$i<10;$i++) {
+        if ($node->book["p$i"]) {
+          $link = menu_link_load($node->book["p$i"]);
+          $paths[$link['link_path']] = $link['link_path'];
+        }
+        else {
+          break;
+        }
+      }
+    }
+  }
+
+  return $paths;
+}
+
+/**
+ * Activates each link that is a parent of the current link
+ */
+function os_pages_preprocess_menu_link(&$vars) {
+  $active_trail = os_pages_get_subpage_parents();
+  if (in_array($vars['element']['#href'], $active_trail)) {
+    $vars['element']['#attributes']['class'][] = 'active-trail';
+    $vars['element']['#localized_options']['attributes']['class'][] = 'active';
+  }
+}
+
+/**
+ * Adds HTML widgets on pages to index
+ */
+function os_pages_apachesolr_index_document_build_node(ApacheSolrDocument $doc, $entity, $env_id) {
+  if ($entity->type == 'page') {
+    $ctx = context_load('os_pages-page-'.$entity->nid);
+    $loaded_boxes = array();
+
+    // Indexing happens outside the space so make an allowance for that
+    if (module_exists('vsite') && ($groups = og_get_entity_groups('node',$entity))) {
+      if ($groups['node'] && count($groups['node'])) {
+        $vsite = spaces_load('og', current($groups['node']));
+        if (!empty($vsite->controllers->context)) {
+          $override = $vsite->controllers->context->get("os_pages-page-{$entity->nid}:reaction:block");
+          if (!is_null($override)) {
+            $ctx->reactions['block'] = $override;
+          }
+        }
+      }
+    }
+
+    if ($ctx && isset($ctx->reactions['block']['blocks'])) {
+      // Loop through the blocks in this page
+      foreach ($ctx->reactions['block']['blocks'] as $block) {
+        if($block['module'] != 'boxes' || !$block['region']) continue;
+
+        $box = boxes_box_load($block['delta']);
+        // Load from the vsite if needed.
+        if ($vsite && ($vsite_box = $vsite->controllers->boxes->get($block['delta']))) {
+          if (is_array($vsite_box))  $vsite_box = (object) $vsite_box;
+          $box = boxes_factory($vsite_box->plugin_key, $vsite_box);
+          $box->new = FALSE;
+        }
+        $boxes = array($box);
+
+        // Add Boxes within box collections.
+        if ($box instanceof os_boxes_widget_collection || $box instanceof os_boxes_columns) {
+          if(count($box->options['widgets'])) {
+            foreach ($box->options['widgets'] as $widget) {
+              // Collections and columns store the BID slightly differently
+              $bid = (is_array($widget))? $widget['bid'] : $widget;
+
+              list($module,$delta) = explode('-', $bid);
+              if ($module =='boxes') {
+                $new_box = boxes_box_load($delta);
+                // Load from the vsite if needed.
+                if ($vsite && ($vsite_box = $vsite->controllers->boxes->get($delta))) {
+                  if (is_array($vsite_box))  $vsite_box = (object) $vsite_box;
+                  $new_box = boxes_factory($vsite_box->plugin_key, $vsite_box);
+                  $new_box->new = FALSE;
+                }
+                $boxes[] = $new_box;
+              }
+            }
+          }
+        }
+
+        foreach ($boxes as $box) {
+          // Render the contents of this box into solr.
+          if ($box instanceof os_boxes_html) {
+            $doc->addField('tm_html_widget', check_markup($box->options['text']['value'], $box->options['text']['format']));
+          }
+        }
+
+      }
+    }
+  }
+}
+
+function os_pages_apachesolr_query_alter($query) {
+  $params['qf']['tm_html_widget'] = 'tm_html_widget^30';
+  $query->addParams($params);
+  $query->addParam('fl', 'tm_html_widget');
+}
+
+/**
+ * Implements hook_os_layout_set_alter
+ *
+ * Used to trigger re-index of a node when it's layout changes.
+ *
+ * @param array $blocks
+ * @param string $context_name
+ */
+function os_pages_os_layout_set_alter(&$blocks, $context_name) {
+  _os_pages_reindex_context($context_name);
+}
+
+/**
+ * Implements hook_form_FORM_ID_form_alter() for boxes_box
+ */
+function os_pages_form_boxes_box_form_alter(&$form, &$form_state) {
+  $form['#submit'][] = 'os_pages_widget_submit';
+}
+
+/**
+ * When a box is saved, if it is a HTML box then check if contexts need to be re-indexed.
+ */
+function os_pages_widget_submit($form, $form_state) {
+  if ($form_state['values']['op'] !== t('Cancel') && module_exists('vsite') && vsite_get_vsite() && $form_state['box']->plugin_key == 'os_boxes_html') {
+    // Get the relationship between blocks and contexts.
+    $context_blocks = vsite_layout_get_block_contexts('boxes',$form_state['box']->delta);
+    foreach ($context_blocks as $info) {
+      _os_pages_reindex_context($info->context);
+    }
+  }
+}
+
+/**
+ * Re-Index a page in solr when it's context is modified.
+ */
+function _os_pages_reindex_context($context_name) {
+  if (strpos($context_name, 'os_pages-page-') !== FALSE && module_exists('apachesolr')) {
+    $nid = str_replace('os_pages-page-', '', $context_name);
+    $node = node_load($nid);
+    if ($node) {
+      apachesolr_entity_update($node, 'node');
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_load().
+ */
+function os_pages_entity_load($entities, $type) {
+  if ($type != 'node') {
+    return;
+  }
+  foreach($entities as $entity) {
+    if ($entity->type != 'page') {
+      return;
+    } else{
+      if (isset($entity->metatags[LANGUAGE_NONE]) && is_array($entity->metatags[LANGUAGE_NONE]['description']) && empty($entity->metatags[LANGUAGE_NONE]['description']['value'])) {
+        $entity->metatags = array();
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_feeds_processor_targets_alter().
+ *
+ * @see FeedsProcessor::getMappingTargets()
+ */
+function os_pages_feeds_processor_targets_alter(&$targets, $entity_type, $bundle_name) {
+  if ($entity_type == 'node' && $bundle_name == 'page') {
+    $targets['parent_path'] = array(
+      'name' => t('Parent node path'),
+      'description' => t('Parent node path.'),
+      'callback' => 'os_pages_parent_page_import',
+    );
+  }
+}
+
+/**
+ * Importer callback for the set the parent page of imported node.
+ *
+ * @param $source
+ *   Field mapper source settings.
+ * @param $entity
+ *   An entity object, for instance a node object.
+ * @param $target
+ *   A string identifying the target on the node.
+ * @param $value
+ *   The value to populate the target with.
+ * @param $mapping
+ *  Associative array of the mapping settings from the per mapping configuration
+ *  form.
+ */
+function os_pages_parent_page_import($source, $entity, $target, $value, $mapping) {
+  if ($value && $entity->type == 'page') {
+    os_pages_assign_to_parent ($entity, $value);
+  }
+}
+
+function os_pages_assign_to_parent($entity, $parent_path) {
+  $path = trim($parent_path, " \t\n\r\0\x0B/");
+  $purl = vsite_get_purl();
+  $prefix = $purl ? $purl . '/' : '';
+  $normal_path = drupal_get_normal_path($prefix . $path);
+  $parent_node = menu_get_object('node', 1, $normal_path);
+  if ($parent_node && $parent_node->type == 'page') {
+    // figure out what weight we want this to be in the book
+    $weight = 0;
+    if (!empty($parent_node->book)) {
+      $parent_link = menu_link_load($parent_node->book['mlid']);
+      if ($parent_link['has_children']) {
+        $weight = db_select('menu_links', 'ml')
+          ->fields('ml')
+          ->condition('plid', $parent_node->book['mlid'])
+          ->countQuery ()
+          ->execute()
+          ->fetchField();
+
+      }
+    }
+    os_pages_make_subpage($entity, $parent_node->nid);
+
+    // set the weight so pages are ordered in creation order, rather than alphabetical
+    $entity->book['weight'] = $weight;
+  }
+}
+
+function os_pages_entity_property_info() {
+  return array(
+    'node' => array(
+      'bundles' => array(
+        'page' => array(
+          'properties' => array(
+            'parent_path' => array(
+              'label' => 'Parent Path',
+              'type' => 'text',
+              'description' => 'Path to the parent node',
+              'getter callback' => 'os_pages_entity_property_parent_path_get',
+              'setter callback' => 'os_pages_entity_property_parent_path_set',
+              'translatable' => false,
+              'field' => 0,
+              'requred' => false,
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+function os_pages_entity_property_parent_path_get($data, array $options, $name, $type, $info) {
+  $node = $data->getValue();
+  if (!empty($node->book)) {
+    $parent_link = $node->book['plid'];
+    $link = menu_link_load($parent_link);
+    $alias = drupal_get_path_alias ($link['link_path']);
+
+    $purl = db_select('purl', 'p')
+      ->field('p', array('value'))
+      ->condition('id', $node->{OG_AUDIENCE_FIELD}[LANGUAGE_NONE][0]['target_id'])
+      ->condition('provider', 'spaces_og')
+      ->execute()
+      ->fetchField();
+
+    return str_replace($purl.'/', '', $alias);
+  }
+  return '';
+}
+
+function os_pages_entity_property_parent_path_set(&$data, $name, $value, $langcode, $type, $info) {
+  if (!empty($value) && $type == 'node' && $data->bundle == 'page') {
+    os_pages_assign_to_parent ($data->getValue(), $value);
+  }
+}

@@ -1,0 +1,23 @@
+Index: profiles/openscholar/modules/contrib/spaces/spaces.module
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- spaces.module	(revision )
++++ spaces.module	(revision )
+@@ -694,9 +694,12 @@
+     // Determine the access callback to use by inspecting args.
+     if ($access_callback == 'node_access' && $args[0] == 'create') {
+       $node_type = str_replace('-', '_', $args[1]);
+-      $feature = !empty($map[$node_type]) ? reset($map[$node_type]) : NULL;
+-      if ($feature) {
++      // the map contains disabled modules as well
++      // we don't care about those so skip over them
++      foreach ($map[$node_type] as $feature) {
++        if (module_exists($feature)) {
+-        return spaces_access_feature('create', $feature);
++          return spaces_access_feature('create', $feature);
++        }
+       }
+     }
+     else {

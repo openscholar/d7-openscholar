@@ -1,0 +1,56 @@
+diff --git boxes.module boxes.module
+index 1d4921d..2da51d7 100644
+--- boxes.module
++++ boxes.module
+@@ -100,7 +100,9 @@ function boxes_block_info() {
+     // Let context group the instances together
+     $blocks[$box->delta]['context_group'] = t('Boxes for @plugin', array('@plugin' => $plugins[$box->plugin_key]['title']));
+     // Let each box determine how it is cached
+-    $blocks[$box->delta]['cache'] = $box->cache_setting();
++
++// @todo COMMENTED OUT TMP  5/29 throwing fatal error -RWB
++////    $blocks[$box->delta]['cache'] = $box->cache_setting();
+   }
+
+   // 'Add' blocks for editing a page inline
+@@ -371,15 +373,37 @@ function boxes_box_load($delta = NULL) {
+   if (isset($delta)) {
+     $box = boxes_box::load($delta);
+     drupal_alter('boxes_box_load', $box, $delta);
+-    return $box;
++    if ($box instanceof boxes_box) {
++      return $box;
++    }
++    return false;
+   }
+   ctools_include('export');
+   $boxes = array();
+   foreach (ctools_export_load_object('box') as $box) {
+     $box = boxes_box::load($box->delta);
+-    drupal_alter('boxes_box_load', $box, $delta);
+-    $boxes[$box->delta] = $box;
++    if ($box instanceof boxes_box) {
++      drupal_alter('boxes_box_load', $box, $box->delta);
++      $boxes[$box->delta] = $box;
++    }
++  }
++
++  if (module_exists('spaces') && $space = spaces_get_space()) {
++    foreach ($space->controllers->boxes->get() as $space_box) {
++      // Some older overrides may be stored as an array, check for these and convert them to objects.
++      if (is_array($space_box)) {
++        $space_box = (object)$space_box;
++      }
++      $box = boxes_factory($space_box->plugin_key, $space_box);
++      $box->new = FALSE;
++
++      if ($box instanceof boxes_box) {
++        drupal_alter('boxes_load', $box, $box->delta);
++        $boxes[$box->delta] = $box;
++      }
++    }
+   }
++
+   return $boxes;
+ }
+

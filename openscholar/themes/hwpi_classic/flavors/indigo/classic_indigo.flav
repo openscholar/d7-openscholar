@@ -1,0 +1,6 @@
+name = Indigo
+description = A dark blue nav bar version of the Classic theme
+screenshot = screenshot.png
+
+css[] = indigo.css
+css[] = responsive.indigo.css

@@ -1,0 +1,45 @@
+#extradiv {
+  background-image: url('images/fabric-strip-mesh.png');
+  -moz-box-shadow: -5px 0 20px #999;
+  -webkit-box-shadow: -5px 0 20px #999;
+  box-shadow: -5px 0 20px #999;
+  }
+
+body {
+  background-color: #fff;
+  }
+
+#menu-bar {
+  background: url('images/menu-strip-mesh.png') #B4B4B4;
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color:#A8AF57;
+  }
+
+#columns {
+  background: #ededed;
+  }
+
+#header-container, 
+#header-container h1,
+#header-container h2,
+#header-container h3,
+#header-container a,
+#header-container a:visited,
+#header-container h1 a,
+#header-container h1 a:visited,
+#menu-bar li a,
+#menu-bar li a:visited {
+  color: #393933;
+  }
+
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar .active-trail a {
+  background: #e6e8cf;
+  color: #000;
+  }
+
+

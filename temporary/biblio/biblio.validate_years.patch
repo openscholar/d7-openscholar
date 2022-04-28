@@ -1,0 +1,17 @@
+diff --git a/modules/contrib/biblio/biblio.module b/modules/contrib/biblio/biblio.module
+index 935fab6..98cb6db 100644
+--- a/modules/contrib/biblio/biblio.module
++++ b/modules/contrib/biblio/biblio.module
+@@ -1495,6 +1495,12 @@ function biblio_node_form_validate($form, &$form_state) {
+     }
+   }
+ 
++  if (isset($form_state['values']['biblio_year'])) {
++    if (!_biblio_numeric_year($form_state['values']['biblio_year'])) {
++      form_set_error('biblio_year', t('The year @year is not valid. Please enter a valid year.', array('@year' => $form_state['values']['biblio_year'])));
++    }
++  }
++
+ 
+   if (isset($form_state['biblio_fields'])) {
+     $vtabs = biblio_node_form_vtab_info();

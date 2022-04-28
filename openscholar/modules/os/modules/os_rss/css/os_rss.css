@@ -1,0 +1,38 @@
+.os-reader-feed-items {
+  margin-bottom: 10px !important;
+}
+
+.os-reader-feed-items li {
+  list-style-type: none;
+}
+
+.os-reader-terms {
+  padding-left: 0 !important; /* LTR */
+  padding-bottom: 5px !important;
+  padding-top: 5px !important;
+}
+
+
+
+.os-rss-description {
+padding: 0 0 28px 55px;
+background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0px -682px no-repeat;
+height: 17px;
+}
+
+h2.os-reader-feed-title,
+.os-reader-feed-items h3 {
+	margin-top:15px;font-weight:normal;
+	}
+
+
+.os-reader-feed-items li a:before {
+padding-left: 21px;
+background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0px -756px no-repeat;
+content: '';
+}
+
+.os-rss-vocab-description  {
+font-size: .9em;
+color: #555;
+}

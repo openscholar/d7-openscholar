@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Dynamic text field
+ * module.
+ */
+
+
+/**
+ * Implements hook_field_schema().
+ */
+function dyntextfield_field_schema($field) {
+  $schema = array(
+    'columns' => array(
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'value' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+  );
+
+  return $schema;
+}

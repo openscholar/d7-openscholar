@@ -1,0 +1,5 @@
+name = Brown
+description = A Brown Version of the scholor-theme-06 theme
+screenshot = screenshot.png
+
+css[] = brown.css

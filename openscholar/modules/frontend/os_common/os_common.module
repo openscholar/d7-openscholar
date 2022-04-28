@@ -1,0 +1,620 @@
+<?php
+
+/**
+ * Implements hook_library().
+ */
+function os_common_library() {
+  $info = array();
+
+  $path = drupal_get_path('module', 'os_common');
+  $disable = array('alias' => TRUE);
+  $rest = url('api', $disable);
+  $vsite = function_exists('vsite_get_vsite') ? vsite_get_vsite() : FALSE;
+
+  $info['angularjs'] = array(
+    'title' => 'AngularJS',
+    'version' => '1.4.6',
+    'js' => array(
+      '//ajax.googleapis.com/ajax/libs/angularjs/1.4.6/angular.js' => array(
+        'type' => 'external',
+        'group' => JS_LIBRARY,
+        'weight' => -15
+      ),
+      '//ajax.googleapis.com/ajax/libs/angularjs/1.4.6/angular-sanitize.js' => array(
+        'type' => 'external',
+        'group' => JS_LIBRARY,
+        'weight' => -14
+      ),
+      '//ajax.googleapis.com/ajax/libs/angularjs/1.4.6/angular-cookies.js' => array(
+        'type' => 'external',
+        'group' => JS_LIBRARY,
+        'weight' => -14
+      ),
+      '//cdnjs.cloudflare.com/ajax/libs/ngStorage/0.3.9/ngStorage.min.js' => array(
+        'type' => 'external',
+        'group' => JS_LIBRARY,
+        'weight' => -14
+      ),
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'paths' => array(
+            'api' => $rest,
+          )
+        )
+      )
+    )
+  );
+
+  $info['auth'] = array(
+    'title' => 'Authentication',
+    'version' => '1.0',
+    'js' => array(
+      $path . '/auth/auth.js' => array(
+        'group' => JS_LIBRARY,
+        'weight' => -10
+      ),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+    ),
+  );
+
+  $info['locationFix'] = array(
+    'title' => 'Location Provider Fix',
+    'version' => '1.0',
+    'js' => array(
+      $path . '/locationFix/locationFix.module.js' => array(
+        'group' => JS_LIBRARY,
+        'weight' => -10
+      )
+    )
+  );
+
+  $info['select2'] = array(
+    'title' => t('Select2'),
+    'version' => '3.4.3',
+    'js' => array(
+      libraries_get_path('select2') . '/select2.js' => array(),
+      drupal_get_path('module', 'os') . '/js/select2-widget.js' => array(),
+    ),
+    'css' => array(
+      libraries_get_path('select2') . '/select2.css',
+      drupal_get_path('module', 'os') . '/css/select2-widget.css',
+    ),
+  );
+
+  $info['angular_select2'] = array(
+    'title' => t('Angualr JS select 2'),
+    'version' => '0.0.5',
+    'js' => array(
+      libraries_get_path('angular_select2') . '/dist/select.js' => array(),
+    ),
+    'css' => array(
+      libraries_get_path('angular_select2') . '/dist/select.min.css' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'select2'),
+      array('os_common', 'angularjs'),
+    ),
+  );
+
+  $info['angular_ui'] = array(
+    'title' => t('Angualr UI'),
+    'version' => '0.0.5',
+    'js' => array(
+      drupal_get_path('module', 'os_common') . '/js/ui-bootstrap-custom-0.12.1.min.js' => array(),
+      drupal_get_path('module', 'os_common') . '/js/ui-bootstrap-custom-tpls-0.12.1.min.js' => array(),
+    ),
+    'css' => array(
+      drupal_get_path('module', 'os_common') . '/css/auto_complete.css' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'select2'),
+      array('os_common', 'angularjs'),
+    ),
+  );
+
+  $info['taxonomy_tree'] = array(
+    'title' => t('Angular taxonomy tree'),
+    'version' => '0.0.5',
+    'js' => array(
+      libraries_get_path('angular-ivh-treeview') . '/dist/ivh-treeview.js' => array(),
+    ),
+    'css' => array(
+      libraries_get_path('angular-ivh-treeview') . '/dist/ivh-treeview.min.css' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'select2'),
+      array('os_common', 'angularjs'),
+    ),
+  );
+
+  $info['helpers'] = array(
+    'title' => 'OS Common Helpers',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/helpers/helpers.js' => array(
+        'group' => JS_LIBRARY,
+        'weight' => -10,
+      ),
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'paths' => array(
+            'api' => $rest,
+            'vsite_home' => $vsite ? trim($vsite->get_absolute_url(), '/') : '',
+          )
+        )
+      )
+    )
+  );
+
+  $info['RecursionHelper'] = array(
+    'title' => 'Recursion Helper',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/RecursionHelper/RecursionHelper.module.js' => array()
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs')
+    )
+  );
+
+  $info['DependencyManager'] = array(
+    'title' => 'Dependency Manager',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/DependencyManager/DependencyManager.module.js' => array()
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs')
+    )
+  );
+
+  $info['JSPager'] = array(
+    'title' => 'JS Pager',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/JSPager/JSPager.module.js' => array(),
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'paths' => array(
+            'JSPager' => url($path.'/JSPager', $disable),
+          ),
+          'version' => array(
+            'JSPager' => '1.0',
+          )
+        )
+      )
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+      array('os_common', 'helpers')
+    )
+  );
+
+  $info['formElement'] = array(
+    'title' => 'Form Elements',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/formElement/formElement.module.js' => array(),
+      $path.'/formElement/basicFormElements.module.js' => array()
+    ),
+    'dependencies' => array(
+      array('os_common', 'DependencyManager'),
+      array('system', 'drupal.states')
+    )
+  );
+
+  $info['buttonSpinner'] = array(
+    'title' => 'Button Spinner',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/buttonSpinner/buttonSpinner.module.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs')
+    )
+  );
+
+  $info['EntityService'] = array(
+    'title' => 'EntityService',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/EntityService/EntityService.module.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+      array('os_common', 'angular-indexed-db'),
+      array('os_common', 'helpers')
+    )
+  );
+
+  $info['TreeSelector'] = array(
+    'title' => 'TreeSelector',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/TreeSelector/TreeSelector.module.js' => array(),
+    ),
+    'css' => array(
+      $path.'/TreeSelector/TreeSelector.css' => array()
+    )
+  );
+
+  $bower = libraries_get_path('components');
+  $info['bootstrap'] = array(
+    'title' => 'Boostrap',
+    'version' => '1.0',
+    'js' => array(
+      $bower.'/bootstrap/dist/js/bootstrap.js' => array(),
+    ),
+    'css' => array(
+      $bower.'/bootstrap/dist/css/bootstrap.css' => array(),
+    )
+  );
+
+  $info['ng-file-upload'] = array(
+    'title' => t('Angular File Upload'),
+    'version' => '3.1.0',
+    'js' => array(
+      libraries_get_path('ng-file-upload') . '/angular-file-upload.js' => array(),
+      libraries_get_path('ng-file-upload') . '/angular-file-upload-shim.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+    )
+  );
+
+  $info['angular-modal-service'] = array(
+    'title' => t('Angular File Upload'),
+    'version' => '3.1.0',
+    'js' => array(
+      libraries_get_path('angular-modal-service') . '/dst/angular-modal-service.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+    )
+  );
+
+  $info['angular-indexed-db'] = array(
+    'title' => t('Angular Indexed DB'),
+    'version' => '1.1.0',
+    'js' => array(
+      libraries_get_path('angular-indexed-db') . '/angular-indexed-db.js' => array()
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs')
+    )
+  );
+
+  $info['angular-ui-sortable'] = array(
+    'title' => t('Angular UI Sortable'),
+    'version' => '0.13.4',
+    'js' => array(
+      libraries_get_path('angular-ui-sortable'). '/sortable.js' => array()
+    ),
+    'dependencies' => array(
+      array('system', 'ui.sortable'),
+      array('os_common', 'angularjs')
+    )
+  );
+
+  $info['TaxonomyWidget'] = array(
+    'title' => 'Angular Taxonomy Widget',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/TaxonomyWidget/TaxonomyWidget.module.js' => array(),
+      array(
+        'data' => array(
+          'paths' => array(
+            'TaxonomyWidget' => url($path.'/TaxonomyWidget', $disable),
+          ),
+          'version' => array(
+            'TaxonomyWidget' => '1.0.0',
+          )
+        ),
+        'type' => 'setting',
+      )
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+      array('os_common', 'EntityService'),
+      array('os_common', 'angular_select2'),
+      array('os_common', 'angular_ui'),
+      array('os_common', 'TreeSelector'),
+    )
+  );
+
+  $info['FileEditor'] = array(
+    'title' => 'Angular File Editor',
+    'version' => '1.0.1',
+    'js' => array(
+      $path.'/FileEditor/FileEditor.module.js' => array(),
+      array(
+        'data' => array(
+          'paths' => array(
+            'FileEditor' => url($path.'/FileEditor', $disable),
+          ),
+          'version' => array(
+            'FileEditor' => '1.0.4',
+          )
+        ),
+        'type' => 'setting',
+      )
+    ),
+    'css' => array(
+      $path.'/FileEditor/FileEditor.style.css' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'auth'),
+      array('os_common', 'ng-file-upload'),
+      array('os_common', 'EntityService'),
+      array('os_common', 'TaxonomyWidget'),
+    )
+  );
+
+  $info['FileEditorModal'] = array(
+    'title' => 'Angular File Editor Modal',
+    'version' => '1.0',
+    'js' => array(
+      $path.'/FileEditor/FileEditorModal.module.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'FileEditor'),
+      array('os_common', 'angular-modal-service'),
+      array('os_common', 'locationFix')
+    )
+  );
+
+  $info['angularSlideables'] = array(
+    'title' => 'Angular Collapsible Div',
+    'version' => '1.0',
+    'js' => array(
+      libraries_get_path('angularSlideables') . '/angularSlideables.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs')
+    )
+  );
+
+  $info['batchApi'] = array(
+    'title' => 'Angular Batch operations',
+    'version' => '0.1',
+    'js' => array(
+      $path.'/batch/batch.module.js' => array(),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+    )
+  );
+
+  global $user;
+  $info['ActiveUser'] = array(
+    'title' => 'Active User',
+    'version' => '0.1',
+    'js' => array(
+      $path.'/ActiveUser/ActiveUser.module.js' => array(),
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'user' => array(
+            'uid' => $user->uid,
+            'name' => $user->name,
+          )
+        )
+      )
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+    )
+  );
+
+  return $info;
+}
+
+/**
+ * Define the angular apps to be used on this page.
+ */
+function os_common_angular_apps($name = FALSE) {
+  $app_name = &drupal_static(__FUNCTION__, array());
+
+  if ($name) {
+    $app_name[] = $name;
+    array_filter($app_name);
+  }
+
+  return $app_name;
+}
+
+/**
+ * Implements hook_preprocess_html().
+ *
+ * Adds a defined angular app to the body attribute of the page.
+ */
+function os_common_preprocess_html(&$vars) {
+  if ($apps = os_common_angular_apps()) {
+    $vars['attributes_array']['ng-app'] = 'openscholar';
+    $dependencies = implode("','",$apps);
+    drupal_add_js("(function ($) { angular.module('openscholar', ['{$dependencies}']); })();",
+      array('type' => 'inline', 'scope' => 'header', 'weight' => 5)
+    );
+
+    drupal_add_html_head(array(
+      '#tag' => 'base',
+      '#attributes' => array(
+        'href' =>  request_uri(),
+      )
+    ), 'base');
+  }
+}
+
+/**
+ * Implements hook_node_form_alter().
+ */
+function os_common_form_node_form_alter(&$form, &$form_state) {
+  $form['#after_build'][] = 'os_common_set_node_form_angular_app';
+}
+
+/**
+ * Implements after_build.
+ *
+ * We have to do it this way, otherwise nothing angular related will load if form validation fails.
+ */
+function os_common_set_node_form_angular_app($element, $form_state) {
+  $form_id = $form_state['complete form']['#id'];
+
+  // Determine if this form has an angular app.
+  if ($app = os_common_get_angular_module($form_id)) {
+    // Set the active angular app as the app with the same name as this form id.
+    os_common_angular_apps($app->name);
+    $element['#attached']['js'][] = $app->uri;
+  }
+  return $element;
+}
+
+/**
+ * Get angular js files.
+ *
+ * Returns Object
+ * $o->name = app-name;
+ * $o->filename = app-name.js
+ * $o->uri = full/path/tofile/app-name.js
+ */
+function os_common_get_angular_module($app_name) {
+
+  if ($cache = cache_get('os_common_angular_modules')) {
+    $apps = $cache->data;
+  }
+  else {
+    // Get os_common_modules.
+    $apps = file_scan_directory(drupal_get_path('module', 'os_common').'/modules', "/.*\.js/", array('key' => 'name'));
+
+    // Allow other modules to add their own.
+    drupal_alter('os_angular_modules', $apps);
+
+    cache_set('os_common_angular_modules', $apps);
+  }
+
+  if (isset($apps[$app_name])) {
+    return $apps[$app_name];
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_menu_contextual_links_alter().
+ *
+ * Adds the File Editor js to pages that have a file/n/edit contextual link.
+ */
+/**
+ * Implements hook_menu_contextual_links_alter().
+ */
+function os_common_menu_contextual_links_alter(&$links, $router_item, $root_path) {
+  if (isset($links['file-edit']) && !os_common_angular_apps()) {
+    os_common_angular_apps('os-public-page');
+    drupal_add_js(drupal_get_path('module', 'os_common').'/modules/os-public-page.js');
+    drupal_add_library('os_common', 'FileEditorModal');
+  }
+}
+
+/**
+ * ng-non-bindable handling
+ *
+ * Prevents user-entered text wrapped in {{ }} from breaking the js on sites, due to angular thinking its a binding.
+ * We add ng-non-bindable to everything that could print a string the user has entered to prevent this.
+ */
+
+define("OS_COMMON_NONBIND_TITLE", 1);
+define("OS_COMMON_NONBIND_CONTENT", 2);
+define("OS_COMMON_NONBIND_BOTH", 3);
+function _ng_non_bindable(&$variables, $flags = OS_COMMON_NONBIND_BOTH) {
+  $ng_non_bindable = drupal_attributes(array(
+    'ng-non-bindable' => '',
+  ));
+
+  if (($flags & OS_COMMON_NONBIND_TITLE) && strpos($variables['title_attributes'], 'ng-non-bindable') === FALSE) {
+    $variables['title_attributes'] .= $ng_non_bindable;
+  }
+  if (($flags & OS_COMMON_NONBIND_CONTENT) && strpos($variables['content_attributes'], 'ng-non-bindable') === FALSE) {
+    $variables['content_attributes'] .= $ng_non_bindable;
+  }
+}
+
+function _element_children_recursive(&$element) {
+  foreach (element_children($element) as $element_key) {
+    $is_text_field = !empty($element[$element_key]['#type']) && in_array($element[$element_key]['#type'], array('file', 'form', 'password', 'textarea', 'text_format', 'textfield'));
+    $is_attributed_added = !empty($element[$element_key]['#attributes']) && isset($element[$element_key]['#attributes']['ng-non-bindable']);
+    if ($is_text_field && !$is_attributed_added) {
+      $element[$element_key]['#attributes']['ng-non-bindable'] = '';
+    }
+
+    _element_children_recursive($element[$element_key]);
+  }
+}
+
+function os_common_process_node(&$variables, $hook) {
+  $bind = OS_COMMON_NONBIND_BOTH;
+  if (isset($variables['allow_binding'])) {
+    $bind = $bind & !$variables['allow_binding'];
+  }
+  _ng_non_bindable($variables, $bind);
+}
+
+function os_common_process_block(&$variables, $hook) {
+  $flag = OS_COMMON_NONBIND_BOTH;
+  if (!empty($variables['elements']['#block']->allow_binding)) {
+    $flag = OS_COMMON_NONBIND_TITLE;
+  }
+  _ng_non_bindable($variables, $flag);
+}
+
+function os_common_form_alter(&$form, $form_state, $form_id) {
+  _element_children_recursive($form);
+}
+
+function os_common_field_widget_og_vocab_complex_form_alter(&$element, $form_state, $context) {
+  $element['#prefix'] = '<div ng-non-bindable>';
+  $element['#suffix'] = '</div>';
+}
+
+function os_common_preprocess_page(&$vars) {
+  $vars['attributes_array']['ng-non-bindable'] = '';
+}
+
+function os_common_preprocess_table(&$vars) {
+  if (isset($vars['attributes']['id']) && $vars['attributes']['id'] == 'taxonomy') {
+    $vars['attributes']['ng-non-bindable'] = '';
+  }
+}
+
+function os_common_preprocess_overlay(&$vars) {
+  $vars['title_attributes_array']['ng-non-bindable'] = '';
+}
+
+function os_common_preprocess_views_view_field(&$vars) {
+  if ($vars['field']->field_alias == 'node_title') {
+    $vars['output'] = '<span ng-non-bindable>'.$vars['output'].'</span>';
+  }
+}
+
+/**
+ * Implements a post_render function.
+ *
+ * Add this to any element with the #angular_app property to include the app on the page
+ */
+function os_common_element_post_render($content, $elem) {
+  if (!empty($elem['#angular_app'])) {
+    if (is_array($elem['#angular_app'])) {
+      foreach ($elem['#angular_app'] as $app) {
+        os_common_angular_apps($app);
+      }
+    } elseif (is_string($elem['#angular_app'])) {
+      os_common_angular_apps($elem['#angular_app']);
+    }
+  }
+
+  return $content;
+}

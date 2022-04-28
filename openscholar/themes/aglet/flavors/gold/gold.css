@@ -1,0 +1,33 @@
+#header-container .gpanel {
+  background: #f6d04c;
+  }
+
+#menu-bar #block-os-primary-menu {
+  background: #f8ef61;
+  }
+
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar li.active-trail a {
+  background: #feffa0;
+  }
+
+.region-sidebar-first {
+  background:#fffcc4;
+  }
+
+.region-sidebar-second {
+  background:#f6d861;
+  }
+
+.region-sidebar-first h2.block-title {
+  background: #edf09a;
+  }
+
+.region-sidebar-second h2.block-title {
+  background: #efe87c;
+  }
+
+#footer .wrap {
+  background: #dab843;
+  }

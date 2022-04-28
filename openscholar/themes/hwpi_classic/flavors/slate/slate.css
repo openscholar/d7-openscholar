@@ -1,0 +1,210 @@
+html, body {
+color: #4c4c4c;
+}
+
+#page {
+background: #F6F5EE;
+}
+
+.ui-tabs .ui-widget-content a,
+a,
+a:visited,
+.biblio-title a {
+color: #C2230E;
+
+}
+
+
+a:hover {
+color: #8996A0;
+}
+a.os-swipe-large,
+a.os-swipe-small {
+    background-color: #C2230E;
+}
+
+body,
+.date-nav h3,
+.block-boxes-os_taxonomy_fbt.navigation a,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation a,
+#layout_16_9_side .slide-copy h2, 
+#layout_3_1_overlay .slide-copy h2, 
+#layout_16_9_below .slide-copy h2, 
+#layout_16_9_overlay .slide-copy h2,
+#page-title, 
+.node-title, 
+.page-search .title a, 
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a, 
+.more-link, 
+.links a, 
+#footer ul.menu a, 
+.boxes-box-content h2, 
+.section-nav a, 
+#content-column h2, 
+#content-column h3, 
+#content-column h4, 
+#boxes-box-site_info, 
+#boxes-box-site_info a ,
+#menu-bar ul.nice-menu a,
+.breadcrumb, 
+.breadcrumb a,
+.cke_editable * {
+font-family: helvetica, Georgia, Baskerville, Palatino, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+}
+
+h2.block-title {
+text-transform: none;
+font-size: 14px;
+letter-spacing: 0;
+font-weight: 900;
+font-family: helvetica, arial !important; 
+}
+
+
+.region-header-third ul.nice-menu a,
+#search-block-form .form-item label,
+.search-block-form .form-item label,
+#menu-bar,
+#header,
+#boxes-box-site_info, 
+#boxes-box-site_info a,
+#menu-bar ul.nice-menu a {
+color: #4c4c4c;
+}
+
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a,
+#menu-bar {
+background: #FFF !important;
+}
+
+.section-nav .expanded.menu-depth-2 > a {
+color: #333;
+}
+
+#header {
+	background: #F0F0EE;
+}
+
+#menu-bar {
+border-bottom: 1px solid #E4E0E0;
+}
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+background-position: -68px -566px;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background-color:  #8996A0;
+}
+
+/* Targets all menuparents, top level or descendents of top */
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu ul li.menuparent a {
+  color:#FFF;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+  background-position: 0 -566px; /* White Arrow */
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a,
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active {
+     color:#FFF;
+}
+
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover {
+    background: #8996A0;
+}
+
+#menu-bar ul.nice-menu ul {
+	background:#8996A0;
+}
+
+
+.sidebar .block, 
+.front #content-column .block, 
+#content-column .block.block-boxes-os_boxes_columns .block, 
+.node-person .block-inner, 
+.comment-wrapper {
+border-top: 1px solid #E4E0E0;
+}
+
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit, 
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+  background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat 2px -441px #8996A0;
+  height:34px;
+}
+
+.more-link:after {
+background-image: none;
+
+}
+
+a.rslides_nav {
+background-color: #8996A0 !important;
+}
+
+#footer {
+	background: #555;
+}
+
+#footer .footer-login,
+#footer,
+#footer a {
+	color:#FFF;
+	text-shadow: none;
+}
+
+#footer .footer-login:after {
+background-image: none;
+}
+
+
+#footer ul.menu a.menu-heading {
+	font-size:.99em;
+}
+
+#powered-by a {
+background-position: -14px -545px;
+}
+
+.section-nav .menu-depth-1 > a {
+background: #BAC5C6 !important;
+color: #fff !important;
+}
+
+.node-event .field-name-field-date, 
+.node-event .field-name-field-event-location {
+color: #1e1e1e;
+}
+
+.node-type-page .breadcrumb, .breadcrumb, .breadcrumb a {
+letter-spacing: 0;
+color: #C2230E;
+}
+
+
+.accordion .ui-widget-content {
+background: #fff;
+
+}
+
+
+
+
+
+
+

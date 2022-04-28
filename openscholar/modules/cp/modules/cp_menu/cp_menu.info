@@ -1,0 +1,12 @@
+name = "Control Panel: Menu"
+description = "OpenScholar Menu Management UI"
+core = 7.x
+package = "Control Panel"
+dependencies[] = "ctools"
+dependencies[] = cp
+dependencies[] = os
+files[] = cp_menu.form.inc
+files[] = cp_menu.install
+files[] = cp_menu.wizard.inc
+files[] = cp_menu.module
+files[] = tests/cp_menu.test

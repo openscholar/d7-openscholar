@@ -1,0 +1,24 @@
+<div ng-cloak>
+    <div class="grouper-header-bar" ng-click="ShowPanel(true)">
+        <div><span ng-show="status.loading" button-spinner="grouper_AllGroups" spinning-text="Loading Groups"><span></span></span></div>
+        <span class="add-edit-link">{{selected.length ? 'Edit Groups' : '+ Add Groups'}}</span>
+        <span ng-if="!status.loading && !ShowPanel() && selected.length"><label>Selected Groups</label><span class="description">Up to seven groups can be selected</span><br><span class="selected-groups"><span class="group" ng-repeat="path in selected">{{GroupLabel(path)}}</span></span></span>
+        </div>
+    <div class="grouper-panel" ng-if="ShowPanel()">
+         <label>Selected Groups</label>
+        <span class="description">Up to seven groups can be selected</span>
+            <div class="grouper-selected-fieldset-panel">
+                <span class="group" ng-repeat="path in selected" ng-show="GroupLabel(path) != ''">{{GroupLabel(path)}}<span class="remove" ng-click="Remove(path)"></span></span>
+                <span ng-if="selected.length == 0">No groups selected.</span>
+            </div><br>
+        <div ng-show="selected.length < 7">
+            <label for="grouper-search">Filter By Name:</label>
+            <input type="text" class="form-text" id="grouper-search" ng-model="search">
+            <div class="all-groups" ng-show="selected.length < 7">
+                <div class="group" ng-repeat="g in Groups() | filter:{displayExtension:search} | orderBy:'displayExtension'" ng-click="AddGroup(g.name)" ng-class="{selected: IsGroupSelected(g.name)}">{{g.displayExtension}}</div>
+                <div ng-if="Groups().length == 0" class="messages error"><ul><li>There are no groups you can add, or there was an error getting the list of your groups.</li><li>You must be logged in through a <a href="https://help.theopenscholar.com/logging-your-site" target="_blank">Harvard Key linked account</a> in order to use the Groups feature</li></ul></div>
+            </div>
+        </div>
+        <div class="groups-full messages warning" ng-show="selected.length >= 7">You've selected the maximum number of groups.</div>
+    </div>
+</div>

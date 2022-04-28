@@ -1,0 +1,263 @@
+<?php
+
+function os_shields_menu() {
+  $items = array();
+
+  $items['admin/config/user-interface/shields'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_shields_form'),
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Shield Manager',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+function os_shields_theme() {
+  $items = array();
+
+  $items['os_shields_theme_shieldpicker'] = array(
+    'variables' => array('file' => array()),
+    'template' => 'os_shields-theme-shieldpicker',
+    'path' => drupal_get_path('module', 'os_shields')."/theme",
+  );
+  $items['os_shields_form_table'] = array(
+    'variables' => array('table' => array()),
+    'render element' => 'table',
+  );
+
+  return $items;
+}
+
+function os_shields_form($form_state) {
+  $form = array();
+  $form['#attributes'] = array('enctype' => "multipart/form-data");
+
+  /*
+   * actions:
+   * upload shield
+   * delete shield
+   * hide shield
+   * set default
+   * allow nothing but upload and set default if it's the harvard shield set
+   */
+
+  $form['new_shield'] = array(
+    '#type' => 'file',
+    '#size' => 60,
+    '#title' => t('Upload New Shield'),
+    '#description' => t('Your new shield will appear below for selection. If this is your first shield, it will replace the %university shields below.', array('%university' => variable_get('university_name'))),
+  );
+
+  $shield_info = variable_get('os_shields_shield_info', array());
+  $shields = file_scan_directory('public://os_shields', '!.*!');
+
+  $form['container'] = array(
+    '#type' => 'markup',
+    '#value' => '',
+    '#pre_render' => array('os_shields_form_table'),
+  );
+
+  $c = &$form['container'];
+  $curr_default = variable_get('os_shields_shield', '');
+
+  foreach ($shield_info as $fname => $data) {
+    $shield = $shields['public://os_shields/'.$fname];
+    $c[str_replace('.', '__', $shield->filename)] = array(
+      '#type' => 'markup',
+      '#tree' => TRUE,
+      'image' => array(
+        '#type' => 'markup',
+        '#value' => $shield,
+      ),
+      'default' => array(
+        '#type' => 'radio',
+        '#name' => 'default',
+        '#default_value' => $curr_default,
+        '#return_value' => $shield->filename,
+      ),
+      'delete' => array(
+        '#type' => 'checkbox',
+        '#title' => NULL,
+        '#default_value' => 0,
+      ),
+      'hidden' => array(
+        '#type' => 'checkbox',
+        '#title' => NULL,
+        '#default_value' => $shield_info[$shield->filename]['hidden'],
+        '#return_value' => 1,
+      ),
+    );
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  $form['#validate'][] = 'os_shields_form_validate';
+
+  return $form;
+}
+
+function os_shields_form_validate($form, &$form_state) {
+  $shields = $form['container'];
+
+  foreach ($form_state['values'] as $name => $data) {
+    if (!is_array($data)) continue;
+    $shield = $shields[$name]['image']['#value'];
+
+    if ($data['hidden'] && $shield->filename == $_POST['default']) {
+      form_set_error($name, t('Cannot hide the default shield.'));
+    }
+  }
+}
+
+function os_shields_form_submit(&$form, &$form_state) {
+  $shield_info = variable_get('os_shields_shield_info', array());
+
+  $shields = $form['container'];
+  $default = isset($_POST['default'])?$_POST['default']:0;
+  foreach ($form_state['values'] as $name => $data) {
+    if (!is_array($data)) continue;
+    $shield = $shields[$name]['image']['#value'];
+
+    if ($data['delete']) {
+      // delete image
+      $shield->fid = $shield_info[$shield->filename]['fid'];
+      $shield->type = 'image';
+      file_delete($shield, true);
+      unset($shield_info[$shield->filename]);
+
+      if ($default == $shield->filename && count($shield_info) > 0) {
+        $new_default = key($shield_info);
+        $shield_info[$new_default]['default'] = 1;
+        variable_set('os_shields_shield', $new_default);
+      }
+    }
+    else {
+      $shield_info[$shield->filename]['hidden'] = $data['hidden'];
+      if ($shield->filename == $_POST['default']) {
+        $shield_info[$shield->filename]['default'] = 1;
+        variable_set('os_shields_shield', $shield->filename);
+      }
+      else {
+        $shield_info[$shield->filename]['default'] = 0;
+      }
+      $shield_info[$shield->filename]['found'] = true;
+    }
+  }
+
+  foreach ($shield_info as $key => $val) {
+    if (!isset($val['found'])) {
+      unset($shield_info[$key]);
+    }
+    unset($shield_info[$key]['found']);
+  }
+
+  if ($_FILES['files']['error']['new_shield'] == UPLOAD_ERR_OK) {
+
+    $dest = 'public://os_shields';
+    if (file_prepare_directory($dest, FILE_CREATE_DIRECTORY)) {
+      $new_file = file_save_upload('new_shield', array(), $dest, true);
+      $new_file->status = FILE_STATUS_PERMANENT;
+      file_save($new_file);
+      if (empty($shield_info)) {
+        // this is our first new shield. make it the default by... default...
+        $shield_info[$new_file->filename]['default'] = 1;
+        variable_set('os_shields_shield', $new_file->filename);
+      }
+
+      $shield_info[$new_file->filename]['hidden'] = 0;
+      $shield_info[$new_file->filename]['fid'] = $new_file->fid;
+    }
+    else {
+      drupal_set_message('Error creating the directory. Check that your server has proper permissions set on the files directory.', 'error');
+    }
+  }
+
+  variable_set('os_shields_shield_info', $shield_info);
+}
+
+function os_shields_form_table($element) {
+  $header = array(
+    t('Shield'),
+    t('Default'),
+    t('Hidden'),
+    t('Delete'),
+  );
+
+  $rows = array();
+  foreach (element_children($element) as $field_name) {
+    $field = $element[$field_name];
+
+    $r = array();
+    $r[] = theme('os_shields_theme_shieldpicker', array('file' => $field['image']['#value']));
+    $r[] = array('data' => $field['default']);
+    $r[] = array('data' => $field['hidden']);
+    $r[] = array('data' => $field['delete']);
+
+    $rows[] = $r;
+  }
+
+  $element += array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#sticky' => false,
+    '#empty' => t('No shields uploaded yet.'),
+  );
+
+  return $element;
+}
+
+function os_shields_image_default_styles() {
+  $presets = array();
+
+  $presets['os_shields_default_shield'] = array (
+    'presetname' => 'os_shields_default_shield',
+    'effects' => array (
+      array (
+        'name' => 'image_scale_and_crop',
+        'data' => array (
+          'width' => '62',
+          'height' => '75',
+        ),
+        'weight' => '0',
+      ),
+    ),
+  );
+
+  return $presets;
+}
+
+function os_shields_ctools_plugin_api($module, $api) {
+  if ($module == 'boxes' && $api == 'plugins') {
+    return array('version' => 1);
+  }
+  if ($module == "boxes" && $api == "box") {
+    return array("version" => "1");
+  }
+  if ($module == "context" && $api == "context") {
+    return array("version" => "3");
+  }
+}
+
+function os_shields_boxes_plugins() {
+  $plugins = array();
+
+  $plugins['os_shields_box'] = array(
+    'title' => 'Shield',
+    'tags' => array('Misc'),
+    'handler' => array(
+      'class' => 'os_shields_box',
+      'file' => 'os_shields_box.inc',
+      'path' => drupal_get_path('module', 'os_shields').'/box',
+      'parent' => 'os_boxes_default',
+    ),
+    'factory' => FALSE,
+  );
+
+  return $plugins;
+}

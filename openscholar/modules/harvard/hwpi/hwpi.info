@@ -1,0 +1,36 @@
+name = "HWPI"
+core = 7.x
+description = "Module to provide functionality specific to Harvard Web Publishing Initiative sites."
+package = Features
+
+dependencies[] = "ctools"
+
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[variable][] = university_name
+features[variable][] = training_signup_url
+features[variable][] = contact_url
+features[variable][] = sitewide_name
+features[variable][] = upcoming_events
+features[variable][] = university_url
+features[variable][] = site_url
+features[variable][] = signup_pin_text
+features[variable][] = privacy_policy_text
+features[variable][] = university_base_url
+features[variable][] = site_access
+features[variable][] = site_access_text
+features[variable][] = site_digital_access
+features[variable][] = site_digital_access_text
+features[variable][] = copyright_infring
+features[variable][] = copyright_infring_text
+features[variable][] = copyright_text
+features[variable][] = logo_path
+features[variable][] = highest_parent_item
+features[variable][] = profile_default_photo
+features[variable][] = favicon_default
+features[variable][] = os_terms_of_use
+features[variable][] = os_terms_of_use_label
+
+features_exclude[dependencies][strongarm] = strongarm
+
+files[] = plugins/service/hwpi_service_sword_dash.inc

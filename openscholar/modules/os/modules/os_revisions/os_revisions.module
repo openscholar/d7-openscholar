@@ -1,0 +1,257 @@
+<?php
+
+/**
+ * @file
+ * OS Revisions module file.
+ */
+
+/**
+ * Define URL for OpenScholar revisions documentation
+ */
+define('OS_REVISIONS_DOCS_URL', 'https://help.theopenscholar.com/revisions');
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form to display revision fieldset in certain cases
+ * Add revision information in hidden fields and warning if the user has reached the max # of revisions for the node
+ */
+function os_revisions_form_node_form_alter(&$form, $form_state) {
+  $content_type = $form['#node']->type;
+
+  if (!variable_get("enable_revisions_$content_type", FALSE) || !is_numeric($form['#node']->nid)) {
+    $form['revision_information']['#access'] = FALSE;
+  }
+  else {
+    $max_revisions = (int)variable_get("restrict_node_revision_number_for_" . str_replace("-", "_", $form_state['node']->type), FALSE);
+    $num_revisions = count(node_revision_list(node_load($form_state['node']->nid))) - 1;
+
+    $form['revision_information']['#access'] = empty($form['#node']->nid) ? FALSE : TRUE;
+    $form['revision_information']['#collapsed'] = FALSE;
+
+    if ($max_revisions) {
+      $form['max_revisions'] = array('#type' => 'hidden', '#value' => $max_revisions);
+      $form['revisions'] =  array('#type' => 'hidden', '#value' => $num_revisions);
+      $form['#attached']['js'][] = drupal_get_path('module', 'os_revisions') . '/os_revisions.js';
+      // remove state-based revision checkbox and make checked by default
+      unset($form['revision_information']['revision']['#states']);
+      $form['revision_information']['revision']['#attributes']['checked'] = 'checked';
+      $form['revision_information']['revision']['#access'] = TRUE;
+      $form['revision_information']['revision']['#title'] = "When checked, a new version of this content will be created";
+      $form['revision_information']['revision']['#weight'] = 1;
+
+      $form['revision_information']['log']['#weight'] = 2;
+      $form['revision_information']['log']['#title'] = t('Revision Notes');
+      $form['revision_information']['log']['#description'] = t('Provide an explanation of the changes you are making.') . '<br><br>' . l(t('What’s being stored as a revision?'), OS_REVISIONS_DOCS_URL, array('attributes' => array('target' => '_blank', 'rel' => 'noopener')));
+
+      // disable revision log if new revision isn't being created
+      $form['revision_information']['log']['#states'] = array(
+        'disabled' => array(
+          ':input[name="revision"]' => array('checked' => FALSE),
+        ),
+      );
+      if ($num_revisions >= 1) {
+        $revisions_url = "node/" . $form['#node']->nid . "/revisions";
+        $form['revision_information']['info']['#markup'] = t('<p>There are currently <a href="@url" id="revisions-link">@num revisions</a>.</p>', array('@url' => url($revisions_url), '@num' => $num_revisions));
+        $form['revision_information']['info']['#weight'] = 0;
+      }
+      if ($num_revisions >= $max_revisions) {
+        $form['revision_information']['revision']['#suffix'] = '<div id="warning-text"><p>Are you sure you want to create a new revision?</p><p>This content already has the maximum number of revisions saved (' . $max_revisions . '). By creating a new revision, you will be permanently deleting the oldest revision. <a href="' . OS_REVISIONS_DOCS_URL . '" target="_blank" rel="noopener">Learn more about managing revisions</a>.</div>';
+      }
+    }
+   }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Put os_revisions at the beginning of the implementation list for form_node_form_alter
+ *
+ */
+function _os_revisions_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_node_form_alter') {
+    unset($implementations['os_revisions']);
+    $implementations = array_merge(array('os_revisions' => FALSE), $implementations);
+  }
+}
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * set up theme for revision pages and make sure permissions are the same as the ability
+ * to modify content
+ *
+ */
+function os_revisions_menu_alter(&$items) {
+  $items['node/%node/revisions']['page callback'] = 'os_revisions_revision_overview';
+  $items['node/%node/revisions']['theme callback'] = 'cp_theme_name';
+  $items['node/%node/revisions']['access callback'] = 'node_access';
+  $items['node/%node/revisions']['access arguments'] = array('update', 1);
+  $items['node/%node/revisions/%/view']['theme callback'] = 'cp_theme_name';
+  $items['node/%node/revisions/%/view']['access callback'] = 'node_access';
+  $items['node/%node/revisions/%/view']['access arguments'] = array('update', 1);
+  $items['node/%node/revisions/%/delete']['access callback'] = 'node_access';
+  $items['node/%node/revisions/%/delete']['access arguments'] = array('update', 1);
+  $items['node/%node/revisions/%/revert']['access callback'] = 'node_access';
+  $items['node/%node/revisions/%/revert']['access arguments'] = array('update', 1);
+}
+
+/**
+ * Re-write the list of revisions for a node
+ */
+function os_revisions_revision_overview($node) {
+  drupal_set_title(t('Revisions for %title', array('%title' => $node->title)), PASS_THROUGH);
+
+  $revisions = node_revision_list($node);
+  $revision_limit = variable_get("restrict_node_revision_number_for_" . str_replace("-", "_", $node->type), FALSE);
+  $revision_num = count($revisions) - 1;
+  $revert_permission = $delete_permission = node_access('update', $node);
+
+  $rows = array();
+  foreach ($revisions as $revision) {
+    $row = array();
+    $operations = array();
+
+    if ($revision->current_vid > 0) {
+      $row[] = array('data' => '', 'class' => array('revision-current'));
+      $row[] = array('data' => t('Current Revision') . '<br>' . format_date($revision->timestamp) . '<br>' .  t('by !username', array('!username' => format_username(user_load($revision->uid)))),
+        'class' => array('revision-current'));
+      $row[] = array('data' => filter_xss($revision->log),'class' => array('revision-current'));
+      $operations[] = array('data' => l(t('View'), "node/$node->nid"), 'class' => array('revision-current'), 'colspan' => 3);
+    }
+    else {
+      $row[] = $revision_num;
+      $row[] = format_date($revision->timestamp) . '<br>' .  t('by !username', array('!username' => format_username(user_load($revision->uid))));
+      $row[] =  filter_xss($revision->log);
+      $operations[] = l(t('View'), "node/$node->nid/revisions/$revision->vid/view");
+      if ($revert_permission) {
+        $operations[] = l(t('Revert'), "node/$node->nid/revisions/$revision->vid/revert");
+      }
+      if ($delete_permission) {
+        $operations[] = l(t('Delete'), "node/$node->nid/revisions/$revision->vid/delete");
+      }
+      $revision_num--;
+    }
+    $rows[] = array_merge($row, $operations);
+  }
+
+  $build['node_revisions_table'] = array(
+    '#theme' => 'table',
+    '#rows' => $rows,
+    '#header' => array('', t('Revision'), t('Revision Notes'), array('data' => t('Manage'), 'colspan' => 3)),
+    '#caption' => t('NOTE: When you revert to a prior revision, a copy is created which becomes the current version. The prior current version is then moved into the list. You have created ') . '<span class="num-revisions">' . (count($revisions) - 1) .'</span>' . t(' of the @limit revisions allowed.', array('@limit' => $revision_limit)),
+    '#suffix' => '<div class="revision-suffix help-link">' . l(t('Learn more about revisions'), OS_REVISIONS_DOCS_URL) . '</div>',
+  );
+
+  return $build;
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Change title/text in confirm_form when user selects to revert to an older revision
+ */
+function os_revisions_form_node_revision_revert_confirm_alter(&$form, &$form_state, $form_id) {
+  $node = node_load($form['#node_revision']->nid);
+  $revisions = node_revision_list($node);
+  $revision_limit = variable_get("restrict_node_revision_number_for_" . str_replace("-", "_", $node->type), FALSE);
+  $revision_num = count($revisions) - 1;
+  $warning = "";
+  if ($revision_num >= $revision_limit) {
+    $warning = '<div class="warning">This content already has the maximum number of revisions saved (' . $revision_limit . '). By creating a new revision, you will be permanently deleting the oldest revision. <a href="' . OS_REVISIONS_DOCS_URL . '" target="_blank" rel="noopener">Learn more about managing revisions</a>.</div>';
+  }
+
+  $text = t('Are you sure you want to revert to the revision from ') . drupal_placeholder(format_date($form['#node_revision']->revision_timestamp), 'date') . '?';
+  drupal_set_title(t('Confirm Revert'));
+
+  $form['description'] = array(
+    '#markup' => "$warning<p>$text</p>",
+  );
+
+  // replace existing submit handler that creates the revert revision log with one that maintains revision log message
+  $submit_handlers = array_flip($form['#submit']);
+  $submit_index = $submit_handlers['node_revision_revert_confirm_submit'];
+  $form['#submit'][$submit_index] = 'os_revisions_add_revert_notes';
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Change title/text in confirm_form when user selects to delete a revision
+ */
+function os_revisions_form_node_revision_delete_confirm_alter(&$form, &$form_state, $form_id) {
+  $text = t('Are you sure you want to delete the revision from ') . drupal_placeholder(format_date($form['#node_revision']->revision_timestamp), 'date') . '?';
+  drupal_set_title(t('Confirm Delete'));
+  $form['description'] = array(
+    '#markup' => "<p>$text</p>",
+  );
+}
+
+/**
+ * Submit handler for node_revision_revert_confirm form to append revision notes
+ * from the reverted revision to the new revision notes
+ */
+function os_revisions_add_revert_notes($form, &$form_state) {
+  $node_revision = $form['#node_revision'];
+  $node_revision->revision = 1;
+  $old_log = $node_revision->log;
+  if ($old_log) {
+    $node_revision->log = t('Copy of the revision from %date %log.', array('%date' => format_date($node_revision->revision_timestamp), '%log' => strip_tags($old_log)));
+  }
+  else {
+    $node_revision->log = t('Copy of the revision from %date.', array('%date' => format_date($node_revision->revision_timestamp)));
+  }
+  node_save($node_revision);
+
+  watchdog('content', '@type: reverted %title revision %revision.', array('@type' => $node_revision->type, '%title' => $node_revision->title, '%revision' => $node_revision->vid));
+  drupal_set_message(t('@type %title has been reverted back to the revision from %revision-date.', array('@type' => node_type_get_name($node_revision), '%title' => $node_revision->title, '%revision-date' => format_date($node_revision->revision_timestamp))));
+  $form_state['redirect'] = 'node/' . $node_revision->nid . '/revisions';
+}
+
+/**
+ * Implements hook_admin_paths().
+ *
+ * Add node revision review to admin paths
+ */
+function os_revisions_admin_paths() {
+  $paths = array(
+    'node/*/revisions/*/view' => TRUE,
+    'node/*/revisions' => TRUE,
+  );
+
+  return $paths;
+}
+
+/**
+ * Implements hook_node_view_alter().
+ *
+ * Remove contextual links for publication revisions
+ */
+function os_revisions_node_view_alter(&$build) {
+  if ($build['#view_mode'] == 'full') {
+    $current_version = $build['#node'];
+    $latest_version = node_load($build['#node']->nid);
+    // this is a revision, so remove contextual links
+    if ($current_version->vid != $latest_version->vid) {
+      $build['#contextual_links'] = array();
+    }
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ *
+ * Add local action link to allow user to navigate back to list of revisions from a single revision preview
+ */
+function os_revisions_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  if ($root_path == 'node/%/revisions/%/view') {
+    $revision = $router_item['page_arguments'][0];
+    // Add an action linking to previous revision list
+    $data['actions']['output'][] = array(
+      '#theme' => 'menu_local_action',
+      '#link' => array(
+        'title' => '' . t('Back to revisions'),
+        'href' => 'node/' . $revision->nid . '/revisions',
+        'localized_options' => array('html' => true),
+      ),
+    );
+  }
+}

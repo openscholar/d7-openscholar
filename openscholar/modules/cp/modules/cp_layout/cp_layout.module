@@ -1,0 +1,196 @@
+<?php
+// $Id$
+
+/**
+ * Implements hook_menu().
+ */
+function cp_layout_menu() {
+  $items = array();
+
+  $items['cp/build/layout'] = array(
+    'title' => t('Layout'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cp_layout_full_form'),
+    'type' => MENU_NORMAL_ITEM,
+    'weight' => 10,
+    'access callback' => 'spaces_access_admin',
+    'file' => 'cp_layout.form.inc',
+    'description' => t('Change the placement of widgets, and the overall layout, of your site.'),
+  );
+
+  $items['cp/build/layout/ajax'] = array(
+    'title' => t('Layout AJAX Request'),
+    'page callback' => 'cp_layout_ajax',
+    'type' => MENU_CALLBACK,
+    'file' => 'cp_layout.form.inc',
+  );
+
+  $items['cp/build/layout/%ctools_js/select'] = array(
+    'title' => t('Select Layout'),
+    'page callback' => 'cp_layout_layout_select_ajax',
+    'page arguments' => array(3),
+    'type' => MENU_CALLBACK,
+    'access callback' => 'spaces_access_admin',
+    'file' => 'cp_layout.form.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function cp_layout_theme() {
+  $path = drupal_get_path('module', 'cp_layout') . '/theme';
+  $items = array();
+  $items['cp_layout_widget'] = array(
+    'template' => 'cp_layout-widget',
+    'render element' => 'widget',
+    'path' => $path,
+  );
+
+  $items['cp_layout_unused_widgets'] = array(
+    'template' => 'cp_layout-unused_widgets',
+    'variables' => array('children' => '', 'tags' => array(), 'factories' => array()),
+    'path' => $path,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_preprocess_cp_layout_widget
+ *
+ * Defines classes and additional variables needed by the cp_layout_widget template
+ *
+ * @param unknown_type $variables
+ */
+function template_preprocess_cp_layout_widget(&$variables) {
+  // used in template
+  ctools_include('ajax');
+  ctools_include('modal');
+  $widget = $variables['widget']['#widget'];
+  $classes_array = &$variables['classes_array'];
+
+  $variables['bid'] = $widget['module'] . "-" . $widget['delta'];
+
+  if (!isset($widget['info'])) {
+    // This is an error case, but "Untitled" is better than a blank widget
+    $variables['widget_title'] = 'Untitled';
+  }
+  else {
+    $variables['widget_title'] = $widget['info'];
+  }
+
+  $classes_array[] = "cp-layout-item";
+
+  if (isset($widget['hidden']) && $widget['hidden']) {
+    $classes_array[] = 'disabled';
+  }
+
+  if (isset($widget['plugin'])) {
+    $classes_array[] = $widget['plugin'];
+  }
+
+  // extra classes used for tag selection
+  if (isset($widget['class'])) {
+    if (is_array($widget['class'])) {
+      $classes_array = array_merge($classes_array, $widget['class']);
+    }
+    else {
+      $classes_array[] = $widget['class'];
+    }
+  }
+  else {
+    $classes_array[] = 'Misc';
+  }
+
+  if (isset($widget['icon_path'])) {
+    $style = "style=\"background-image:url('{$widget['icon_path']}');\"";
+  }
+
+  if (isset($widget['can_edit']) && $widget['can_edit']) {
+    $variables['can_edit'] = TRUE;
+    $variables['edit_path'] = $widget['path'] . '/edit/cp-layout';
+  }
+  else {
+    $variables['can_edit'] = FALSE;
+  }
+
+  if (isset($widget['can_delete']) && $widget['can_delete']) {
+    $variables['can_delete'] = TRUE;
+    $variables['delete_path'] = $widget['path'] . '/delete';
+  }
+  else {
+    $variables['can_delete'] = FALSE;
+  }
+}
+
+/**
+ * Implements hook_preprocess_cp_layout_unused_widgets().
+ *
+ * Renders the factory boxes as dropdowns.
+ *
+ * @param unknown_type $variables
+ *
+ * @todo sort factories by something
+ */
+function template_preprocess_cp_layout_unused_widgets(&$variables) {
+  $factories = &$variables['factories'];
+
+  $links = array();
+  module_load_include('inc', 'os_help');
+  foreach ($factories as $group => $f) {
+    $links[] = array(
+      'title' => $group,
+      'attributes' => array(
+        'class' => array('group')
+      )
+    );
+    foreach ($f as $factory) {
+      $link = array(
+        'html' => TRUE,
+        'title' => l($factory['label'], $factory['block_config_path'] . '/cp-layout', array()),
+        'attributes' => array(
+          'class' => array('clearfix')
+        )
+      );
+
+      if ($help_variables = os_help_get_variables_from_id('widget', _cp_layout_box_plugin_key($factory))) {
+        $link['title'] .= ' ' . theme_link($help_variables);
+      }
+
+      $links[] = $link;
+    }
+  }
+
+  $vars = array(
+    'title' => t('Add new widget'),
+    'links' => $links,
+  );
+
+  $variables['factory_html'] = theme('ctools_dropdown', $vars);
+
+  array_unshift($variables['tags'], 'All');
+}
+
+/**
+ * Returns the box plugin key of a factory array, or FALSE if none found.
+ *
+ * The last part of the config path is just the plugin key, which is declared
+ * in modules' hook_boxes_plugins().
+ *
+ * @param array $factory
+ *
+ * @return string|bool $box_plugin_key;
+ */
+function _cp_layout_box_plugin_key($factory) {
+  if (!isset($factory['block_config_path'])) {
+    return FALSE;
+  }
+  $path_parts = explode('/', $factory['block_config_path']);
+  // end() Returns the last element of the array, or FALSE if empty.
+  $box_plugin_key = end($path_parts);
+
+  return $box_plugin_key;
+}

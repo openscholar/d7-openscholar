@@ -1,0 +1,15 @@
+diff --git a/modules/contrib/biblio/modules/CiteProc/CSL.inc b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+index 9337853..d761122 100644
+--- a/modules/contrib/biblio/modules/CiteProc/CSL.inc
++++ b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+@@ -1138,6 +1138,10 @@ class csl_text extends csl_format {
+         if($macro == 'access') {
+           $text = '';
+         }
++        // If no page(s) are added, do not display the p suffix.
++        if($macro == 'pages' && isset($data->biblio_pages) && $data->biblio_pages == '') {
++          $text = '';
++        }
+         break;
+       case 'term':
+         $form = (($form = $this->form)) ? $form : '';

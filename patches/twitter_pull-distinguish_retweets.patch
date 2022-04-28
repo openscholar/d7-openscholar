@@ -1,0 +1,32 @@
+--- /twitter_pull.module
++++ /twitter_pull.module
+@@ -103,6 +103,7 @@
+  */
+ function twitter_pull_render($twitkey, $title = NULL, $num_items = NULL, $themekey = NULL, $lazy_load = FALSE, $exclude_retweets = 0) {
+   drupal_add_css(drupal_get_path('module', 'twitter_pull') . '/twitter-pull-listing.css');
++  drupal_add_css('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css', array('type' => 'external'));
+ 
+   //-- Set the lazy load id. Encode the twitkey and title to make sure the they don't contain dashes.
+   $lazy_id = rtrim(base64_encode($twitkey) .'-'. base64_encode($title) .'-'. (int)$num_items . '-' . $themekey, '-');
+@@ -184,6 +185,21 @@
+     }
+   }
+ 
++  preg_match("/@(\w+)/", $twitkey, $matches);
++  if (isset($matches[1])) {
++    $twitkey_username = $matches[1];
++  }
++
++  # If the tweet is not ours, flag it as a retweet
++  if (isset($twitkey_username)) {
++    foreach ($tweets as $i => $tweet) {
++      $tweets[$i]->is_retweet = false;
++      if ($tweets[$i]->username != $twitkey_username) {
++        $tweets[$i]->is_retweet = true;
++      }
++    }
++  }
++
+   // If we have tweets and are viewing a secure site, we want to set the url
+   // to the userphoto to use the secure image to avoid insecure errors.
+   if (!empty($tweets) && is_array($tweets) && $is_https) {

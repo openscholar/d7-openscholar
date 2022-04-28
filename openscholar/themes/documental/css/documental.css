@@ -1,0 +1,145 @@
+@import url(http://fonts.googleapis.com/css?family=Roboto);
+
+body {
+	font-family: helvetica, arial;
+	background:#FDFDFD;
+}
+
+.region-header-third ul.nice-menu a,
+a,
+a:visited {
+color:#2769AC;
+}
+
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info, 
+#boxes-box-site_info a,
+#page-title,
+.node-title, 
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.section-nav a,
+#content-column h2,
+#content-column h3,
+#content-column h4 {
+	font-family: 'Roboto', sans-serif;
+}
+
+
+#boxes-box-site_info a {
+	color: #2769AC;
+	font-size: 1.11em;
+}
+
+#boxes-box-site_info h1 + h2 {
+margin-bottom: 0;
+}
+
+#boxes-box-site_info p {
+margin-bottom: 15px;
+}
+
+#header {
+    background: #FFF;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a, 
+#menu-bar ul.nice-menu .menuparent a:hover, 
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu a.active, 
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu ul,
+#menu-bar {
+    background: #3b484d;
+}
+
+#footer {
+    background: #292929;
+}
+
+
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active,
+#menu-bar ul.nice-menu ul .menuparent.over > a,
+#menu-bar ul.nice-menu ul .menuparent a:hover,
+#menu-bar ul.nice-menu ul .menuparent a.active {
+   color:#FFF;
+}
+
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+background-position: 0px -566px;
+}
+
+.sidebar .block, 
+.front #content-column .block, 
+.node-person .block-inner, 
+.comment-wrapper {
+  border-top: none;
+}
+
+.front .region-content-top .block.block-boxes-os_slideshow_box {
+  border-top: 3px solid #D16103;
+}
+
+#columns h2.block-title {
+    background:#F3F3F1;
+    font-size: 15px;
+    text-transform: none;
+    padding: 3px 7px;
+    margin-bottom: 10px;
+    font-weight:normal;
+ 
+}
+
+
+.section-nav .menu-depth-1 > a {
+  background: #8996A0 !important;
+}
+
+a.rslides_nav {
+    background-color: #555;
+}
+
+.section-nav .expanded.menu-depth-2 > a,
+.section-nav .expanded.menu-depth-2 > a:hover {
+  background-color: #888 !important;
+  color: #fff;
+}
+
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+    background-position: 2px -373px;
+}
+
+#columns .block-boxes-os_boxes_html a, 
+#columns .field-name-body a {
+  text-decoration: none;
+}
+
+#footer .footer-login,
+#footer,
+#footer a {
+	color:#FFF;
+	text-shadow: none;
+}
+
+#footer .footer-login:after {
+background-image: none;
+}
+
+#powered-by a {
+background-position: -14px -545px;
+}
+
+
+#branding_footer, 
+#branding_header {
+display: none;
+}

@@ -1,0 +1,5 @@
+name = OS WYSIWYG Link
+core = 7.x
+description = "Unify linking to websites, internal pages and files while in a WYSIWYG."
+dependencies[] = os_files
+dependencies[] = media

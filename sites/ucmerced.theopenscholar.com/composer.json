@@ -1,0 +1,30 @@
+{
+    "name": "openscholar/ucmerced_packages",
+    "description": "Packages required for UC Merced / CAS ",
+    "repositories": [
+      { "type": "composer", "url": "https://packages.drupal.org/7" }
+    ],
+    "require": {
+        "cweagans/composer-patches": "~1.0",
+        "jasig/phpcas": "^1.3",
+        "drupal/cas": "^1.7",
+        "drupal/cas_attributes": "^1.0",
+        "drupal/ldap": "^2.5"
+    },
+    "replace": {
+        "drupal/drupal": "*"
+    },
+    "config": {
+        "vendor-dir": "~/src/amazon/web/sites/ucmerced.theopenscholar.com/modules",
+        "discard-changes": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "patches": {
+            "drupal/cas": {
+                "Detect CAS library correctly": "https://www.drupal.org/files/issues/2019-07-24/dont_require_libraries-1394666-23.patch"
+            }
+        }
+    }
+}

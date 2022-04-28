@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * Updates for adding new role 'Viewer' and its permission set for readonly access.
+ */
+function cp_user_update_7000() {
+  features_revert(array('cp_user' => array('user_role', 'user_permission')));
+  // Inserting into 'og_role' table for 'viewer' default role entry with gid = 0 for 3 types of OS site.
+  $viewer_role_ids = array('department', 'personal', 'project');
+  foreach ($viewer_role_ids as $group_bundle) {
+    db_insert('og_role')
+      ->fields(array('gid' => '0', 'group_type' => 'node', 'group_bundle' => $group_bundle, 'name' => 'viewer'))
+      ->execute(); 
+  }
+  // For the existing sites, whose og roles have been overridden already, 
+  // Need to add one entry for viewer role, fetching overridden entries.
+  $query = db_select('og_role','ogr')
+    ->distinct('ogr.gid')
+    ->fields('ogr', array('gid', 'group_bundle'))
+    ->condition('ogr.gid','0','<>');
+  $result = $query->execute()->fetchAll();
+
+  foreach ($result as $group) {
+    db_insert('og_role')
+      ->fields(array('gid' => $group->gid, 'group_type' => 'node', 'group_bundle' => $group->group_bundle, 'name' => 'viewer'))
+      ->execute(); 
+  }
+}

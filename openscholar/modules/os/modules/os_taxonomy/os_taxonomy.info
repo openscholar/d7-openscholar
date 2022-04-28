@@ -1,0 +1,6 @@
+name = OS Taxonomy
+description = Managing OS taxonomy terms.
+core = 7.x
+package = OpenScholar
+php = 5.2.4
+dependencies[] = hierarchical_taxonomy

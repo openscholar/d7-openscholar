@@ -1,0 +1,8 @@
+name = Peabody
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = peabody.css
+css[] = responsive.peabody.css
+
+scripts[] = peabody.js

@@ -1,0 +1,269 @@
+<?php
+
+/**
+ * Force the localStorage cache to be cleared whenever we want.
+ */
+const AdminPanelMenuVersion = '1.4';
+
+/**
+ * Returns true if the admin panel should default to being closed
+ */
+function admin_panel_is_closed() {
+  return isset($_COOKIE['AdminMenuState']) && !$_COOKIE['AdminMenuState'];
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function admin_panel_page_alter(&$page) {
+  // No ned for the toolbar if the admin panel is enabled.
+  $page['page_top']['toolbar']['#access'] = FALSE;
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Adds the user_panel angular library.
+ */
+function admin_panel_preprocess_page(&$vars) {
+  if (user_is_logged_in() && variable_get('admin_panel_enabled', FALSE)) {
+    drupal_add_library('admin_panel','user_panel');
+    os_common_angular_apps('UserPanel');
+
+    if (admin_panel_is_closed()) {
+      $vars['classes_array'][] = 'admin-menu-closed';
+    }
+    global $base_url;
+    drupal_add_js(array('admin_panel' => array('purl_base_domain' => variable_get('purl_base_domain'), 'base_domain' => $base_url)), 'setting');
+  }
+}
+
+/**
+ * Implements hook_page_build().
+ *
+ * Adds the admin_panel angular markup and wrapper.
+ */
+function admin_panel_page_build(&$vars) {
+
+  // No need for admin-panel markup
+  if (!user_is_logged_in() || !variable_get('admin_panel_enabled', FALSE)) {
+    return;
+  }
+
+  $classes = array(
+    'menu-container',
+  );
+
+  if (admin_panel_is_closed()) {
+    $classes[] = 'closed';
+  }
+
+  if (isset($_COOKIE['AdminMenuState']) && !$_COOKIE['AdminMenuState']) {
+    $classes[] = 'closed';
+  }
+
+  $vars['page_bottom']['admin_menu'] = array(
+    '#weight' => 25,
+    '#markup' => '<div class="'.implode(' ', $classes).'" left-menu></div>',
+  );
+
+  $vars['page_bottom']['user_menu'] = array(
+    '#weight' => 25,
+    '#markup' => '<div right-menu></div>',
+  );
+}
+
+/**
+ * Implements hook_library_alter().
+ *
+ * Adds code for the admin panel
+ */
+function admin_panel_library() {
+
+  global $user;
+  $disable = array('alias' => TRUE);
+  $path = drupal_get_path('module', 'admin_panel');
+  $perm = drupal_static('user_access');
+  $spaces_features = variable_get('spaces_features', array());
+  if (module_exists('vsite')) {
+    $vsite = vsite_get_vsite();
+  }
+
+  // Includes resources needed to create the admin panel.
+  $libs['admin_panel'] = array(
+    'title' => 'Admin Panel libraries',
+    'version' => '0.0.2',
+  );
+
+  $perms = isset($perm[$user->uid]) ? $perm[$user->uid] : array();
+  // Create a unique cid based on user permissions and enabled features.
+  $cid = drupal_hash_base64(implode("",array_merge(array_filter($spaces_features),$perms)) . AdminPanelMenuVersion);
+
+  $libs['admin_panel']['js'] = array(
+    $path . '/misc/modernizr.custom.js' => array(),
+    $path . '/misc/simplebar.js' => array(),
+    $path . '/misc/AdminPanelModule.js' => array(),
+    array(
+      'data' => array(
+        'paths' => array(
+          'adminPanelModuleRoot' => url($path, $disable),
+        ),
+        'admin_panel' => array(
+          'user' => $user->uid,
+          'cid' => $cid,
+          //The menu should stay open if we are in an administrative area.
+          'keep_open' => _admin_panel_persist_open(),
+        ),
+        'version' => array(
+          'adminPanel' => '0.0.12'
+        ),
+      ),
+      'type' => 'setting',
+    )
+  );
+
+  $libs['admin_panel']['dependencies'] = array(
+    array('os_common', 'auth'),
+    array('os_common', 'helpers'),
+    array('os_common', 'RecursionHelper')
+  );
+
+  $libs['admin_panel']['css'] = array(
+    $path.'/misc/component.css',
+    $path.'/misc/admin_panel-menu.css',
+  );
+
+  $libs['user_panel']['version'] = '0.0.4';
+  $libs['user_panel']['js'] = array(
+    $path . '/misc/UserPanelModule.js' => array(),
+    $path . '/misc/admin_panel.js' => array(),
+    array(
+      'data' => array(
+        'user_panel' => array(
+          'user' => array(
+            'uid' => $user->uid,
+            'name' => format_username($user),
+            'support_user' => user_access('subscribe as support team'),
+            'is_member' => ($vsite) ? og_is_member('node', $vsite->id) : false,
+          ),
+        ),
+        'version' => array(
+          'userPanel' => '1.0.1'
+        ),
+        'paths' => array(
+          'support_subscribe' => ($vsite) ? $vsite->get_absolute_url('group/node/' . $vsite->id . '/subscribe/vsite_support_expire') : '',
+          'support_unsubscribe' => ($vsite) ? $vsite->get_absolute_url('group/node/' . $vsite->id . '/unsubscribe') : '',
+          'logout' => url('user/logout'),
+        ),
+      ),
+      'type' => 'setting',
+    )
+  );
+  $libs['user_panel']['dependencies'] = array(
+    array('admin_panel', 'admin_panel'),
+    array('os_common', 'ActiveUser'),
+  );
+
+  return $libs;
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function admin_panel_admin_paths() {
+  $items = array(
+    'group/node/*/subscribe/vsite_support_expire' => TRUE,
+    'group/node/*/unsubscribe' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Return the cases when the user is performing an admin action.
+ */
+function _admin_panel_persist_open() {
+  $on_public_site = context_isset('context', 'os_public');
+
+  //Always persist in cp
+  if(!$on_public_site) return true;
+
+//   if (!empty($_SERVER["HTTP_REFERER"])) {
+//     $referer = parse_url($_SERVER["HTTP_REFERER"]);
+//     $referer = purl_get_normal_path($referer['path']);
+
+//     $open_paths = array(
+//       'user',
+//       'node/*/edit',
+//       'node/add/*'
+//     );
+//     $paths = implode("\n", $open_paths);
+//     if (drupal_match_path($referer, $paths)) {
+//       return true;
+//     }
+//   }
+
+  //We passed a param to force the menu to persist.
+  if(!empty($_GET['admin_panel'])) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Implements hook_url_outbound_alter().
+ *
+ * Rewrites path to add admin_panel state.
+ */
+function admin_panel_url_outbound_alter(&$path, &$options, $original) {
+
+  $always_open_pages = array(
+      'user',
+      'user/pin',
+  );
+
+  // Only altering the login path and
+  // only when there is a destination
+  // only alter login path if the user is logged
+  // out, otherwise it is a link to "My account"
+  global $user;
+  if (!in_array($path, $always_open_pages) || empty($options['query']['destination']) || ($path == 'user' && $user->uid) || strpos($options['query']['destination'], 'admin_panel')) {
+    return;
+  }
+  $queryparam_add = (strpos($options['query']['destination'], '?') ? '&' : '?') . drupal_http_build_query(array("admin_panel" => 1, 'login' => 1));
+  $options['query']['destination'] = $options['query']['destination'] . $queryparam_add;
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ */
+function admin_panel_module_implements_alter(&$implementations, $hook) {
+
+  if ($hook == 'url_outbound_alter') {
+    // Make the admin_panel implementation last so os will be done.
+    // override the "/user" page callback.
+    unset($implementations['admin_panel']);
+    $implementations['admin_panel'] = FALSE;
+  }
+}
+
+function admin_panel_drupal_goto_alter(&$path, &$options, &$http_response_code) {
+
+  //If we are in an overlay, and redirecting to a regular page, keep the admin panel open.
+  if (module_exists('overlay') && overlay_get_mode() == 'child' && !path_is_admin($path) && !url_is_external($path)) {
+    $options['query']['admin_panel'] = '1';
+  }
+
+  // If request path is user/logout, then removing admin_panel=1 and login=1 from destination query parameter.
+  if (request_path() == 'user/logout') {
+    unset($options['query']['admin_panel']);
+    unset($options['query']['login']);
+  }
+
+  if ($path == '<base_domain>') {
+    $path = variable_get('purl_base_domain', $GLOBALS['base_url']);
+    $options['external'] = true;
+  }
+}

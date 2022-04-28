@@ -1,0 +1,18 @@
+
+.container {width:970px}
+#content-column,.content-column,div.sidebar {float: left; clear: none}
+.two-sidebars .content-inner {margin-right: 314px; margin-left: 0}
+.sidebar-first .content-inner {margin-right: 157px; margin-left: 0}
+.sidebar-second .content-inner {margin-right: 157px; margin-left: 0}
+.region-sidebar-first {width: 157px; margin-left: -314px}
+.region-sidebar-second {width: 157px; margin-left: -157px}
+.sidebar-first .region-sidebar-first {width: 157px; margin-left: -157px}
+
+
+#header-container .gpanel .region {float: left; clear: none;}
+.header-left.header-main.header-right .region-header-second .region-inner {margin-left: 157px; margin-right: 157px;}
+.header-left.header-main .region-header-second .region-inner {margin-left: 157px; margin-right: 0;}
+.header-main.header-right .region-header-second .region-inner {margin-right: 157px; margin-left: 0;}
+.region-header-first {width:157px; margin-left:-100%;}
+.region-header-third {width:157px; margin-left:-157px;text-align: right;}
+.region-header-second {width:100%;}

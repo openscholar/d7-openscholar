@@ -1,0 +1,17 @@
+name = Projects at Harvard FrontPage
+description = Projects at Harvard FrontPage configuration
+core = 7.x
+package = IQSS
+dependencies[] = boxes
+dependencies[] = ctools
+dependencies[] = features
+dependencies[] = os_stats
+dependencies[] = strongarm
+features[box][] = iqss_projects_fp_features
+features[box][] = iqss_projects_fp_logoblock
+features[box][] = iqss_projects_fp_copyright
+features[ctools][] = boxes:box:1
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[variable][] = os_stats_cache_expiration
+features[variable][] = os_stats_enabled

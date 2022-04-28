@@ -1,0 +1,22 @@
+diff --git a/includes/biblio.pages.inc b/includes/biblio.pages.inc
+index ee335c4..ffd0185 100644
+--- a/includes/biblio.pages.inc
++++ b/includes/biblio.pages.inc
+@@ -313,6 +313,9 @@ function biblio_build_query($arg_list) {
+   //add a tag of "node_access" to ensure that only nodes to which the user has access are retrieved
+   $query->addTag('node_access');
+ 
++  // add tag so other modules may modify query
++  $query->addTag('biblio');
++
+   $query->addField('n', 'nid');
+   $type_name = $query->addField('bt', 'name', 'biblio_type_name');
+   $query->leftJoin('biblio', 'b', 'n.vid=b.vid');
+@@ -922,6 +925,7 @@ function biblio_search_query($keys) {
+     $query->join('node', 'n', 'n.nid = i.sid');
+     $query->condition('n.status', 1)
+       ->addTag('node_access')
++      ->addTag('biblio')
+       ->searchExpression($keys, 'node');
+ 
+     // Insert special keywords.

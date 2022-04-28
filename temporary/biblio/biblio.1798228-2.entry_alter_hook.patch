@@ -1,0 +1,13 @@
+diff --git a/includes/biblio.pages.inc b/includes/biblio.pages.inc
+index 326a9fb..c326b86 100644
+--- a/includes/biblio.pages.inc
++++ b/includes/biblio.pages.inc
+@@ -282,6 +282,8 @@ function biblio_entry($node) {
+     );
+   }
+ 
++  drupal_alter('biblio_entry', $entry, $node);
++
+   return $entry;
+ }
+ 

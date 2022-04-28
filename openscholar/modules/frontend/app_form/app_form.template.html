@@ -1,0 +1,45 @@
+<div>
+    <div class="margin_bottom-15">These settings pertain to individual apps. If you are looking for visibility for your entire site, go to Global Settings > Site Visibility.</div>
+    <table class="apps-table enabled">
+        <thead>
+            <tr>
+                <th width="40%">Apps this website is using</th>
+                <th width="10%">Learn more</th>
+                <th width="20%">Who can see this content?</th>
+                <th width="5%">Disable</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="a in apps | filter:{enabled: 1} | orderBy:'title'" ng-class="{even: $even}">
+                <td>{{a.title}}</td>
+                <td class="center-this"><a href={{a.help}} class="apps-help-link" target="_blank"></a></td>
+                <td><span app-privacy-selector ng-model="a.private" class="visibility-selector"></span></td>
+                <td class="center-this"><input type="checkbox" ng-model="a.disable"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="apps-table disabled">
+        <thead>
+            <tr>
+                <th width="40%">Apps not currently used by this website</th>
+                <th width="10%">Learn more</th>
+                <th width="20%">&nbsp;</th>
+                <th width="5%">Enable</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="a in apps | filter:{enabled: 0} | orderBy:'title'" ng-class="{even: $even}">
+                <td>{{a.title}}</td>
+                <td class="center-this"><a href={{a.help}} class="apps-help-link" target="_blank"></a></td>
+                <td>&nbsp;</td>
+                <td class="center-this"><input type="checkbox" ng-model="a.enable"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="actions form-actions">
+        <button type="submit" ng-click="submit()" button-spinner="app-form" spinning-text="Saving" class="button">Save</button>
+        <button ng-click="close()" class="button">Cancel</button>
+    </div>
+</div>

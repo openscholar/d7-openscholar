@@ -1,0 +1,428 @@
+<?php
+
+define("GROUPER_PRIVACY_LEVEL", 6);
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function grouper_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'restful') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_library().
+ */
+function grouper_library() {
+  $libs = array();
+
+  $path = drupal_get_path('module', 'grouper');
+  $libs['module'] = array(
+    'title' => 'Grouper',
+    'version' => '0.1',
+    'js' => array(
+      $path . '/grouper.module.js' => array(),
+      array(
+        'type' => 'setting',
+        'data' => array(
+          'paths' => array(
+            'grouper' => url($path, array('alias' => true)),
+          )
+        )
+      )
+    ),
+    'css' => array(
+      $path . '/grouper.css' => array(),
+    )
+  );
+
+  return $libs;
+}
+
+/**
+ * Implements hook_library_alter().
+ */
+function grouper_library_alter(&$libraries, $module) {
+  if (isset($libraries['admin_panel'])) {
+    $libraries['admin_panel']['dependencies'][] = array('grouper', 'module');
+  }
+}
+
+/**
+ * Implements hook_vsite_access_privacy_values_alter().
+ */
+function grouper_vsite_access_privacy_values_alter(&$options) {
+  if (spaces_access_admin()) {
+    $options[GROUPER_PRIVACY_LEVEL] = t('Groups within the Harvard Community <br><span class="description">Only select groups at harvard can view your site.</span>');
+  }
+}
+
+/**
+ * Implements hook_page_build().
+ */
+function grouper_process_page(&$page) {
+  $added = &drupal_static('drupal_add_library', array());
+  if (spaces_access_admin() && !empty($added['grouper']['module'])) {
+    os_common_angular_apps('grouper');
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function grouper_permission() {
+  $perms = array();
+
+  $perms['manage grouper groups'] = array(
+    'title' => t('Manage Grouper Groups'),
+  );
+
+  // This permission exists for user 1 and support roles
+  $perms['bypass grouper restriction'] = array(
+    'title' => t('Bypass Grouper Restrictions')
+  );
+
+  return $perms;
+}
+
+/**
+ * Implements hook_og_permission().
+ */
+function grouper_og_permission() {
+  $perms = array();
+
+  $perms['manage grouper groups'] = array(
+    'title' => t('Manage Grouper Groups'),
+    'default role' => array(
+      'vsite user',
+      'content editor',
+      'vsite admin',
+    )
+  );
+
+  return $perms;
+}
+
+/**
+ * Returns an array of groups that the site is associated with
+ */
+function grouper_site_groups($nid = null) {
+  $output = array();
+  if ($vsite = vsite_get_vsite($nid)) {
+    $node = $vsite->group;
+
+    if (is_array($node->field_grouper_path) && is_array($node->field_grouper_path[LANGUAGE_NONE])) {
+      $groups = $node->field_grouper_path[LANGUAGE_NONE];
+
+      foreach ($groups as $g) {
+        $output[] = $g['value'];
+      }
+    }
+  }
+
+  return $output;
+}
+
+/**
+ * Returns a field instance for the given entity type and bundle
+ */
+function grouper_get_field_instance($entity_type, $bundle) {
+  return array(
+    'bundle' => $bundle,
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'text',
+        'settings' => array(),
+        'type' => 'text_default',
+        'weight' => 7,
+      ),
+    ),
+    'entity_type' => $entity_type,
+    'field_name' => 'field_grouper_path',
+    'label' => 'Grouper Path',
+    'required' => FALSE,
+    'settings' => array(
+      'text_processing' => 0,
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'module' => 'text',
+      'settings' => array(
+        'size' => 60,
+      ),
+      'type' => 'text_textfield',
+      'weight' => 45,
+    ),
+  );
+}
+
+/**
+ *  Fetches the groups for a given huid
+ */
+function grouper_groups_for_huid($huid, $accessLevel) {
+  $grouper_url = variable_get('grouper_url', 'https://{user}:{pass}@grouper-ws-prod-pub.gslb.harvard.edu/grouper-ws-facade/v1/user/huid:{huid}/{accessLevel}');
+  $replacements = array(
+    '{user}' => variable_get('grouper_user'),
+    '{pass}' => variable_get('grouper_pass'),
+    '{huid}' => $huid,
+    '{accessLevel}' => $accessLevel,
+  );
+  $grouper_url = strtr($grouper_url, $replacements);
+
+  $response = drupal_http_request($grouper_url);
+  if ($response->code == 200) {
+    $raw_data = $response->data;
+    watchdog('grouper', 'Connection to Grouper service successful [' . $grouper_url . ']: ' . print_r((array)$raw_data, 1));
+
+    return json_decode($raw_data);
+  }
+  else {
+    watchdog('grouper', 'Failure to connect to Grouper service [' . $grouper_url . ']: '.$response->code.': '.$response->error);
+    return FALSE;
+  }
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function grouper_user_login(&$edit, $account) {
+
+  if (!array_key_exists('field_grouper_path', $account)) {
+    watchdog('grouper', "User account '{$account->uid}' does not have the field_grouper_path field.");
+    return;
+  }
+  // get the pin of the user's account
+  $huid = pinserver_authenticate_get_user_huid($account->uid);
+
+  // user has no huid. Bailing out.
+  if (!$huid) {
+    return;
+  }
+  $groups = grouper_groups_for_huid($huid, 'groups');
+
+  if ($groups !== FALSE) {
+    if (count($groups)) {
+       $account->field_grouper_path = array(
+         LANGUAGE_NONE => array()
+       );
+      foreach ($groups as $g) {
+        $account->field_grouper_path[LANGUAGE_NONE][] = array('value' => $g->name);
+      }
+    }
+    else {
+      $account->field_grouper_path = null;
+    }
+
+    user_save($account);
+  }
+  else {
+    // if we can't get grouper data, make sure the account has no grouper-related access
+    unset($account->field_grouper_path);
+    user_save($account);
+  }
+
+  watchdog('grouper', "User account '{$account->uid}' group data after:" . print_r((array)$account->field_grouper_path, 1));
+}
+
+/**
+ * Tests if the given or current user can access the given or current site, based only on their grouper groups.
+ * @param null $group
+ * @param null $user
+ * @return bool
+ */
+function grouper_user_can_access($group = null, $user = null) {
+  if (!isset($group)) {
+    if ($vsite = vsite_get_vsite()) {
+      $group = $vsite->group;
+    }
+    else {
+      // not in a vsite, don't even bother checking
+      return true;
+    }
+  }
+
+  if (!isset($user)) {
+    $user = $GLOBALS['user'];
+  }
+
+  // For some reason, we weren't gettiing fields on the user object
+  // Try to circumvent this.
+  $user = user_load($user->uid);
+
+  if (user_access('bypass grouper restriction', $user) || og_is_member('node', $group->nid, 'user', $user)) {
+    return true;
+  }
+
+  // if the site has no groups defined, don't deny access
+  if (!isset($group->field_grouper_path)) {
+    return true;
+  }
+
+  // if the site has groups, but the user is anonymous.
+  // User could be logged in to pin at this point
+  $user_groups = array();
+  if (empty($user->uid) || !pinserver_user_has_associated_pin($user->uid)) {
+    if ($pin_user = pinserver_get_user()) {
+
+      watchdog('grouper', 'Pin user: '.print_r($pin_user,1));
+      watchdog('grouper', '_SESSION: '.print_r($_SESSION,1));
+
+      if (isset($_SESSION['user_groups'][$user->uid])) {
+        $user_groups = $_SESSION['user_groups'][$user->uid];
+      }
+      else {
+        $user_group_raw = grouper_groups_for_huid($pin_user['raw_huid'], 'groups');
+        $user_groups = array_map(function ($item) { return $item->name; }, $user_group_raw);
+
+        if ($user_groups === FALSE) {
+          return false;
+        } else {
+          $_SESSION['user_groups'][$user->uid] = $user_groups;
+        }
+      }
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    // if the site has groups, but the user is not associated with any, deny access
+    if (!isset($user->field_grouper_path[LANGUAGE_NONE])) {
+      return false;
+    }
+
+    $user_groups = array_map(function ($item) { return $item['value']; }, $user->field_grouper_path[LANGUAGE_NONE]);
+  }
+
+  // we are only here if both the user and the group have data in this field. Compare them
+  $site_groups = array_map(function ($item) { return $item['value']; }, $group->field_grouper_path[LANGUAGE_NONE]);
+  watchdog('grouper', 'Site Groups: '.print_r($site_groups, 1));
+
+  watchdog('grouper', 'User Groups: '.print_r($user_groups,1));
+  $common = array_intersect($user_groups, $site_groups);
+  // $common will contains all groups both the user and group are a part of. If there's anything at all, return true.
+  return count($common) > 0;
+}
+
+/**
+ * Implements hook_node_access().
+ */
+function grouper_node_access($node, $op, $account) {
+  if ($op != 'view') {
+    return NODE_ACCESS_IGNORE;
+  }
+
+  // $node can be a node type as string, which doesn't sound right, but I'm not going digging now
+  if (is_string($node)) {
+    return NODE_ACCESS_IGNORE;
+  }
+
+  if (og_is_group('node', $node)) {
+    $group_id = $node->nid;
+  }
+  elseif (!empty($node->{OG_AUDIENCE_FIELD})) {
+    $group_id = $node->{OG_AUDIENCE_FIELD}[LANGUAGE_NONE][0]['target_id'];
+  }
+  else {
+    return NODE_ACCESS_IGNORE;
+  }
+
+  $group = node_load($group_id);
+  if (!$group) {
+    // Invalid Group
+    return NODE_ACCESS_IGNORE;
+  }
+
+  $items = field_get_items('node', $group, VSITE_ACCESS_FIELD);
+  if ($items[0]['value'] == GROUPER_PRIVACY_LEVEL) {
+    if (grouper_user_can_access($group, $account)) {
+      // ignore instead of allow to give other modules a chance to deny access
+      return NODE_ACCESS_IGNORE;
+    }
+    else {
+      // user does not have a linked account
+      return NODE_ACCESS_DENY;
+    }
+  }
+
+  return NODE_ACCESS_IGNORE;
+}
+
+/**
+ * Implements hook_vsite_access_denied().
+ */
+function grouper_vsite_access_denied($vsite) {
+  if ($vsite->group->{VSITE_ACCESS_FIELD}[LANGUAGE_NONE][0]['value'] == GROUPER_PRIVACY_LEVEL && !pinserver_get_user() && !pinserver_user_has_associated_pin($GLOBALS['uid'])) {
+    if (!pinserver_check_system_settings()) {
+      // Load custom pinserver variables
+      $vsite->controllers->variable->init_overrides();
+
+      // They are not a member, validate through pin.
+      pinserver_redirect(array(
+        'redirect' => url($_GET['q'], array(
+          'absolute' => TRUE
+        )),
+        'tk_forward' => '0'
+      ));
+    }
+  }
+}
+
+/**
+ * Implements hook_post_features_rebuild().
+ */
+function grouper_post_features_rebuild($component) {
+  if ($component == 'field_base') {
+    $group_types = og_get_all_group_bundle('node');
+
+    foreach ($group_types as $bundle => $display_name) {
+      $instance = grouper_get_field_instance('node', $bundle);
+      field_create_instance($instance);
+    }
+  }
+}
+
+/**
+ * Implements hook_pre_features_disable_feature().
+ */
+function grouper_pre_features_disable_feature($component) {
+  if ($component == 'field_base') {
+    $group_types = og_get_all_group_bundle('node');
+
+    foreach ($group_types as $bundle) {
+      $instance = field_info_instance('node', 'field_grouper_path', $bundle);
+      field_delete_instance($instance);
+    }
+  }
+}
+
+/**
+ * Implements hook_pinserver().
+ */
+function grouper_pinserver() {
+  if (isset($_GET['redirect']) && strpos($_GET['redirect'], 'user/pin/') === FALSE) {
+    if (pinserver_get_user_huid()) {
+      // Check to make sure they can't be logged in.
+      if ($uid = pinserver_authenticate_get_uid_from_huid(pinserver_get_user_huid())) {
+        $pin_user = pinserver_get_user();
+        if (isset($pin_user['raw_huid'])) {
+          pinserver_authenticate_set_user_huid($uid, $pin_user['raw_huid']);
+        }
+        $GLOBALS['user'] = user_load($uid);
+        user_login_finalize();
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for user_profile_form.
+ */
+function grouper_form_user_profile_form_alter(&$form, $form_state) {
+  $form['field_grouper_path']['#access'] = FALSE;
+}

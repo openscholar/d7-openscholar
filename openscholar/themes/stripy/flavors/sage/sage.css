@@ -1,0 +1,16 @@
+/* Sage*/
+
+
+#menu-bar {
+  background: rgb(125, 134, 111);
+background: -moz-linear-gradient(270deg, rgb(125, 134, 111) 30%, rgb(151, 160, 137) 70%);
+background: -webkit-linear-gradient(270deg, rgb(125, 134, 111) 30%, rgb(151, 160, 137) 70%);
+background: -o-linear-gradient(270deg, rgb(125, 134, 111) 30%, rgb(151, 160, 137) 70%);
+background: -ms-linear-gradient(270deg, rgb(125, 134, 111) 30%, rgb(151, 160, 137) 70%);
+background: linear-gradient(0deg, rgb(125, 134, 111) 30%, rgb(151, 160, 137) 70%);
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color: #627840;
+  }

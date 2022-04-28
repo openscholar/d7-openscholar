@@ -1,0 +1,89 @@
+<?php
+
+/**
+ * Implementation of hook_install().
+ */
+function os_pinserver_auth_install(){
+  // Set module weight.
+  db_query("UPDATE {system} SET weight = 80 WHERE name = 'os_pinserver_auth'");
+  cache_clear_all('strongarm', 'cache');
+
+  // Pinserver should take over registration.
+  variable_set('os_pinserver_registration', TRUE);
+  variable_set('os_readonly_register_callback', 'os_pinserver_auth_vsite_register_form_page');
+  variable_set('os_readonly_site_register_callback', 'os_pinserver_auth_vsite_register_form_page');
+}
+
+/**
+ * Implements hook_disable().
+ */
+function os_pinserver_auth_disable(){
+  // Pinserver should not take over registration.
+  variable_del('os_pinserver_registration');
+  variable_del('os_readonly_register_callback');
+  variable_del('os_readonly_site_register_callback');
+}
+
+/**
+ * Creates the table `os_pinserver` if it doesn't exist.
+ */
+function os_pinserver_auth_update_7001() {
+  $table = 'os_pinserver';
+  $table_exists = db_table_exists($table);
+  if ($table_exists) {
+    return;
+  }
+
+  $schema = os_pinserver_auth_schema();
+  if (!isset($schema[$table])) {
+    return;
+  }
+
+  // Creates the table.
+  db_create_table($table, $schema[$table]);
+}
+
+/**
+ * Set the needed variables to modify page callbacks.
+ */
+function os_pinserver_auth_update_7002() {
+  // Pinserver should take over registration.
+  variable_set('os_pinserver_registration', TRUE);
+  variable_set('os_readonly_register_callback', 'os_pinserver_auth_vsite_register_form_page');
+  variable_set('os_readonly_site_register_callback', 'os_pinserver_auth_vsite_register_form_page');
+}
+
+
+/**
+ * Deleting the table 'os_pinserver'
+ */
+function os_pinserver_auth_update_7003() {
+  $table = 'os_pinserver';
+  $table_exists = db_table_exists($table);
+  if ($table_exists) {
+     db_drop_table($table);
+  }
+}
+
+/**
+ * Deleting the table 'iqss_pinserver_register'
+ */
+function os_pinserver_auth_update_7004() {
+  $table = 'iqss_pinserver_register';
+  $table_exists = db_table_exists($table);
+  if ($table_exists) {
+     db_drop_table($table);
+  }
+}
+
+/**
+ * Remove pin login setting that is no longer used.
+ */
+function os_pinserver_auth_update_7005() {
+
+  db_delete('spaces_overrides')
+    ->condition('object_id', 'login_via_pin_by_default', "=")
+    ->condition('object_type', "variable", "=")
+    ->execute();
+
+}

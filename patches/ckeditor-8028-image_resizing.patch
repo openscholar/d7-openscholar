@@ -1,0 +1,23 @@
+diff --git a/plugin.js b/plugin.js
+index 39f76b2..467e79b 100755
+--- a/plugin.js
++++ b/plugin.js
+@@ -372,8 +372,16 @@
+   }
+ 
+   function resizeElement(el, width, height) {
+-    el.style.width = String(width) + 'px';
+-    el.style.height = String(height) + 'px';
++    if (el.nodeName == 'IMG') {
++      el.setAttribute('width', width);
++      el.setAttribute('height', height);
++      el.style.width = "";
++      el.style.height = "";
++    }
++    else {
++      el.style.width = String(width) + 'px';
++      el.style.height = String(height) + 'px';
++    }
+   }
+ 
+   function getBoundingBox(window, el) {

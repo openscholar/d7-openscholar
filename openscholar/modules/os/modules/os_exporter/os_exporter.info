@@ -1,0 +1,7 @@
+name = OS exporter
+description = Export data outside OpenScholar to various file formats.
+core = 7.x
+dependencies[] = ctools
+
+files[] = includes/ExporterBase.php
+files[] = includes/ExportInterface.php

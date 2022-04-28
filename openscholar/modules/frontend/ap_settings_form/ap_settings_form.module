@@ -1,0 +1,56 @@
+<?php
+
+define('AP_SETTINGS_FORM_VERSION', '1.0.0');
+
+function ap_settings_form_library() {
+  $libs = array();
+  $self = drupal_get_path('module', 'ap_settings_form');
+  $disable = array('alias' => TRUE);
+
+  $libs['module'] = array(
+    'title' => 'Settings Form',
+    'version' => AP_SETTINGS_FORM_VERSION,
+    'js' => array(
+      $self.'/apSettingsForm.module.js' => array(),
+      array(
+        'data' => array(
+          'paths' => array(
+            'apSettingsForm' => url($self.'/templates', $disable),
+          ),
+          'version' => array(
+            'apSettingsForm' => AP_SETTINGS_FORM_VERSION,
+          )
+        ),
+        'type' => 'setting',
+      )
+    ),
+    'css' => array(
+      drupal_get_path('theme', 'cp_theme') . '/css/cp_theme.css' => array(
+        'group' => CSS_THEME,
+        'every_page' => TRUE,
+        'media' => 'screen'),
+    ),
+    'dependencies' => array(
+      array('os_common', 'angular-modal-service'),
+      array('os_common', 'formElement'),
+      array('os_common', 'buttonSpinner'),
+      array('ap_settings_form', 'redirect')
+    )
+  );
+
+  $libs['redirect'] = array(
+    'title' => 'Redirect Form',
+    'version' => '0.1',
+    'js' => array(
+      $self.'/redirects.module.js' => array()
+    )
+  );
+
+  return $libs;
+}
+
+function ap_settings_form_library_alter(&$libs) {
+  if (isset($libs['admin_panel'])) {
+    $libs['admin_panel']['dependencies'][] = array('ap_settings_form', 'module');
+  }
+}

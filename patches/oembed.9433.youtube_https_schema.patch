@@ -1,0 +1,32 @@
+diff --git a/oembed.oembed_provider.inc b/oembed.oembed_provider.inc
+index 8c20c7c..946904a 100644
+--- a/oembed.oembed_provider.inc
++++ b/oembed.oembed_provider.inc
+@@ -150,17 +150,25 @@ http://vimeo.com/m/#/*';
+   $provider->title = 'YouTube';
+   $provider->endpoint = 'http://www.youtube.com/oembed';
+   $provider->scheme = 'http://*youtube.com/watch*
+-http://*.youtube.com/v/*
+ https://*youtube.com/watch*
++http://*.youtube.com/v/*
+ https://*.youtube.com/v/*
+ http://youtu.be/*
++https://youtu.be/*
+ http://*.youtube.com/user/*
++https://*.youtube.com/user/*
+ http://*.youtube.com/*#*/*
++https://*.youtube.com/*#*/*
+ http://m.youtube.com/watch*
++https://m.youtube.com/watch*
+ http://m.youtube.com/index*
++https://m.youtube.com/index*
+ http://*.youtube.com/profile*
++https://*.youtube.com/profile*
+ http://*.youtube.com/view_play_list*
+-http://*.youtube.com/playlist*';
++https://*.youtube.com/view_play_list*
++http://*.youtube.com/playlist*
++https://*.youtube.com/playlist*';
+   $providers['youtube'] = $provider;
+ 
+   return $providers;

@@ -1,0 +1,56 @@
+span[name=grouper] .add-edit-link {
+    display: block;
+    margin-bottom: 10px;
+}
+span[name=grouper] .add-edit-link,
+span[name=grouper] .all-groups .group {
+    color: #215990;
+}
+span[name=grouper] .all-groups {
+    max-height: 600px;
+    overflow: auto;
+    margin-top: 10px;
+}
+.selected-groups .group,
+.grouper-selected-fieldset-panel .group {
+    background-color: #efefef;
+    padding: 3px 8px 6px;
+    margin: 0 8px 8px 0;
+}
+
+.selected-groups .group {
+    
+    padding: 7px 8px 6px;
+   
+}
+
+span[name=grouper] .all-groups .group {
+    padding: 5px 0 5px 5px;
+}
+span[name=grouper] .all-groups .group:nth-child(even) {
+    background-color: #efefef;
+}
+.grouper-selected-fieldset-panel .group .remove {
+    background: url(/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png) 2px -925px no-repeat;
+    
+    width: 20px;
+    height: 20px;
+    position: relative;
+    right: -3px;
+    top: 5px;
+    margin-left: 5px
+}
+.selected-groups .group,
+.grouper-selected-fieldset-panel .group .remove,
+.grouper-selected-fieldset-panel .group {
+    display: inline-block;
+}
+span[name=grouper] .add-edit-link,
+span[name=grouper] .all-groups .group,
+.grouper-selected-fieldset-panel .group .remove:hover {
+    cursor: pointer;
+}
+.grouper-header-bar .spinner {
+    border-top: .5em solid rgb(96, 96, 96);
+    border-right: .5em solid rgb(96, 96, 96);
+}

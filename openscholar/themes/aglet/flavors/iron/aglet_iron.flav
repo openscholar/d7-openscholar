@@ -1,0 +1,5 @@
+name = Iron
+description = Iron version of the aglet theme
+screenshot = screenshot.png
+
+css[] = iron.css

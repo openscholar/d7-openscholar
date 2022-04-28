@@ -1,0 +1,14 @@
+name = Private Files
+description = Manage private files with restricted access.
+core = 7.x
+package = Features
+dependencies[] = context
+dependencies[] = spaces
+dependencies[] = views
+features[ctools][] = context:context:3
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[views_view][] = os_files_private
+files[] = includes/os_files_private_stream_wrapper.inc
+spaces[types][] = og
+spaces[types][] = site

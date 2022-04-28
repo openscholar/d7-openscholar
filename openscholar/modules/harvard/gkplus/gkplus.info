@@ -1,0 +1,9 @@
+name = GK+
+description = Customizations for Gary King's website.
+core = 7.x
+package = Features
+dependencies[] = contextual_annotation
+dependencies[] = features
+dependencies[] = nodeorder
+features[features_api][] = api:2
+features[user_permission][] = order nodes within categories

@@ -1,0 +1,140 @@
+<?php
+/**
+ * @file
+ * Install file of the os wysiwyg module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function os_wysiwyg_install() {
+  // Add HTML as an allowed type for WYSIWYG files.
+  $types = media_variable_get('wysiwyg_allowed_types');
+  $types[] = 'html';
+  $types = array_unique(array_diff($types, array('document')));
+  $types = array_combine($types, $types);
+  media_variable_set('wysiwyg_allowed_types', $types);
+
+}
+
+/**
+ * Remove unneeded tracking of file usages.
+ */
+function os_wysiwyg_update_7001() {
+  db_delete('file_usage')
+    ->condition('module', 'os_wysiwyg')
+    ->execute();
+}
+
+/**
+ * Uninstall deprecated modules.
+ */
+function os_wysiwyg_update_7002() {
+  module_disable(array('media_oembed', 'oembedcore'));
+}
+
+/**
+ * Remove 'Hide Toolbar' buttom from wysiwyg
+ */
+function os_wysiwyg_update_7003() {
+  features_revert(array('os_wysiwyg' => array('wysiwyg')));
+  return t('\'Hide Toolbar\' button removed.');
+}
+
+/**
+ * Increase size of Body field in relevant node types.
+ */
+function os_wysiwyg_update_7004() {
+  $modules = array(
+    'os_biocv',
+    'os_blog',
+    'os_booklets',
+    'os_classes',
+    'os_events',
+    'os_faq',
+    'os_links',
+    'os_news',
+    'os_pages',
+    'os_presentations',
+    'os_profiles',
+    'os_software'
+  );
+  $reset = array(
+    'field_instance'
+  );
+
+  features_revert(array_fill_keys($modules, $reset));
+}
+
+/**
+ * Revert os_wysiwyg filter component to allow <th> and <thead> tags.
+ */
+function os_wysiwyg_update_7006() {
+  features_revert(array('os_wysiwyg' => array('filter')));
+}
+
+/**
+ * Removes document from the wysiwyg allowed type var
+ */
+function os_wysiwyg_update_7007() {
+  $types = media_variable_get('wysiwyg_allowed_types');
+  $types = array_unique(array_diff($types, array('document')));
+  $types = array_combine($types, $types);
+  media_variable_set('wysiwyg_allowed_types', $types);
+}
+
+/**
+ * Set back the wysiwyg handlers to tinymce.
+ */
+function os_wysiwyg_update_7008() {
+  features_revert(array('os_wysiwyg' => array('wysiwyg'), 'os_publications' => array('wysiwyg')));
+}
+
+/**
+ * Set back the wysiwyg handlers to tinymce(for production environment).
+ */
+function os_wysiwyg_update_7009() {
+  features_revert(array('os_wysiwyg' => array('wysiwyg'), 'os_publications' => array('wysiwyg')));
+}
+
+/**
+ * Disable the Image2 plugin.
+ */
+function os_wysiwyg_update_7010() {
+  features_revert(array('os_wysiwyg' => array('wysiwyg')));
+}
+
+/**
+ * Revert os_wysiwyg filter component to allow <figcaption> tag.
+ */
+function os_wysiwyg_update_7011() {
+  features_revert(array('os_wysiwyg' => array('filter')));
+}
+
+/**
+ * Remove the font size and family.
+ */
+function os_wysiwyg_update_7012() {
+  features_revert(array('os_wysiwyg' => array('wysiwyg')));
+}
+
+/**
+ * Add bi directional widget.
+ */
+function os_wysiwyg_update_7013() {
+  features_revert(array('os_wysiwyg' => array('filter', 'wysiwyg')));
+}
+
+/**
+ * Add bi directional widget(retry).
+ */
+function os_wysiwyg_update_7014() {
+  os_wysiwyg_update_7012();
+}
+
+/**
+ * Revert os_wysiwyg filter component to allow rel attribute.
+ */
+function os_wysiwyg_update_7015() {
+  features_revert(array('os_wysiwyg' => array('filter')));
+}

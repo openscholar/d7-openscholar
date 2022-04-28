@@ -1,0 +1,394 @@
+/* Menus */
+
+#menu-bar {
+	padding: 8px 0;
+}
+
+
+.header-none #menu-bar {
+top: -11px;
+position: relative;
+}
+
+#menu-bar ul.nice-menu a {
+	font-family: Georgia, Baskerville, Palatino, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+	font-size: 20px;
+	color: #303030;
+	padding: 8px;
+}
+
+
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover
+ {
+    background:#1E2540;
+    color:#FFF;
+}
+
+#menu-bar ul.nice-menu .menuparent {
+    padding-right: 5px;
+}
+
+#menu-bar ul.nice-menu .menuparent a {
+  padding-right: 15px;
+  position: relative;
+}
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+  position: absolute;
+  background-image: url('../images/hwpi_basesprite.png');
+  background-position: -12px -566px;  /* Blue Arrow */
+  background-color: transparent;
+  margin: auto;
+  content: '';
+  width: 10px;
+  height: 8px;
+  right: 2px;
+  top: 0;
+  bottom: 0;
+}
+
+/* Kill the down arrow in dropdown parent li's 2nd level or deeper */
+#menu-bar ul.nice-menu .menuparent ul li a:before {
+background-image: none;
+}
+
+/* Targets all menuparents, top level or descendents of top */
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+  background-color: #1E2540;
+  color:#FFF;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+  background-position: 0 -566px; /* White Arrow */
+}
+
+/* Targets parents below top level */
+#menu-bar ul.nice-menu ul .menuparent.over > a,
+#menu-bar ul.nice-menu ul .menuparent a:hover,
+#menu-bar ul.nice-menu ul .menuparent a.active {
+  background: none;
+  color:inherit;
+}
+
+#menu-bar ul.nice-menu li {
+  margin-right: 20px;
+}
+
+#menu-bar ul.nice-menu li.last {
+    margin-right: 0;
+}
+ 
+ul.nice-menu ul {
+    top: 3.3em !important;
+}
+
+ul.nice-menu ul ul {
+    top: 0 !important;
+}
+
+#menu-bar ul.nice-menu ul {
+    background: #F0F0EE;
+}
+
+ul.nice-menu ul {
+    border-top: none;
+   
+}
+
+#menu-bar ul.nice-menu .menuparent ul li {
+    padding-right: 0;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a {
+    background: none;
+    padding-right: 0;
+    font-size:15px;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active {
+    background: none;
+     color:#666;
+    padding-right: 0;
+}
+
+/* Primary or Secondary Nav  Sidebar */
+
+#columns .os-custom-menu .block-inner,
+#columns #block-os-primary-menu .block-inner, 
+#columns #block-os-secondary-menu .block-inner {
+	margin-top: 0;
+}
+
+#columns .os-custom-menu,
+#columns #block-os-primary-menu, 
+#columns #block-os-secondary-menu {
+	border: 1px solid #fff;
+	border-bottom: none;
+}
+
+#columns .accordion ul.nice-menu,
+#columns .os-custom-menu ul,
+#columns #block-os-primary-menu ul, 
+#columns #block-os-secondary-menu ul {
+	list-style: none !important;
+}
+
+#columns .accordion ul.nice-menu li,
+#columns .os-custom-menu li,
+#columns #block-os-primary-menu li, 
+#columns #block-os-secondary-menu li {
+  padding: 0;
+}
+
+#columns .accordion ul.nice-menu,
+#columns .os-custom-menu ul.nice-menu,
+#columns #block-os-primary-menu ul.nice-menu, 
+#columns #block-os-secondary-menu ul.nice-menu,
+#columns .os-custom-menu ul.menu,
+#columns #block-os-primary-menu ul.menu, 
+#columns #block-os-secondary-menu ul.menu {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+#columns .accordion ul.nice-menu li,
+#columns .os-custom-menu ul.nice-menu li,
+#columns #block-os-primary-menu ul.nice-menu li, 
+#columns #block-os-secondary-menu ul.nice-menu li,
+#columns .os-custom-menu ul.menu li,
+#columns #block-os-primary-menu ul.menu li, 
+#columns #block-os-secondary-menu ul.menu li {
+	list-style: none;
+	background-color: #F3F3F1 !important;
+	text-align: left;
+	float:none;
+}
+
+#columns .accordion ul.nice-menu li a,
+#columns .os-custom-menu ul.nice-menu li a,
+#columns #block-os-primary-menu ul.nice-menu li a, 
+#columns #block-os-secondary-menu ul.nice-menu li a,
+#columns .os-custom-menu ul.menu li a,
+#columns #block-os-primary-menu ul.menu li a, 
+#columns #block-os-secondary-menu ul.menu li a {
+	display: block;
+	text-decoration: none !important;
+	padding: 8px 15px;
+	border-bottom: 2px solid #fff !important;
+	font-size:15px;
+}
+
+#columns .accordion ul.nice-menu li li a,
+#columns .os-custom-menu ul.nice-menu li li a,
+#columns #block-os-primary-menu ul.nice-menu li li a, 
+#columns #block-os-secondary-menu ul.nice-menu li li a,
+#columns .os-custom-menu ul.menu li li a,
+#columns #block-os-primary-menu ul.menu li li a, 
+#columns #block-os-secondary-menu ul.menu li li a {
+	padding: 8px 25px;
+}
+
+#columns .accordion ul.nice-menu li ul.menu,
+#columns .os-custom-menu ul.menu li ul.menu,
+#columns #block-os-primary-menu ul.menu li ul.menu, 
+#columns #block-os-secondary-menu ul.menu li ul.menu,
+#columns .os-custom-menu ul.nice-menu li ul.menu,
+#columns #block-os-primary-menu ul.nice-menu li ul.menu, 
+#columns #block-os-secondary-menu ul.nice-menu li ul.menu {
+    margin: 0 0 0 0;
+}
+
+#columns .accordion ul.nice-menu li.last a,
+#columns .os-custom-menu ul.nice-menu li.last a,
+#columns #block-os-primary-menu ul.nice-menu li.last a, 
+#columns #block-os-secondary-menu ul.nice-menu li.last a,
+#columns .os-custom-menu ul.menu li.last a,
+#columns #block-os-primary-menu ul.menu li.last a, 
+#columns #block-os-secondary-menu ul.menu li.last a {
+	border-bottom: none;
+	
+}
+
+#columns .accordion ul.nice-menu li li.last a,
+#columns .os-custom-menu ul.nice-menu li li.last a,
+#columns #block-os-primary-menu ul.nice-menu li li.last a, 
+#columns #block-os-secondary-menu ul.nice-menu li li.last a,
+#columns .os-custom-menu ul.menu li li.last a,
+#columns #block-os-primary-menu ul.menu li li.last a, 
+#columns #block-os-secondary-menu ul.menu li li.last a {
+	border-bottom: 2px solid #fff;
+	
+}
+
+#columns .accordion ul.nice-menu a:hover,
+#columns .os-custom-menu a:hover,
+#columns #block-os-primary-menu a:hover, 
+#columns #block-os-secondary-menu a:hover {
+	background-color: #E6E6E3 !important;
+}
+
+.block-boxes-os_boxes_facetapi_vocabulary.navigation a.active,
+.block-boxes-os_taxonomy_fbt.navigation a.active,
+.section-nav a.active {
+	color: #333;
+}
+
+/* TAXONOMY AS NAVIGATION BASE STYLES*/
+.block-boxes-os_boxes_facetapi_vocabulary.navigation a,
+.block-boxes-os_taxonomy_fbt.navigation a {
+	color: #215990;
+	}
+.block-boxes-os_boxes_facetapi_vocabulary.navigation a:hover,
+.block-boxes-os_taxonomy_fbt.navigation a:hover {
+    background-color: #e3e3e1;
+  
+}
+.block-boxes-os_boxes_facetapi_vocabulary.navigation ul li, 
+.block-boxes-os_taxonomy_fbt.navigation ul li {
+    background-color: #FFF;
+  }
+.block-boxes-os_boxes_facetapi_vocabulary.navigation ul,
+.block-boxes-os_taxonomy_fbt.navigation ul {
+    border-bottom: 1px solid #EBE3DF;
+    border-left: 1px solid #EBE3DF;
+    border-right: 1px solid #EBE3DF;
+  }
+
+.block-boxes-os_boxes_facetapi_vocabulary.navigation ul li,
+.block-boxes-os_taxonomy_fbt.navigation ul li {
+	border-top: 1px solid #EBE3DF;
+}
+
+
+/* BOOK NAV IN CONTENT AREA */
+#content-column .book-menu a.active {
+   font-style: normal;
+   color: #000;
+}
+
+#content-column .book-menu ul li a {
+    color: #215990;
+}
+
+
+
+/* Action Nav Header 3rd*/
+.region-header-third ul.nice-menu {
+	float:right;
+	margin-bottom: 1em;
+}
+
+
+
+.region-header-third ul.nice-menu {
+    margin-top: 5px;
+}
+
+.region-header-third ul.nice-menu li {
+    margin-left: 13px;
+}
+
+.region-header-third ul.nice-menu a {
+    font: bold 13px arial,sans-serif;
+    text-decoration: none;
+    text-transform: uppercase;
+    color: #1b4977;
+    padding: 0.3em 0 0.3em 10px;
+}
+
+#branding_footer,
+#branding_header {
+	background: #1e1e1e;
+	color: #FFF;
+	font-weight: bold;
+}
+
+#branding_footer a,
+#branding_header a {
+	color:#FFF;
+	text-decoration: underline;
+}
+
+#branding_header a:hover {
+	color:#8996A0;
+}
+
+
+
+/* Footer Quicklinks Nav */
+#footer ul.menu,
+#footer ul {
+	margin-left:0;
+	list-style: none;
+}
+
+#footer ul.menu li.menuparent {
+	float:left;
+	display:inline;
+	clear: none;
+	margin-right:80px;
+  font-size:12px;
+  text-transform: uppercase;
+}
+
+#footer ul li.leaf {
+    list-style-image: none !important;
+    list-style-type: none !important;
+}
+
+/* Temporary - Footer Quicklinks Nav CSS - REMOVE WHEN THE REAL MENU FUNCTIONALITY IS READY*/
+
+#footer ul.os-menu,
+#footer ul {
+	margin-left:0;
+}
+
+#footer ul.os-menu li.os-menuparent {
+	float:left;
+	display:inline;
+	clear: none;
+	margin-right:95px;
+  font-size:12px;
+  text-transform: uppercase;
+}
+
+
+/* Local tasks */
+#tasks {
+  margin-bottom: 18px;
+  margin-top: 40px;
+}
+
+ul.primary li a {
+	background-color: #f3f3f1;
+	border-color: #e4e4e4;
+	margin-right: 0;
+	padding: 4px 10px 0.2em;
+}
+ul.primary li.active a {
+  border-color: #cacaca #cacaca #fff;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

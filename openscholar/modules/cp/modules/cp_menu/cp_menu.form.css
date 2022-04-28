@@ -1,0 +1,7 @@
+.section-populated {
+  display: none;
+}
+
+#edit-menu-table td .form-item.form-type-item {
+    float: left;
+}

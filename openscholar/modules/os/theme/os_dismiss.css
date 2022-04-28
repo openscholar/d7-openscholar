@@ -1,0 +1,47 @@
+/*
+ * All messages require relative positioning
+ * for the Dismiss button to be placed properly
+ */
+.messages {
+  position: relative;
+  padding-right: 1.5em;
+}
+
+/*
+ * This is the only file which being loaded in ckeditor. Adding a color to
+ * table cells.
+ */
+.cke_editable table th, .cke_editable table td {
+  border: 1px dashed #BBB;
+}
+
+
+
+/*
+ * When the user mouses over the message box, make the button more prominent
+ */
+.messages:hover .dismiss {
+  opacity: 1;
+}
+
+/*
+ * Change states when users mouseover
+ */
+.dismiss:hover {
+  color: #fff;
+  text-decoration: none;
+  text-shadow: -1px -1px 0px rgba(0,0,0,0.4);
+}
+
+/*
+ * Change states when users click
+ */
+.dismiss:active {
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.4);
+  box-shadow: 0 0 1px rgba(0,0,0,0.4);
+  margin-top: 1px;
+  margin-left: 1px;
+}
+#event-change-notify a.dismiss {
+    display: none;
+}

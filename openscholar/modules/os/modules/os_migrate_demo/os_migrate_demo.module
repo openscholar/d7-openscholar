@@ -1,0 +1,185 @@
+<?php
+
+/**
+ * Implements hook_boxes_plugins.
+ */
+function os_migrate_demo_boxes_plugins() {
+  $info = array();
+  $info['os_boxes_cache_test'] = array(
+    'title' => 'Just for test',
+    'description' => 'Just for test',
+    'tags' => array('Content'),
+    'handler' => array(
+      'class' => 'os_boxes_cache_test',
+      'file' => 'os_boxes_cache_test.inc',
+      'path' => drupal_get_path('module', 'os_migrate_demo') . '/plugins/os_boxes_cache_test',
+      'parent' => 'os_boxes_default',
+    ),
+    'weight' => -4,
+    'factory' => FALSE,
+  );
+  return $info;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function os_migrate_demo_menu() {
+
+  $items = array();
+
+  $items['os-reader/%'] = array(
+    'page callback' => 'os_reader_dummy_xml',
+    'access callback' => TRUE,
+    'page arguments' => array(1),
+  );
+
+  $items['os-importer-demo/%'] = array(
+    'page callback' => 'os_migrate_demo_import_csv',
+    'access callback' => TRUE,
+    'page arguments' => array(1),
+  );
+
+  $items['variable/%'] = array(
+    'page callback' => 'variable_get',
+    'page arguments' => array(1, 'empty'),
+    'access callback' => TRUE,
+  );
+
+  $items['os-package-file'] = array(
+    'page callback' => 'os_migrate_demo_package_file',
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * Use our custom access callback for event's attendees export for testing.
+ */
+function os_migrate_demo_menu_alter(&$items) {
+  $items['node/%node/registrations/export']['access callback'] = 'os_migrate_testing_event_export';
+}
+
+/**
+ * Access callback;
+ *
+ * If "testing" is set in the query string, give access to export the event's
+ * list of attendees.
+ */
+function os_migrate_testing_event_export($permission) {
+  return !empty($_GET['testing']) ? TRUE : user_access($permission);
+}
+
+/**
+ * Importing nodes from a demo CSV.
+ *
+ * @param $import
+ *   The file name(without .csv)
+ */
+function os_migrate_demo_import_csv($type) {
+  global $base_url;
+
+  $importers = array(
+    'blog' => 'os_blog_csv',
+    'news' => 'os_news',
+    'event' => 'os_ical',
+    'page' => 'os_pages',
+    'class' => 'os_classes',
+    'faq' => 'os_faq',
+    'presentation' => 'os_presentation',
+    'software_project' => 'os_software',
+    'person' => 'os_people',
+    'link' => 'os_links',
+    'media_gallery' => 'os_gallery',
+  );
+
+  // Specify a specific encoding of importers files. This meant for testing the
+  // import of files in various encodings.
+  $encodes = array(
+    'blog' => 'WINDOWS-1255',
+    'news' => 'WINDOWS-1254',
+  );
+
+  $ending = $type == 'event' ? 'ics' : 'csv';
+  $url = $base_url . '/' . drupal_get_path('module', 'os_migrate_demo') . '/includes/import_csv/' . $type . '.' . $ending;
+  // todo: Use system_retrieve_file().
+  $file = system_retrieve_file($url, 'public://', TRUE);
+
+  $source = feeds_source($importers[$type]);
+  $fetcher_config = $source->getConfigFor($source->importer->fetcher);
+  $fetcher_config['source'] = $file->uri;
+  $fetcher_config['file'] = $file;
+
+  // Add encoding for specific files.
+  if (isset($encodes[$type])) {
+    $fetcher_config['encode'] = $encodes[$type];
+  }
+  $source->setConfigFor($source->importer->fetcher, $fetcher_config);
+  $source->save();
+
+  feeds_source($importers[$type], 0)->import();
+}
+
+/**
+ * Menu callback; Print a dummy xml of feeds items.
+ */
+function os_reader_dummy_xml($vsite_name) {
+  global $base_url;
+  drupal_goto($base_url . '/' . drupal_get_path('module', 'os_migrate_demo') . '/includes/' . $vsite_name . '_dummy_rss.xml');
+}
+
+/**
+ * Implements hook_migrate_api().
+ */
+function os_migrate_demo_migrate_api() {
+  $migrations = array();
+
+  $classes = array(
+    'OsMigrateAuthorsTaxonomyTerm',
+    'OsMigrateBiologyTaxonomyTerm',
+    'OsMigrateMathTaxonomyTerm',
+    'OsMigrateScienceTaxonomyTerm',
+    'OsMigratePersonalNode',
+    'OsMigrateProjectNode',
+    'OsMigratePublicationNode',
+    'OsMigrateClassesNode',
+    'OsMigrateClassesMaterialNode',
+    'OsMigrateNewsNode',
+    'OsMigrateEventsNode',
+    'OsMigrateBlogNode',
+    'OsMigrateBookNode',
+    'OsMigratePeopleNode',
+    'OsMigrateLinkNode',
+    'OsMigratePresntationsNode',
+    'OsMigrateFeedsNode',
+    'OsMigrateGalleryNode',
+    'OsMigrateOgVocab',
+    'OsMigrateUsers',
+    'OsMigrateFAQNode',
+    'OsMigrateSoftwareNode',
+    'OsMigrateFamilyTaxonomyTerm',
+    'OsMigrateDepartmentNode',
+    'OsMigratePageNode',
+  );
+
+  foreach ($classes as $class_name) {
+    $migrations[$class_name] = array('class_name' => $class_name);
+  }
+
+  $api = array(
+    'api' => 2,
+    'migrations' => $migrations,
+  );
+  return $api;
+}
+
+/**
+ * Get a file ID for the tests.
+ */
+function os_migrate_demo_package_file() {
+  $url = 'http://www.colorado.edu/conflict/peace/download/peace.zip';
+  drupal_json_output(os_copy_file($url));
+}

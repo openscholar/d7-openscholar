@@ -1,0 +1,217 @@
+<?php
+
+function vsite_access_install() {
+  $group_types = og_get_all_group_bundle ('node');
+  foreach ($group_types as $bundle => $label) {
+    og_create_field(VSITE_ACCESS_FIELD, 'node', $bundle);
+  }
+}
+
+/**
+ * Update the privacy field
+ */
+function vsite_access_update_7001(&$sandbox) {
+
+  $def_field = og_fields_info(VSITE_ACCESS_FIELD);
+  $def_field['field']['field_name'] = VSITE_ACCESS_FIELD;
+
+  $field = field_info_field(VSITE_ACCESS_FIELD);
+
+  // Update the field config
+  if (!empty($field)) {
+
+    // We are changing from boolean to integer which have the same schema, lets trick Drupal into letting us.
+    db_update('field_config')
+      ->fields(array('type' => $def_field['field']['type']))
+      ->condition('field_name', 'group_access')
+      ->condition('module', 'list')
+      ->condition('type', $field['type'])
+      ->execute();
+
+    // Keep the same 'allowed values', so that list field will let us update the field.
+    // It will use the new 'allowed values' function instead of this.
+    $def_field['field']['settings']['allowed_values'] = $field['settings']['allowed_values'];
+
+    field_update_field($def_field['field']);
+  }
+
+  //Update the field instance for each of the group types
+  $group_types = array_keys(array_intersect(module_invoke_all('vsite_og_node_type_info'), array('group')));
+  foreach ($group_types as $group_bundle) {
+
+    $instance = field_info_instance('node', VSITE_ACCESS_FIELD, $group_bundle);
+    if (!empty($instance)) {
+      $def_instance = $def_field['instance'];
+      $def_instance += array(
+        'field_name' => VSITE_ACCESS_FIELD,
+        'bundle' => $group_bundle,
+        'entity_type' => 'node',
+      );
+      field_update_instance($def_instance);
+    }
+  }
+
+  entity_property_info_cache_clear();
+
+  return "Updated config for VSITE_ACCESS_FIELD";
+}
+
+/**
+ * Update the privacy field
+ */
+function vsite_access_update_7002(&$sandbox) {
+
+  if (!module_exists('robotstxt')) {
+    if (module_enable(array('robotstxt'))) {
+      return "Enabled module robotstxt";
+    }
+    throw new DrupalUpdateException('Unable to enable module robotstxt.');
+  }
+}
+
+/**
+ * Removes empty directives from the stored robots.txt variable.
+ */
+function vsite_access_update_7003() {
+  // Loads the directives array and assumes no changes will be made.
+  $directives = variable_get('vsite_access_robotstxt_directives', array());
+  $modified = FALSE;
+
+  // Loops over each directive (line of text) for each domain...
+  foreach ($directives as $domain => $lines) {
+    foreach ($lines as $gid => $directive) {
+      // Removes the line if the string contains an empty purl value.
+      $empty_purl = 'Disallow: //';
+      if ($directive == $empty_purl) {
+        unset($directives[$domain][$gid]);
+        $modified = TRUE;
+      }
+      // Removes the line if the stored purl doesn't match directive.
+      // This case may have happened when a vsite was deleted before
+      // directives were also deleted in vsite_access_node_delete().
+      $result = db_select('purl', 'p')
+        ->fields('p', array('value'))
+        ->condition('id', $gid)
+        ->condition('provider', 'spaces_og')
+        ->execute();
+      while ($record = $result->fetchAssoc()) {
+        $purl = $record['value'];
+        if (empty($purl)) {
+          continue;
+        }
+        $expected_directive = "Disallow: /$purl/";
+        $zombie_imposter = (bool) ($directive != $expected_directive);
+        if ($zombie_imposter) {
+          unset($directives[$domain][$gid]);
+          $modified = TRUE;
+        }
+      }
+    }
+  }
+
+  if ($modified) {
+    variable_set('vsite_access_robotstxt_directives', $directives);
+  }
+}
+
+/**
+ * Removes more bad data from the stored robots.txt variable.
+ */
+function vsite_access_update_7004() {
+  // Loads the directives array and assumes no changes will be made.
+  $directives = variable_get('vsite_access_robotstxt_directives', array());
+  $modified = FALSE;
+
+  // Loops over each directive (line of text) for each domain...
+  foreach ($directives as $domain => $lines) {
+    foreach ($lines as $gid => $directive) {
+      // Removes the line if the string contains an empty purl value.
+      $empty_purl = 'Disallow: //';
+      if ($directive == $empty_purl) {
+        // Skips this line; already taken care of.
+        // @see vsite_access_update_7003()
+        continue;
+      }
+      else {
+        // Removes the line if the stored purl doesn't match directive.
+        // This case may have happened when a vsite was deleted before
+        // directives were also deleted in vsite_access_node_delete().
+        $result = db_select('purl', 'p')
+          ->fields('p', array('value'))
+          ->condition('id', $gid)
+          ->condition('provider', 'spaces_og')
+          ->execute();
+        $found_purl = $result->rowCount();
+        if ($found_purl) {
+          // Skips this line; already taken care of.
+          // @see vsite_access_update_7003()
+          continue;
+        }
+        else {
+          $extracted_purl = str_replace('Disallow: ', '', $directive);
+          $extracted_purl = str_replace('/', '', $extracted_purl);
+          $result = db_select('purl', 'p')
+            ->fields('p', array('id'))
+            ->condition('value', $extracted_purl)
+            ->condition('provider', 'spaces_og')
+            ->execute();
+          while ($record = $result->fetchAssoc()) {
+            $purl_gid = $record['id'];
+            if (empty($purl_gid)) {
+              // Skips this case, since we don't have enough info.
+              continue;
+            }
+            else {
+              $purl_gid = (int) $purl_gid;
+            }
+            // Marks this line for deletion, since the supposed group ID from
+            // the directives array does NOT match the group ID associated with
+            // this group path (purl).
+            $mapping_incorrect = (bool) ($gid != $purl_gid);
+          }
+        }
+
+        // Removes the line if it is an incorrect mapping.
+        if ($mapping_incorrect) {
+          unset($directives[$domain][$gid]);
+          $modified = TRUE;
+        }
+      }
+    }
+  }
+
+  if ($modified) {
+    variable_set('vsite_access_robotstxt_directives', $directives);
+  }
+}
+
+/**
+ * Removes old entries from the robots.txt variable.
+ */
+function vsite_access_update_7005() {
+  global $base_url;
+  $base_domain = parse_url(variable_get('purl_base_domain', $base_url), PHP_URL_HOST);
+  $directives = variable_get('vsite_access_robotstxt_directives', array());
+  $message = "";
+
+  if(isset($directives[$base_domain])){
+    //Keep track of number of nodes in static cache for memory
+    $loaded_nodes = 0;
+    foreach($directives[$base_domain] as $gid => $rule) {
+
+      $loaded_nodes++;
+      if ($loaded_nodes%100 == 0) {
+        // Reset the cache to keep memory manageable
+        entity_get_controller('node')->resetCache();
+      }
+
+      if(!node_load($gid)){
+        $message .= "Remove Deleted Group [$gid] with rule [$rule]\n<br />";
+        unset($directives[$base_domain][$gid]);
+      }
+    }
+    variable_set('vsite_access_robotstxt_directives', $directives);
+  }
+
+  return $message;
+}

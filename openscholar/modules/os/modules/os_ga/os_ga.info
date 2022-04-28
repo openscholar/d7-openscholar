@@ -1,0 +1,5 @@
+name = OpenScholar: Google Analytics
+description = Generates js output for google analytics globally and on a per site basis
+package = "OpenScholar"
+dependencies[] = "os"
+core = 7.x

@@ -1,0 +1,173 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code for the OS App FAQ (a feature module).
+ */
+
+include_once ('os_faq.features.inc');
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_faq_os_app_info() {
+  $apps = array();
+
+  $apps['os_faq'] = array(
+    'path' => 'faq',
+  	'nodetypes' => array(
+  	  'faq',
+    ),
+    'views tabs' => array(
+      'os_faq' => array('page'),
+    ),
+    'importers' => array(
+      'faq' => array(
+        'csv' => 'os_faq',
+      ),
+    ),
+    'browse_pages' => array(
+      'faq' => array(
+        'url' => 'browse/faq',
+        'title' => t('Frequently Asked Questions'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'faq',
+      ),
+    ),
+    'has_settings' => TRUE,
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_faq_vsite_og_node_type_info() {
+  return array(
+    'faq' => 'group content',
+  );
+}
+
+/**
+ * Increases the teaser break for faq by a huge amount when the slider is active
+ * @todo implement trim in node display settings.
+ */
+function os_faq_field_attach_view_alter(&$output, &$context) {
+  // This is only here temporarially, once the variable 'os_faq_disable_toggle' is
+  // removed the trim length should be updated in the node teaser setttings so
+  // that there is no trim.
+  if (isset($output['body']) && $output['body']['#object']->type == 'faq' && variable_get('os_faq_disable_toggle', FALSE)) {
+    $item = $output['body']['#items'][0];
+
+    if ($context['view_mode'] != 'teaser') {
+      // Don't trim the text when the view mode is not a teaser.
+      return;
+    }
+    $output['body'][0]['#markup'] = text_summary($item['safe_value'], $item['format'], 10000);
+  }
+}
+
+/**
+ * Implements hook_preprocess_node().
+ * Adds toggling slider to FAQ nodes
+ */
+function os_faq_preprocess_node(&$vars) {
+  if ($vars['node']->type != 'faq') return;
+
+  if (!$vars['page'] && !variable_get('os_faq_disable_toggle', FALSE) && $vars['view_mode'] != 'title') {
+    $vars['header_attributes_array']['class'][] = 'toggle';
+    $vars['content_attributes_array']['class'][] = 'os-slider';
+    $vars['links_attributes_array']['class'][] = 'os-slider';
+    drupal_add_js(drupal_get_path('module', 'os').'/theme/os_toggle.js');
+  }
+}
+
+/**
+ * Implements hook_os_entity_view_modes_alter
+ *
+ * Slide teaser is redundant with the default faq teaser so remove it
+ **/
+function os_faq_os_entity_view_modes_alter(&$info) {
+  $info['node']['faq'] = array_diff($info['node']['faq'], array('slide_teaser'));
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function os_faq_views_query_alter(&$view, &$query) {
+  if ($view->name == 'os_faq' && $view->current_display == 'page') {
+    switch (variable_get('faq_sort', 'created')) {
+      case 'created':
+        $query->orderby[1]['field'] = 'node.created';
+        $query->orderby[1]['direction'] = 'DESC';
+        break;
+      case 'created_asc':
+        $query->orderby[1]['field'] = 'node.created';
+        $query->orderby[1]['direction'] = 'ASC';
+        break;
+      case 'title':
+        $query->orderby[1]['field'] = 'node.title';
+        $query->orderby[1]['direction'] = 'ASC';
+        break;
+      case 'title_desc':
+        $query->orderby[1]['field'] = 'node.title';
+        $query->orderby[1]['direction'] = 'DESC';
+        break;
+      default:
+        $query->orderby[1]['field'] = 'node.created';
+        $query->orderby[1]['direction'] = 'DESC';
+    }
+  }
+}
+
+/**
+ * Implements hook_cp_settings().
+ */
+function os_faq_cp_settings() {
+
+  $settings = array();
+  $spaces_features = variable_get('spaces_features');
+
+  // The app won't appear in CP menu if not enabled.
+  if (empty($spaces_features['os_faq'])) {
+    return $settings;
+  }
+
+  $settings['os_faq_disable_toggle'] = array(
+    'group' => array(
+      '#id' => 'feature_os_faq',
+      '#title' => t('FAQs'),
+      '#weight' => 3,
+      '#menu_parent' => 'app_settings',
+      '#help_link' => l(t('Learn more about FAQs'), 'https://help.theopenscholar.com-app#faq-app-settings', array('attributes' => array('target' => '_blank'))),
+    ),
+    'form' => array(
+      '#title' => t('Disable question/answer slider behavior'),
+      '#type' => 'checkbox',
+      '#default_value' => variable_get('os_faq_disable_toggle', FALSE),
+      '#description' => t('By default, clicking on an question will open the answer.
+        By disabling slider behavior, you can force the answer to always appear.'),
+      '#weight' => -1,
+      '#prefix' => '<label class="margin-bottom settings-form-heading">Choose how FAQs will display</label>',
+    ),
+  );
+  $settings['faq_sort'] =  array(
+    'group' => array(
+      '#id' => 'feature_os_faq',
+      '#title' => t('FAQs'),
+      '#weight' => 3,
+      '#menu_parent' => 'app_settings',
+      '#help_link' => l(t('Learn more about FAQs'), 'https://help.theopenscholar.com-app#faq-app-settings', array('attributes' => array('target' => '_blank'))),
+    ),
+    'form' => array(
+      '#type' => 'radios',
+      '#title' => t('Ordering'),
+      '#default_value' => variable_get('faq_sort', 'created'),
+      '#options' => array('created' => t('Creation date, newest first'), 'created_asc' => t('Creation date, oldest first'), 'title' => t('Alphanumeric, A-Z'), 'title_desc' => t('Alphanumeric, Z-A')),
+    ),
+  );
+  return $settings;
+}
+

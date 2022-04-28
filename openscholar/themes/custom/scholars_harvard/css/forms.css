@@ -1,0 +1,109 @@
+/* Search box */
+
+#search-theme-form {
+  padding-bottom: 5px;
+  float:right;
+  margin-top: -10px;
+  }
+
+#content #search-theme-form {
+  margin-top: 2em;
+  }
+
+#search-theme-form div.form-item {
+  border: none;
+  padding: 0;
+  margin: 0;
+  }
+
+#search-theme-form label{
+  display:none;
+  }
+
+#search-theme-form .container-inline {
+  height: 24px;
+  line-height:normal;
+  max-width: 278px;
+  padding-right:24px;
+  }
+
+#search-theme-form .container-inline .form-item {
+  width: 100%;
+  }
+
+#search-theme-form .spelling-suggestions{
+  padding-top: 1em
+}
+#search-theme-form .spelling-suggestions label {
+  display: inline;
+}
+
+#search-theme-form .container-inline .form-item,
+#search-theme-form .form-submit {
+  float:left;
+  position: relative;
+  padding: 0;
+  }
+
+#search-theme-form .container-inline .form-item .form-text {
+  height: 18px;
+  padding: 2px !important;
+  border: none;
+  border: 1px solid #d0d7e1;
+  border-bottom-color:#9eaebb;
+  border-right:none;
+  background: #fff;
+  width:100%;
+  }
+
+.region-header-third #vsite-widgets-search-form #edit-search {
+  width: 43px;
+  }
+/*
+#search-theme-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit{
+  border: medium none;
+  font-size: 10px;
+  height: 24px;
+  margin: 0 -100% 0 0 !important;
+  padding: 0 !important;
+  text-indent: -999em;
+  width: 24px;
+  background: url(../../images/searchglass.gif) no-repeat 100% 0;
+  -moz-border-radius: 0;
+  -webkit-border-radius: 0;
+  border-radius: 0;
+}*/
+
+#search-form fieldset.search-advanced {
+  clear: left;
+  }
+
+.views-exposed-form .views-exposed-widget {
+  padding-right:5px !important;
+  }
+
+.views-exposed-form label,
+.views-exposed-form .views-widget {
+  float:left;
+  margin-right: 5px;
+  margin-top:5px;
+  }
+
+.view-openscholar-sites .views-exposed-form label:after {
+  content: 'for a Scholar';
+  }
+  
+#content-column #search-form .container-inline .form-item {
+	display: inline-block;
+}
+
+#content-column #search-form .form-text {
+	padding: 2px;
+}
+
+#content-column #search-form .form-submit {
+	margin-left: -4px !important;
+}
+

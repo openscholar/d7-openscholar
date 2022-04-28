@@ -1,0 +1,5 @@
+name = Outside Sidebars - Orange Palatino
+description = An orange palatino version of the eloquent theme with the sidebars outside of the content area
+screenshot = screenshot.png
+
+css[] = outsidesidebars_orangepalatino.css

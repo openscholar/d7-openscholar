@@ -1,0 +1,27 @@
+#header-container .gpanel {
+  background: #f0c78c;
+  }
+
+#menu-bar #block-os-primary-menu {
+  background: #dab03f;
+  }
+
+.region-sidebar-first {
+  background:#f0dc8e;
+  }
+
+.region-sidebar-second {
+  background:#f0c78c;
+  }
+
+.region-sidebar-first h2.block-title {
+  background: #f0ec81;
+  }
+
+.region-sidebar-second h2.block-title {
+  background: #ffd495;
+  }
+
+#footer .wrap {
+  background: #d8b37e;
+  }

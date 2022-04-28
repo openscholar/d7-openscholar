@@ -1,0 +1,33 @@
+[tree-selector-widget] {
+}
+
+[tree-selector-widget] ul {
+  margin-left: 0.25em;
+  margin-bottom: 0px;
+}
+
+[tree-selector-widget] li {
+  list-style-type: none;
+}
+
+[tree-selector-widget] .expander {
+  display: inline-block;
+  width: 13px;
+  background-image: url('../../../../themes/cp_theme/images/cp-sprite.png');
+  background-position-x: 0px;
+  background-position-y: -452px;
+}
+
+[tree-selector-widget] .expander.collapsed {
+  background-position-x: 0;
+  background-position-y: -434px;
+}
+
+[tree-selector-widget] .expander.empty {
+  background-image: none;
+}
+
+[tree-selector-widget] .spacer {
+  display: inline-block;
+  width: 10px;
+}

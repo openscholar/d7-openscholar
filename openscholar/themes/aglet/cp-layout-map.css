@@ -1,0 +1,34 @@
+.cp-region-sidebar-first {
+     left: 429px;
+	 min-height: 36.2em;
+     position: absolute;
+     top: 202px;
+ }
+
+.cp-region-content {
+     left: 0pt;
+     position: absolute;
+     top: 202px;
+     width: 49%;
+}
+
+.cp-region-sidebar-second {
+     min-height: 36.2em;
+     position: absolute;
+     right: 0pt;
+     top: 202px;
+     width: 24.5%;
+}
+
+#edit-actions {
+     left: 0pt;
+     position: absolute;
+  
+}
+
+.cp-region-footer-first,
+.cp-region-footer-third,
+.cp-region-footer {
+	margin-top:37em;
+
+}

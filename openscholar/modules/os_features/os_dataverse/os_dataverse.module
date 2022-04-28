@@ -1,0 +1,66 @@
+<?php
+// $Id$
+
+
+/**
+ * @file
+ * Code for the os_dataverse feature.
+ */
+
+/**
+ * Implements hook_boxes_plugins().
+ */
+function os_dataverse_boxes_plugins(){
+  $path = drupal_get_path('module', 'os_dataverse') . '/plugins';
+  $info = array();
+
+  $info['os_boxes_dataverse_list'] = array(
+    'title' => 'Dataverse List',
+    'description' => 'Add a way for visitors on your website to be able to search Dataverse',
+    'tags' => array('Misc'),
+    'handler' => array(
+      'class' => 'os_boxes_dataverse_list',
+      'file' => 'os_boxes_dataverse_list.inc',
+      'path' => $path,
+      'parent' => 'os_boxes_default',
+    ),
+  );
+
+  $info['os_boxes_dataverse_search'] = array(
+    'title' => 'Dataverse Search Box',
+    'description' => 'Add a way for visitors on your website to be able to search Dataverse',
+    'tags' => array('Misc'),
+    'handler' => array(
+      'class' => 'os_boxes_dataverse_search',
+      'file' => 'os_boxes_dataverse_search.inc',
+      'path' => $path,
+      'parent' => 'os_boxes_default',
+    ),
+  );
+
+  $info['os_boxes_dataverse_dataset_citation'] = array(
+      'title' => 'Dataverse Dataset Citation',
+      'description' => 'Add a way to embed a Dataverse Dataset Citation',
+      'tags' => array('Misc'),
+      'handler' => array(
+          'class' => 'os_boxes_dataverse_dataset_citation',
+          'file' => 'os_boxes_dataverse_dataset_citation.inc',
+          'path' => $path,
+          'parent' => 'os_boxes_default',
+      ),
+  );
+
+  $info['os_boxes_dataverse_dataset'] = array(
+      'title' => 'Dataverse Dataset',
+      'description' => 'Add a way to embed a Dataverse dataset',
+      'tags' => array('Misc'),
+      'handler' => array(
+          'class' => 'os_boxes_dataverse_dataset',
+          'file' => 'os_boxes_dataverse_dataset.inc',
+          'path' => $path,
+          'parent' => 'os_boxes_default',
+      ),
+  );
+
+  return $info;
+}

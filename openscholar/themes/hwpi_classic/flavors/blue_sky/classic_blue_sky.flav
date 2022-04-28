@@ -1,0 +1,6 @@
+name = Blue Sky
+description = Blue header and menu bar version of the Classic theme
+screenshot = screenshot.png
+
+css[] = blue_sky.css
+css[] = responsive.blue_sky.css

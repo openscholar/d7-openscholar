@@ -1,0 +1,17 @@
+diff --git a/modules/contrib/biblio/modules/CiteProc/CSL.inc b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+index caeaef3..b291f75 100644
+--- a/modules/contrib/biblio/modules/CiteProc/CSL.inc
++++ b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+@@ -1124,6 +1124,12 @@ class csl_text extends csl_format {
+       case 'macro':
+         $macro = $this->var;
+         $text = $this->citeproc->render_macro($macro, $data, $mode); //trigger the macro process
++        // If the user left the "author" field blank, don't print 'Anon.' or anything.
++        if($macro == 'author' || $macro == 'anon') {
++          if($text == 'Anon.') {
++          	$text = '';
++          }
++        }
+         break;
+       case 'term':
+         $form = (($form = $this->form)) ? $form : '';

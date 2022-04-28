@@ -1,0 +1,55 @@
+/* CSS for the display of os_sv_list boxes */
+
+
+/*
+div.sv-list-new-row {
+	width: 100%;
+	display: block;
+}
+*/
+
+div.sv-list-grid > article,
+div.sv-list-grid > div.file {
+	float: left;
+	margin: 1%;
+	clear: right;
+}
+
+div.sv-list-grid-1 > article,
+div.sv-list-grid-1 > div.file {
+  width: 100%;
+}
+
+
+div.sv-list-grid-2 > article,
+div.sv-list-grid-2 > div.file {
+  width: 48%;
+}
+div.sv-list-grid-3 > article,
+div.sv-list-grid-3 > div.file {
+  width: 31%;
+}
+div.sv-list-grid-4 > article,
+div.sv-list-grid-4 > div.file {
+  width: 23%;
+}
+div.sv-list-grid-5 > article,
+div.sv-list-grid-5 > div.file {
+  width: 18%;
+}
+
+div.file:nth-child(3n+0):after {
+	content: '** ';
+	clear: both;
+	
+}
+/*
+ *  add a clear fix after each row, where a row is n children.  :After isn't working for some odd reason
+ might want a separate class for this sort of display so we can keep the staggered one as well.
+div.sv-list-grid-aligned.  
+div.sv-list-grid-5 > article:nth-child(5n+0):after {
+	content: ' ';
+	clear: both;
+	display: block;
+}
+*/

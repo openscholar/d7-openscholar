@@ -1,0 +1,213 @@
+#branding_header,
+#branding_footer {
+    display: none;
+}
+body {
+    font-family: helvetica;
+    background: #ECE7E7;
+}
+.cke_editable * {
+    font-family: helvetica;
+
+}
+
+
+#content-column {
+    font-size: 16px;
+}
+/* LAYOUT ELEMENTS */
+
+#columns {
+    background: #FFF;
+    margin-top: 0;
+    padding: 40px 20px 0;
+}
+#header {
+    background: #F5F5F8;
+}
+#page {
+    background: #ECE7E7;
+}
+#header-container {
+    min-height: 150px;
+}
+/* TYPOGRAPHY*/
+
+.sidebar .block-boxes-os_boxes_site_info h1 a:hover #header-container h1 a:hover,
+.biblio-title a,
+.biblio-title-chicago a,
+.sidebar li a:hover,
+#content-column h2.block-title a,
+.biblio-title a,
+.biblio-title-chicago a,
+a,
+a:visited,
+.field-content a {
+    color: #106599;
+    text-decoration: none;
+}
+.teaser-extra a {
+    font-size: .92em;
+}
+.sidebar .block-boxes-os_boxes_site_info h1 {
+    font-size: 1.8em;
+}
+.sidebar .block-boxes-os_boxes_site_info h1 a {
+    color: #991122;
+}
+.sidebar .content h2 {
+    font-size: 1.14em;
+    color: #555;
+}
+h2,
+h3,
+h4 {
+    margin-bottom: 0;
+    margin-top: 1em;
+    font-weight: bold;
+}
+h1#page-title {
+    margin-top: 0;
+    font-size: 1.4em;
+    color: #222;
+}
+h2.block-title {
+    font-size: 1.2em;
+}
+.date-nav h3 {
+    font-family: Helvetica;
+}
+.sidebar h2.block-title {
+    color: #219910;
+    font: 13px/normal Arial, Verdana, sans-serif;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 10px;
+}
+.region-sidebar-second h2.block-title,
+.region-sidebar-second h2.block-title a {
+    color: #219910;
+}
+.sidebar .views-row {
+    margin-bottom: 1.8em;
+}
+#boxes-box-site_info {
+    padding-top: 0;
+}
+.region-header-first .block-boxes-os_boxes_site_info .boxes-box,
+.region-header-third .block-boxes-os_boxes_site_info .boxes-box,
+.region-header-second .block-boxes-os_boxes_site_info .boxes-box {
+    height: 84px;
+    background: url('../images/siteInfoBg.gif') no-repeat;
+    background-position: left;
+    padding-left: 20px;
+}
+.sidebar-second #content-column .content-inner,
+.two-sidebars #content-column .content-inner {
+    border-right: 1px dotted #d5d3d4;
+}
+/* HEADER ELEMENTS */
+
+#header-container h1,
+#header-container h2,
+#header-container p {
+    font-size: 35px;
+    line-height: 32px;
+    font-weight: normal;
+    color: #6d7175;
+    font-family: arial;
+}
+#header-container h2 {
+    font-size: 19px;
+    line-height: 19px;
+    font-style: normal;
+}
+#header-container p {
+    font-size: 15px;
+    line-height: 17px;
+}
+#boxes-box-site_info a {
+    color: #991122;
+    font-family: helvetica, serif;
+}
+/* MAIN NAVBAR */
+
+#menu-bar ul.nice-menu .menuparent ul li a,
+#menu-bar ul.nice-menu a {
+    font-family: helvetica, serif;
+    font-size: 14px;
+    color: #303030;
+    padding: 5px 17px;
+}
+#menu-bar {
+    background: #FFF;
+    padding: 0 10px 0 0;
+    border-bottom: 5px solid #ECE7E7;
+}
+#menu-bar ul {
+    color: #FFF;
+}
+#menu-bar ul li a {
+    padding: .5em 1.38em;
+    background: #FFF;
+    color: #444;
+    text-decoration: none;
+    text-transform: uppercase;
+    font-size: 12px;
+    margin-right: 1px;
+}
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu a:hover {
+    background: #106599;
+    color: #FFF;
+}
+#menu-bar ul.nice-menu .menuparent a.active:before {
+    background-position: -69px -566px;
+}
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before {
+    background-position: 0 -566px;
+}
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background: #ECE7E7;
+    color: #333;
+}
+/** NICE MENUS **/
+
+ul.nice-menu,
+ul.nice-menu ul {
+    border-top: none;
+}
+#menu-bar ul.nice-menu ul {
+    margin-top: -8px;
+}
+#menu-bar ul.nice-menu ul ul {
+    margin-top: 0;
+}
+#menu-bar ul.nice-menu ul ul li {
+    margin-bottom: 0;
+}
+#menu-bar ul.nice-menu li {
+    margin-right: 0;
+}
+#menu-bar ul.nice-menu ul li {
+    margin-top: 0;
+    background: #CCC;
+}
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu ul li a {
+    color: #333;
+    background: #ECE7E7;
+    border-bottom: none;
+    margin-right: 0;
+}
+/* NODES */
+
+.submitted {
+    color: #a1b1b1;
+    border-bottom: 1px solid #a1b1b1;
+    display: block;
+}

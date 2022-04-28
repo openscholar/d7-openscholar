@@ -1,0 +1,5 @@
+name = Lens Flare
+description = A version of the BigPic theme featuring a lens flare
+screenshot = screenshot.png
+
+css[] = lens-flare.css

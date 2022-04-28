@@ -1,0 +1,10 @@
+Contextual Annotation
+
+Allows contextual notes to be placed "around" node teasers on a taxonomy term page.
+
+* Provide plain text annotations before or after a node's teaser on a taxonomy term page
+* For users with appropriate permissions, add contextual links to edit the annotation when viewing node teasers on a taxonomy term page
+* Allow editing of annotations through a modal ajax form
+
+This is useful if you would like to "introduce" or "add to" a teaser differently in different contexts.  For example a publication could be tagged in two different subject matters. And when looking at the subject matter specific pages an introduction about the importance or relivance is sometimes needed.
+

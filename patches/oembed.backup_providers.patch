@@ -1,0 +1,42 @@
+diff --git a/oembedembedly/oembedembedly.module b/oembedembedly/oembedembedly.module
+index ba00d9d..f72ef3f 100644
+--- a/oembedembedly/oembedembedly.module
++++ b/oembedembedly/oembedembedly.module
+@@ -27,17 +27,20 @@ function oembedembedly_menu() {
+ /**
+  * Calls and caches embed.ly services api.
+  */
+-function oembedembedly_providers() {
++function oembedembedly_providers($reset = false) {
+ 
+   $cache = cache_get('oembedly');
+ 
+-  if ($cache && isset($cache->data)) {
++  if (!$reset && $cache && isset($cache->data)) {
+     $providers = $cache->data;
+   }
+   else {
+     $response = drupal_http_request('http://api.embed.ly/1/services');
+ 
+     if ($response->code == 200) {
++      if ($response->headers['content-encoding'] == 'gzip') {
++        $response->data = gzdecode($response->data);
++      }
+       $json = json_decode($response->data);
+       $providers = array();
+       foreach ($json as $provider) {
+@@ -48,7 +51,13 @@ function oembedembedly_providers() {
+       $providers = FALSE;
+     }
+ 
+-    cache_set('oembedly', $providers, 'cache', REQUEST_TIME + 3600 * ($providers ? 24 : 6));
++    if ($providers) {
++      cache_set('oembedly', $providers, 'cache', REQUEST_TIME + 3600 * 24);
++      variable_set('oembedly_backup', $providers);
++    }
++    else {
++      return variable_get('oembedly_backup', array());
++    }
+ 
+     if (variable_get('oembedembedly_default', TRUE)) {
+       oembed_providers_reset();

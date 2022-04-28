@@ -1,0 +1,6 @@
+name = Swirl
+description = A version of the BigPic theme featuring a large swirl image
+screenshot = screenshot.png
+
+css[] = swirl.css
+conditional-css[if lt IE 9][all][] = swirl-ie.css

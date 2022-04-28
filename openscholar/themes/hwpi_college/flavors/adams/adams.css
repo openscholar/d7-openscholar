@@ -1,0 +1,252 @@
+body {
+    overflow-x: initial;
+}
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.page-search #content-column p,
+.not-front #content-column p,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.view-os-events .views-field-colorbox,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+body,
+h2.block-title,
+#menu-bar ul.nice-menu a,
+.region-header-third ul.nice-menu a,
+#page-title,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+.sidebar .boxes-box-content, 
+.sidebar .boxes-box-content p,
+.ui-tabs,
+.slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+.cke_editable * {
+    font-family: 'Open Sans', sans-serif !important;
+}
+.sidebar .block h2.block-title,
+#content-column h2.block-title,
+.node-type-page .breadcrumb,
+.breadcrumb,
+.breadcrumb a {
+    font-family: 'Open Sans Condensed', sans-serif !important;
+}
+a,
+a:visited {
+    color: #215990;
+}
+h1#page-title,
+.page-node h1#page-title {
+    color: #8c8179;
+    font-family: 'Oswald', sans-serif !important;
+    font-size: 2.1em;
+    font-weight: bold;
+    line-height: 1.2;
+}
+#header,
+.section-nav ul.menu li a,
+#boxes-box-site_info,
+#boxes-box-site_info a {
+    color: #fff;
+}
+#menu-bar {
+    background: #444;
+    border-bottom: 8px solid #8c8179;
+}
+#menu-bar ul.nice-menu a {
+    font-size: 16px;
+    text-transform: uppercase;
+}
+a.rslides_nav,
+.section-nav .expanded.menu-depth-2 .menu-depth-3 > a,
+.section-nav .expanded.menu-depth-2 .menu-depth-4 > a,
+.section-nav .expanded.menu-depth-2 .menu-depth-5 > a,
+.section-nav .expanded.menu-depth-2 .menu-depth-6 > a,
+.section-nav .leaf.menu-depth-3 > a,
+.section-nav .leaf.menu-depth-4 > a,
+.section-nav .leaf.menu-depth-5 > a,
+.section-nav .leaf.menu-depth-6 > a,
+.section-nav .expanded.menu-depth-2 > a,
+.section-nav ul.menu li,
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a[class="active-trail active active"],
+.section-nav a[class="active-trail active active"],
+.section-nav a:hover,
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu .active-trail ul,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu .menuparent a.active:hover {
+    background-color: #a51c30 !important;
+}
+ 
+.rslides_tabs li,
+#menu-bar nav {
+    background: #5a5a5a !important;
+}
+.section-nav .menu-depth-1 > a:hover,
+.section-nav .menu-depth-1 > a,
+.section-nav .menu-depth-1 > a[class="active-trail active active"] {
+    background-color: #86111E !important;
+}
+.section-nav .menu-depth-1 > a:hover,
+.section-nav .menu-depth-1 > a,
+.section-nav .menu-depth-1 > a[class="active-trail active active"],
+.section-nav ul.menu li,
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a[class="active-trail active active"],
+.section-nav a[class="active-trail active active"],
+.section-nav a:hover {
+    color: #ffdb6d !important;
+}
+.section-nav .expanded.menu-depth-2 > a {
+	 color: #fff !important;
+}
+.block-boxes-os_boxes_facetapi_vocabulary.navigation h2,
+.block-boxes-os_taxonomy_fbt.navigation h2,
+.block-boxes-os_boxes_sectionnav ul {
+    border-top: none;
+}
+.section-nav ul.menu li a {
+    border-bottom: 1px solid #a51c30;
+}
+#page-wrapper,
+#header {
+    background-color: #444;
+   
+}
+.search-block-form .container-inline .form-item .form-text,
+#search-block-form .container-inline .form-item .form-text {
+    border-color: #5a5a5a;
+}
+.region-header-third ul.nice-menu a {
+    color: #fff;
+    text-transform: uppercase;
+}
+#columns {
+    border-left: none;
+    border-right: none;
+}
+
+#footer .at-panel {
+    background: #000;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    color: #FFF;
+}
+#branding_footer,
+#branding_header,
+#footer {
+    background-color: #000;
+}
+.event-start-month,
+.event-start-day,
+.region-header-third ul.nice-menu a,
+#footer a {
+    color: #FFF;
+}
+#powerby-login {
+    background: #000;
+    border-left: none;
+    border-right: none;
+}
+#powered-by a {
+    background-position: -14px -548px;
+}
+.sidebar .block h2.block-title,
+#content-column h2.block-title {
+    background-color: #8c8179;
+    color: #fff;
+    padding: .5em 1em;
+    margin-bottom: 15px;
+    font-size: .9em;
+}
+.node-type-page .breadcrumb,
+.breadcrumb,
+.breadcrumb a {
+    font-size: .95em;
+    text-transform: none;
+}
+.not-front #content-column h2.block-title {
+    background-color: #FFF;
+    color: #8c8179;
+    padding: 0;
+    font-size: 1.2em;
+}
+#content-column .block-inner,
+.sidebar .block {
+    padding-top: 0;
+}
+.not-front #content-column .region-content-first .block,
+.not-front #content-column .region-content-second .block,
+.sidebar .block,
+.front #content-column .block,
+.front #content-column .block.styled,
+.node-person .block-inner,
+.comment-wrapper {
+    border-top: none;
+}
+.event-start .event-start {
+    background: #4e84c4;
+    color: #fff;
+}
+.event-start .event-start {
+    height: 60px;
+}
+.event-start .event-year {
+    padding: 8px 0 2px;
+}
+ 
+
+.rslides_tabs a,
+.rslides_tabs a:visited {
+    color: #a51c30;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat 2px -441px #444;
+}
+.ui-tabs ul.ui-tabs-nav li.ui-tabs-active a {
+    background: #a51c30 !important;
+    border: none;
+    border-bottom-width: 0;
+    color: #fff;
+}
+.ui-tabs .ui-tabs-nav li a {
+    text-transform: none;
+    font-weight: normal;
+}
+.block-boxes-os_boxes_tabs .ui-state-default {
+    border: none !important;
+}
+
+.ui-tabs ul.ui-tabs-nav {
+    border-left:1px solid #ccc;
+    border-right:1px solid #ccc;
+    border-top:1px solid #ccc;
+}
+.front.no-sidebars .region-content-top .block-boxes-os_slideshow_box:after {
+    position: relative;
+}
+#layout_16_9_side .slide {
+    background: #333;
+}
+#footer .footer-login {
+text-shadow: none;
+  color:#ddd;
+}
+#footer .footer-login:after {
+    background-image: none;
+  }

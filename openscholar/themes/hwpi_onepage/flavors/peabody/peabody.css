@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css?family=Droid+Sans:300,400,700|Volkhov:300,400,400i,700');
+body,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+#footer ul.menu a,
+.section-nav a,
+.block-boxes-os_taxonomy_fbt.navigation,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation,
+#footer ul.menu li ul li a,
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2,
+#layout_16_9_side .slide-copy p,
+#layout_3_1_overlay .slide-copy p,
+#layout_16_9_below .slide-copy p,
+#layout_16_9_overlay .slide-copy p,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+.date-nav h3,
+.cke_editable * {
+    font-family: 'Droid Sans', sans-serif !important;
+}
+#boxes-box-site_info h1 a,
+#page-title,
+.boxes-box-content h2,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+h2.block-title,
+.node-type-person #content-column .node-person h1.node-title {
+    font-family: 'Volkhov', sans-serif !important;
+}
+#footer a {
+    color: #215990;
+}
+.section-nav .menu-depth-1 > a {
+    background-color: #F3F3F1 !important;
+    color: #333 !important;
+    border-bottom: 1px solid #D7D7D7 !important;
+}
+#boxes-box-os_pages_section_nav,
+.section-nav ul.menu li a {
+    border-color: #D7D7D7;
+}
+h1#page-title {
+    font-size: 2em;
+    line-height: 1.2;
+}
+h2.block-title {
+    font-size: 1.4em;
+}
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#header {
+    background-color: #4d5d71;
+}
+#menu-bar {
+    background-color: #3c4858;
+}
+.not-front #menu-bar {
+    border-bottom: 9px solid #f5f5f5
+}
+.front #content-panels .region-content-first,
+.front #content-panels .region-content-bottom {
+    background: url('images/fp-panel-bg.png?m=15079274erererererr') repeat-x #f5f5f5;
+    background-position: 50%;
+}
+.region-header-third ul.nice-menu a,
+#header,
+#header a,
+#boxes-box-site_info a {
+    color: #FFF;
+}
+ul.nice-menu ul {
+    top: 3.8em !important;
+}
+#columns a.node-readmore:after {
+    background: none;
+    padding-right: 0;
+}
+#footer {
+    background-color: #e8e8e8;
+    color: #333;
+}
+#powered-by a {
+    background-position: -14px -520px;
+}
+.not-front h2.block-title {
+    padding: 15px 0 10px;
+}
+a.rslides_nav,
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    background-color: orange;
+}
+.not-front .sidebar .block-title,
+.node-type-person #content-column .node-person .pic-bio,
+.node-type-person #content-column .node-person .block-title {
+    border-top: 1px solid orange;
+}
+.event-start .event-start {
+    border-top: 3px solid orange;
+}

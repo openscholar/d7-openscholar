@@ -1,0 +1,5 @@
+name = Outside Sidebars - Dark Grey
+description = A dark grey version of the eloquent theme with the sidebars outside of the content area
+screenshot = screenshot.png
+
+css[] = outsidesidebars_darkgrey.css

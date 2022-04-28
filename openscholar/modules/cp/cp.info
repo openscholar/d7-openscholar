@@ -1,0 +1,14 @@
+name = Control Panel
+description = Admin Interface for OpenScholar installs
+core = 7.x
+package = Control Panel
+dependencies[] = contact
+dependencies[] = ctools
+dependencies[] = features
+dependencies[] = os
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[user_permission][] = access control panel
+features[user_permission][] = clear vsite cache
+features[variable][] = redirect_page_cache

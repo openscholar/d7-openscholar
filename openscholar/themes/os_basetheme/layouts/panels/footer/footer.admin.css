@@ -1,0 +1,6 @@
+#panels-dnd-main .region {margin-bottom: 5px;}
+#panels-dnd-main .region-footer-first,
+#panels-dnd-main .region-footer-second,
+#panels-dnd-main .region-footer-third {float: left; width: 33%;}
+#panels-dnd-main .region-footer-second {margin-left: 0.5%; margin-right: 0.5%;}
+#panels-dnd-main .region-footer-bottom {clear: both;}

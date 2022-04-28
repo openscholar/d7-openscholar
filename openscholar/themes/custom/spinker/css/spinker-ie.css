@@ -1,0 +1,10 @@
+.region-sidebar-first {
+	left: -280px;
+	}
+
+#menu-bar li {
+    display: inline;
+    padding-right: 1px;
+    line-height: 48px;
+    }
+

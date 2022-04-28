@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * Enables site-level custom variable tracking in Google Analytics.
+ */
+function os_ga_update_7000() {
+  variable_set('os_ga_custom_variable_index', 1);
+}

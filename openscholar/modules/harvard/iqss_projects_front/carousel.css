@@ -1,0 +1,140 @@
+.block .jcarousel-list {
+  margin: 0;
+  padding: 0;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-container-horizontal,
+.os-jcarousel-skin-os_front .jcarousel-clip-horizontal,
+.os-jcarousel-skin-os_front .jcarousel-item {
+  width:  980px;
+  height: 349px;
+  padding: 0;
+  margin: 0;
+  }
+
+.os-jcarousel-skin-os_front .jcarousel-item {
+  width:196px;
+  height: 295px;
+  margin: 0;
+  background-color: #fff;
+  padding: 26px 24px;
+  border:1px solid #000;
+  border-left: none;
+  }
+
+.os-jcarousel-skin-os_front .jcarousel-item-placeholder {
+  background: #fff;
+  color: #000;
+  }
+
+#mce-feature-academic-content {
+  background:url(images/create-anything.jpg);
+  }
+
+#mce-feature-biblio {
+  background:url(images/biblio.jpg);
+  }
+
+#mce-feature-look-feel {
+  background:url(images/look-feel.jpg);
+  }
+
+#mce-feature-collaborate {
+  background:url(images/collaborate.jpg);
+  }
+
+#mce-smart-publishing {
+  background:url(images/smart-publishing.jpg) no-repeat 0 181px #fff;
+  }
+
+#mce-semantic-urls {
+  background:url(images/semantic-urls.jpg) no-repeat 0 100% #fff;
+  }
+
+#mce-categorize {
+  background:url(images/categorize.jpg) no-repeat 0 100% #f8f1d5;
+  }
+
+#mce-pluggable-features {
+  background:url(images/features.png) no-repeat 0 186px #fff;
+  }
+
+#mce-sharing {
+  background:url(images/add-this.png) no-repeat 0 100% #212226;
+  color: #fff;
+  }
+
+#mce-content-aggregation {
+  background:url(images/rss.png) no-repeat 50% 211px #fff;
+  }
+
+#mce-analytics {
+  background:url(images/analytics.png) no-repeat 0 100% #fff;
+  }
+
+
+/**
+ *  Horizontal Buttons
+ */
+.os-jcarousel-skin-os_front .jcarousel-next-horizontal {
+    position: absolute;
+    top: -25px;
+    right: 40px;
+    width: 46px;
+    height: 13px;
+    cursor: pointer;
+    background: transparent url(images/next-carousel.png) no-repeat 0 0;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-next-horizontal:hover {
+    background-position: 0 -13px;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-next-horizontal:active {
+    background-position: 0 -13px;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-next-disabled-horizontal,
+.os-jcarousel-skin-os_front .jcarousel-next-disabled-horizontal:hover,
+.os-jcarousel-skin-os_front .jcarousel-next-disabled-horizontal:active {
+    cursor: default;
+    background-position: 0 -26px;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-prev-horizontal {
+    position: absolute;
+    top: -25px;
+    right: 102px;
+    width: 70px;
+    height: 13px;
+    cursor: pointer;
+    background: transparent url(images/prev-carousel.png) no-repeat 0 0;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-prev-horizontal:hover {
+    background-position: 0 -13px;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-prev-horizontal:active {
+    background-position: 0 -13px;
+}
+
+.os-jcarousel-skin-os_front .jcarousel-prev-disabled-horizontal,
+.os-jcarousel-skin-os_front .jcarousel-prev-disabled-horizontal:hover,
+.os-jcarousel-skin-os_front .jcarousel-prev-disabled-horizontal:active {
+    cursor: default;
+    background-position: 0 -26px;
+}
+
+/* Added */
+.jcarousel-clip {
+  overflow: hidden;
+}
+
+#mce-word-out {
+  background: url(images/front-row2-wordout.jpg);
+}
+
+#mce-feature-events {
+  background: url(images/front-row2-events.png);	
+}

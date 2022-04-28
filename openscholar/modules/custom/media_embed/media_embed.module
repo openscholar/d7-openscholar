@@ -1,0 +1,437 @@
+<?php
+
+function media_embed_menu() {
+  $items['file/add/code'] = array(
+    'title' => 'HTML',
+    'description' => 'Add raw embed code to your media library.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_embed_add'),
+    'access callback' => 'media_embed_access',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/config/media/media_embed'] = array(
+    'title' => 'Embeded Code Domain Whitelist',
+    'description' => 'Set the whitelist of allowed domains for iframes.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_embed_settings'),
+    'file' => 'media_embed.admin.inc',
+    'access arguments' => array('access administration pages'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function media_embed_ctools_plugin_api($module, $api) {
+  // required for browser previews and rendering of final file entity
+  if ($module == 'file_entity' && $api == 'file_default_displays') {
+    return array(
+      'version' => 1,
+    );
+  }
+  elseif ($module == 'file_entity' && $api == 'file_type') {
+    return array(
+      'version' => 1,
+    );
+  }
+}
+
+/**
+ * Access callback for the media_embed media browser plugin.
+ */
+function media_embed_access() {
+  return user_access('administer media') || user_access('add media as raw html');
+}
+
+/**
+ * Implement hook_permission().
+ */
+function media_embed_permission() {
+  return array(
+    'add media as raw html' => array(
+      'title' => t('Add media as raw html'),
+      'description' => t('Add media from remote sources such as other websites, YouTube, etc'),
+    ),
+  );
+}
+
+function media_embed_media_internet_providers() {
+  return array(
+    'MediaInternetEmbedHandler' => array(
+      'title' => 'HTML',
+    ),
+  );
+}
+
+function media_embed_form_media_internet_add_alter(&$form, &$form_state) {
+  $form['embed_code']['#type'] = 'textarea';
+}
+
+/**
+ * Validates the srcs of various html tags to ensure they're all
+ * from trusted domains
+ * @param $html - The html string we're checking against
+ */
+function media_embed_check_src($html) {
+  // I could do this with regexes
+  // but that would be harder than it needs to be
+  try {
+    $dom = new DOMDocument();
+  }
+  // for some reason DOMDocument fails completely when debugging.
+  // it works fine when not debugging, its just something to be aware of
+  catch (Exception $e) {
+    return false;
+  }
+  if (@$dom->loadHTML($html)) {
+    $urls = array();
+    $iframes = $dom->getElementsByTagName('iframe');
+    $embed = $dom->getElementsByTagName('embed');
+    $object = $dom->getElementsByTagName('object');
+    $param = $dom->getElementsByTagName('param');
+    $script = $dom->getElementsByTagName('script');
+
+    foreach (array($iframes, $embed, $object, $param, $script) as $nodes) {
+      for ($i=0; $i < $nodes->length; $i++) {
+        $n = $nodes->item($i);
+        if ($n->hasAttribute('src')) {
+          $urls[] = $n->getAttribute('src');
+        }
+        elseif ($n->hasAttribute('href')) {
+          $urls[] = $n->getAttribute('href');
+        }
+        elseif ($n->hasAttribute('data')) {
+          $urls[] = $n->getAttribute('data');
+        }
+        elseif ($n->hasAttribute('name') && $n->hasAttribute('value') && $n->getAttribute('name') == 'movie') {
+          $urls[] = $n->getAttribute('value');
+        }
+      }
+    }
+
+    $whitelist = media_embed_get_whitelist();
+
+    foreach ($urls as $url) {
+      // If the URL is too bad, parse will be false.
+      $domain = array();
+      $this_pass = false;
+
+      // Do not allow secure websites to embed insecure content
+      if ($GLOBALS['is_https'] && strpos($url, 'http://') !== FALSE) {
+        return FALSE;
+      }
+
+      if ($parse = parse_url($url, PHP_URL_HOST)) {
+        // construct the domain backwards and check it
+        // ie. www.cga.harvard.edu will check against:
+        // edu
+        // harvard.edu
+        // cga.harvard.edu
+        // www.cga.harvard.edu
+        $host = explode('.', $parse);
+        $host = array_reverse($host);
+        foreach ($host as $part) {
+          array_unshift($domain, $part);
+          if (in_array(implode('.', $domain), $whitelist)) {
+            $this_pass = TRUE;
+            break;
+          }
+        }
+        if (!$this_pass) {
+          // the URL's domain was not in the whitelist.
+          return FALSE;
+        }
+      }
+      else {
+        // The URL was malformed, which could lead anywhere.
+        return FALSE;
+      }
+    }
+    // None of the URLS failed the domain check.
+    return TRUE;
+  }
+
+  // the HTML was malformed, which no real service would do. This requires a
+  // real feat to actually pull off.
+  return FALSE;
+}
+
+/**
+ * Returns an array of all allowed domains
+ * Invokes hook_media_embed_whitelist
+ */
+function media_embed_get_whitelist() {
+  $domains = module_invoke_all('media_embed_whitelist');
+  if (!is_array($domains)) {
+    $domains = array();
+  }
+
+  $domains = array_merge($domains, variable_get('media_embed_whitelist', array()));
+  return $domains;
+}
+
+/**
+ *  Create stream wrapper for oEmbed videos.
+ */
+function media_embed_stream_wrappers() {
+  return array(
+    'embed' => array(
+      'name' => t('Embedded HTML'),
+      'class' => 'MediaEmbedStreamWrapper',
+      'description' => t('HTML provided by user.'),
+      'type' => STREAM_WRAPPERS_READ_VISIBLE,
+    ),
+  );
+}
+
+function media_embed_file_default_types() {
+  $types = array();
+
+  // HTML.
+  $types['html'] = (object) array(
+    'api_version' => 1,
+    'type' => 'html',
+    'label' => t('Embedded Media'),
+    'description' => t('An <em>Embedded Media</em> file is a block of HTML code that contains an iframe, object, embed or script tag.'),
+    'mimetypes' => array(
+      'html/embed',
+    ),
+    'streams' => array(
+      'embed',
+    ),
+  );
+
+  return $types;
+}
+
+/**
+ * Implements hook_file_formatter_info().
+ */
+function media_embed_file_formatter_info() {
+  $formatters['media_embed'] = array(
+    'label' => t('Embedded HTML'),
+    'default settings' => array(),
+    'view callback' => 'media_embed_file_formatter_media_embed_view',
+    'settings callback' => 'media_embed_file_formatter_media_embed_settings',
+    'file types' => array('html'),
+  );
+  return $formatters;
+}
+
+/**
+ * Implements hook_media_wysiwyg_allowed_view_modes.
+ *
+ * Limits the view modes for our file type to just original
+ */
+function media_embed_media_wysiwyg_allowed_view_modes_alter(&$view_modes, $file) {
+  if ($file->type == 'html') {
+    $view_modes = array('default' => $view_modes['default']);
+  }
+}
+
+/**
+ * Implements hook_file_default_displays().
+ *
+ * Provides default display configurations for media types.
+ *
+ * @see file_entity_schema()
+ */
+function media_embed_file_default_displays() {
+  $default_displays = array();
+
+  $default_styles = array();
+  // For default
+  $default_styles['html__default__media_embed'] = array();
+
+  // For the Preview view mode, match the height and width to the media browser's standard
+  $default_styles['html__preview__file_field_media_large_icon'] = array('width' => '180', 'height' => '180');
+
+
+  foreach ($default_styles as $display_name => $settings) {
+    $default_displays[$display_name] = (object) array(
+      'api_version' => 1,
+      'name' => $display_name,
+      'status' => 1,
+      'weight' => 0,
+      'settings' => $settings,
+    );
+  }
+
+  return $default_displays;
+}
+
+/**
+ * Implements hook_file_formatter_FORMATTER_view().
+ */
+function media_embed_file_formatter_media_embed_view($file, $display, $langcode) {
+  $scheme = file_uri_scheme($file->uri);
+  if ($scheme == 'embed') {
+
+    // Not a WYSIWYG editor instance.
+    if (empty($file->override['wysiwyg'])) {
+      $file->field_html_code['und'][0]['safe_value'] = $file->field_html_code['und'][0]['value'];
+      $html = &$file->field_html_code[LANGUAGE_NONE][0]['safe_value'];
+
+      // copied from dead embedfilter module
+      preg_match('/height="([^\"]*)"/', $html, $fetchheight);
+      preg_match('/width="([^\"]*)"/', $html, $fetchwidth);
+
+      if ($fetchheight && $fetchwidth) {
+        $height = $fetchheight[1];
+        $width = $fetchwidth[1];
+      }
+
+      $target_width = 0;
+      if (isset($file->override['attributes']['width']) && $file->override['attributes']['width']) {
+        $target_width = $file->override['attributes']['width'];
+      }
+      elseif (isset($file->override['maxwidth']) && $file->override['maxwidth'] && $width > $file->override['maxwidth'] && strpos($width, '%') === FALSE) {
+        $target_width = $file->override['maxwidth'];
+      }
+      else {
+        $target_width = $width;
+      }
+
+      $target_height = 0;
+      if (isset($file->override['attributes']['height']) && $file->override['attributes']['height']) {
+        $target_height = $file->override['attributes']['height'];
+      }
+      elseif (isset($file->override['maxheight']) && $file->override['maxheight'] && $height > $file->override['maxheight'] && strpos($height, '%') === FALSE) {
+        $target_height = $file->override['maxheight'];
+      }
+      else {
+        $target_height = $height;
+      }
+
+      if ($target_width) {
+        if (!$target_height && strpos($width, '%') === FALSE) {
+          $diff = abs($width - $target_width);
+          $ratio = ($width - $diff) / $width;
+          $height = $ratio * $height;
+        }
+        else {
+          $height = $target_height;
+        }
+        $width = $target_width;
+
+        $patterns[0] = '/height="([0-9]*)"/';
+        $patterns[1] = '/width="([0-9%]*)"/'; // catch width="100%" as well
+        $replacements[1] = 'height="'.$height.'"';
+        $replacements[0] = 'width="'.$width.'"';
+
+        $html = preg_replace($patterns, $replacements, $html);
+      }
+      // file attaches fields for us. I just need to return something so we break out here.
+      $output = array('#markup' => '');
+      return $output;
+    }
+
+    // WYSIWYG will not handle iframes and the like properly.
+    else {
+      $width = $height = 100;
+      if (isset($file->override['width'])) {
+        $width = $file->override['width'];
+        if (isset($file->override['height'])) {
+          $height = $file->override['height'];
+        }
+      }
+      else {
+        $html = $file->field_html_code[LANGUAGE_NONE][0]['value'];
+        preg_match('/width="([^\"]*)"/', $html, $fetchwidth);
+        if ($fetchwidth) {
+          preg_match('/height="([0-9]*)"/', $html, $fetchheight);
+          if ($fetchheight) {
+            $height = $fetchheight[1];
+          }
+          if (strpos($fetchwidth[1], '%') !== FALSE) {
+            // The width is relative.
+            // We're going to assume that the max width is 1000px
+            // The final width value is calculated as %value * 1000px
+            $term = explode("%", $fetchwidth[1]);
+            $width = ceil(($term[0]/100) * 1000);
+          }
+          else {
+            $width = $fetchwidth[1];
+          }
+        }
+      }
+
+      $output = array(
+        '#theme' => 'image',
+        '#attributes' => array(
+          'class' => array('wysiwyg-placeholder'),
+        ),
+        '#path' => drupal_get_path('module', 'media').'/images/icons/default/file-unknown.png',
+        '#width' => $width,
+        '#height' => $height,
+      );
+
+      return $output;
+    }
+  }
+}
+
+function media_embed_field_attach_form($entity_type, $entity, &$form, &$form_state, $langcode) {
+  try {
+    list(, , $type) = entity_extract_ids($entity_type, $entity);
+    if ($entity_type == 'file' && $type == 'html') {
+      unset($form['media_title']);
+    }
+  }
+  catch (EntityMalformedException $e) {
+    // do nothing
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Moves our implementation of library_alter to the end.
+ */
+function media_embed_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'library_alter') {
+    // Move the media_embed implementation of library_alter last.
+    unset($implementations['media_embed']);
+    $implementations['media_embed'] = FALSE;
+  }
+}
+
+/**
+ * Implements hook_library_alter().
+ *
+ * Adds params media browser code.
+ */
+function media_embed_library_alter(&$libs) {
+  if (!isset($libs['media_browser']) || !isset($libs['media_browser']['js'])) {
+    return;
+  }
+
+  $whitelist = media_embed_get_whitelist();
+  $whitelist = array_unique($whitelist);
+
+  $libs['media_browser']['js'][] = array(
+    'data' => array('embedWhitelist' => $whitelist),
+    'type' => 'setting',
+  );
+
+}
+
+/**
+ * Clear the protocols from a list of domains.
+ *
+ * @param array $domains
+ *   List of domains.
+ *
+ * @return array
+ *   List of clean domains.
+ */
+function media_embed_remove_domains_protocol(array $domains) {
+  foreach ($domains as &$domain) {
+    $domain = str_replace(array('http://www.', 'https://www.', 'http://', 'https://', 'www.'), '', $domain);
+  }
+
+  return $domains;
+}

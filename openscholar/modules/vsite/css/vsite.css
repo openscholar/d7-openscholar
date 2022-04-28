@@ -1,0 +1,11 @@
+.page-user .delete-link a {
+  margin-left: 5px;
+  color: red;
+}
+a.ctools-close-modal {
+  padding-left: 1em;
+}
+
+div.ctools-modal-content .resizable-textarea {
+  margin-left: 0;
+}

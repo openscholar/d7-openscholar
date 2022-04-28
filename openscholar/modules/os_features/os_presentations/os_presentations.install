@@ -1,0 +1,40 @@
+<?php
+/**
+ * @file
+ * os_presentations.install
+ */
+
+/**
+ * Change the presentation date range to -10/+5 years.
+ */
+function os_presentations_update_7000() {
+  features_revert(array('os_presentations' => array('field_instance')));
+}
+
+/**
+ * Clarify the labels in the "Add Presentation" form (node/add/presentation)
+ */
+function os_presentations_update_7001() {
+  features_revert(array('os_presentations' => array('field_instance')));
+}
+
+/**
+ * Change the formatter for presentations teaser.
+ */
+function os_presentations_update_7002() {
+  features_revert(array('os_presentations' => array('field_instance')));
+}
+
+/**
+ * Fix spelling error "cirricula" to "curricula"
+ */
+function os_presentations_update_7003() {
+  features_revert(array('os_presentations' => array('field_instance')));
+}
+
+/**
+ * Add .pps and .ppsx to accepted file extensions
+ */
+function os_presentations_update_7004() {
+  features_revert(array('os_presentations' => array('field_base', 'field_instance')));
+}

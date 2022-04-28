@@ -1,0 +1,194 @@
+.menu-container button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-family: inherit;
+    font-size: 1em;
+    cursor: pointer;
+    text-indent: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.menu-container {
+    position: fixed;
+    width: 128px;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background-color: #000;
+    transition: left, .125s, ease-in-out, .125s;
+    z-index: 101;
+}
+.menu-container.closed {
+    left: -128px;
+}
+button.close-menu-button {
+    width: 18px;
+    height: 50px;
+    background:url('images/close-menu-panel.png') no-repeat center;
+    background-color: #A51C30;
+    position: absolute;
+    top: 50%;
+    left: 119px;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    transition-property: left, top, width, height, background-color, content;
+    transition-duration: .125s, .125s, .125s, .125s, .125s, .125s;
+    transition-timing-function: ease-in-out;
+    transition-delay: .125s, .125s, .125s, .125s, .125s, .125s;
+    z-index: 3;
+}
+
+
+.closed button.close-menu-button {
+    background:url('images/open-menu-panel.png') no-repeat center;
+    background-color: #A51C30;
+    width: 30px;
+    left: 118px;
+}
+button.close-menu-button:hover {
+    width: 30px;
+    background-color: #000;
+    left: 113px;
+}
+.closed button.close-menu-button:hover {
+    width: 42px;
+    left: 120px;
+}
+.close-menu-button-oslogo {
+    background: url('images/os-cp_button.png?123') no-repeat;
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    bottom: 20px;
+    left: 33px;
+    z-index: 1;
+}
+/*
+@media all and (-ms-high-contrast: none),
+(-ms-high-contrast: active) {
+    button.close-menu-button:before {
+        left: -17px;
+    }
+    button.close-menu-button:before,
+    .closed button.close-menu-button:before {
+        top: 8px;
+        position: absolute;
+    }
+    button.close-menu-button:hover {
+        top: 51%;
+    }
+}*/
+.top-close {
+    z-index: 100;
+    display: block;
+    overflow: hidden;
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0 -926px no-repeat;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    line-height: 3;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 2px;
+    font-size: 0;
+}
+.top-close:hover {
+    color: #a50a05;
+}
+.menu-container ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.menu-container ul li a {
+    display: block;
+    padding: 12px 20px;
+    color: #fff;
+}
+.menu-container ul li:last-child a {
+    box-shadow: inset 0 1px rgba(0, 0, 0, 0.1), inset 0 -1px rgba(0, 0, 0, 0.1);
+}
+/*
+ *  SimpleBar.js - v1.1.9
+ */
+
+.simplebar,
+[data-simplebar-direction] {
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* Trigger native scrolling for mobile, if not supported, plugin is used. */
+}
+.simplebar .simplebar-scroll-content,
+[data-simplebar-direction] .simplebar-scroll-content {
+    overflow: hidden;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 38px;
+    bottom: 0;
+    -ms-overflow-style: none;
+    /* hide browser scrollbar on IE10+ */
+}
+/* hide browser scrollbar on Webkit (Safari & Chrome) */
+
+.simplebar-scroll-content::-webkit-scrollbar {
+    display: none;
+}
+.simplebar-scroll-content {
+    height: auto !important;
+    width: 128px !important;
+}
+.simplebar-track {
+    z-index: 99;
+    position: absolute;
+    top: 38px;
+    right: 0;
+    bottom: 0;
+    width: 11px;
+}
+.simplebar-track .simplebar-scrollbar {
+    position: absolute;
+    right: 0;
+    -webkit-border-radius: 7px;
+    -moz-border-radius: 7px;
+    border-radius: 7px;
+    min-height: 10px;
+    width: 7px;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+    opacity: 0;
+    -webkit-transition: opacity 0.2s linear;
+    -moz-transition: opacity 0.2s linear;
+    -o-transition: opacity 0.2s linear;
+    -ms-transition: opacity 0.2s linear;
+    transition: opacity 0.2s linear;
+    background: #fff;
+    -webkit-background-clip: padding-box;
+    -moz-background-clip: padding;
+}
+.simplebar-track:hover .simplebar-scrollbar {
+    /* When hovered, remove all transitions from drag handle */
+    
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
+    opacity: 0.7;
+    -webkit-transition: opacity 0 linear;
+    -moz-transition: opacity 0 linear;
+    -o-transition: opacity 0 linear;
+    -ms-transition: opacity 0 linear;
+    transition: opacity 0 linear;
+}
+.simplebar-track .simplebar-scrollbar.visible {
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=70)";
+    opacity: 0.7;
+}
+@media screen and (max-width: 770px) {
+    .content-style-overlay {
+        font-size: 75%;
+    }
+    .content-style-overlay .icon-close {
+        top: 5px;
+        right: 5px;
+    }
+}

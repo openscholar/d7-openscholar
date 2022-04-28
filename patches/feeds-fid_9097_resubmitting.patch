@@ -1,0 +1,21 @@
+diff --git a/plugins/FeedsFileFetcher.inc b/plugins/FeedsFileFetcher.inc
+index 03ef72a..0908020 100644
+--- a/plugins/FeedsFileFetcher.inc
++++ b/plugins/FeedsFileFetcher.inc
+@@ -157,13 +157,14 @@ class FeedsFileFetcher extends FeedsFetcher {
+    */
+   public function sourceSave(FeedsSource $source) {
+     $source_config = $source->getConfigFor($this);
+-
+     // If a new file is present, delete the old one and replace it with the new
+     // one.
+     if (isset($source_config['file'])) {
+       $file = $source_config['file'];
+       if (isset($source_config['fid'])) {
+-        $this->deleteFile($source_config['fid'], $source->feed_nid);
++        if($file->fid != $source_config['fid']) {
++          $this->deleteFile($source_config['fid'], $source->feed_nid);
++        }
+       }
+       $file->status = FILE_STATUS_PERMANENT;
+       file_save($file);

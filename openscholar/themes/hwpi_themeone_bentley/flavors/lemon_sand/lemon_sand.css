@@ -1,0 +1,109 @@
+@import url(https://fonts.googleapis.com/css?family=Playfair+Display);
+@import url(https://fonts.googleapis.com/css?family=Vidaloka);
+@import url(https://fonts.googleapis.com/css?family=Oxygen);
+
+/*
+All Nav: Oxygen
+All Body Copy: Playfair
+Site title and page titles: Vidaloka
+*/
+
+#page,
+body {
+  background:#FDFAEE;
+}
+
+body,
+.node-title, 
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+.boxes-box-content h2,
+.section-nav a,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation,
+.block-boxes-os_taxonomy_fbt.navigation,
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2,
+h2.block-title,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+.cke_editable * {
+  font-family: 'Playfair Display', sans-serif, Georgia, serif !important;
+}
+
+#footer ul.menu a,
+#footer ul.menu li ul li a,
+.block-boxes-os_taxonomy_fbt a,
+.section-nav a:link, 
+.section-nav a:visited,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+#columns .accordion ul.nice-menu li a, 
+#columns .os-custom-menu ul.nice-menu li a, 
+#columns #block-os-primary-menu ul.nice-menu li a,
+#columns #block-os-secondary-menu ul.nice-menu li a, 
+#columns .os-custom-menu ul.menu li a, 
+#columns #block-os-primary-menu ul.menu li a,
+#columns #block-os-secondary-menu ul.menu li a {
+  font-family: 'Oxygen', helvetica !important;
+}
+
+#page-title,
+#boxes-box-site_info, 
+#boxes-box-site_info a {
+  font-family: 'Vidaloka', helvetica !important;
+}
+
+#menu-bar ul.nice-menu ul,
+#menu-bar {
+  background: #ffdb6d;
+}
+
+#footer,
+#header {
+  background: #FFF;
+}
+
+#menu-bar ul.nice-menu a.active, 
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover, 
+#menu-bar ul.nice-menu .menuparent a.active {
+  background-color: #3A8BD9;
+}
+
+.section-nav .menu-depth-1 > a {
+  background: #ffdb6d !important;
+  color:#222 !important;
+}
+
+.sidebar .block,
+.front #content-column .block, 
+#content-column .block.block-boxes-os_boxes_columns .block, 
+.node-person .block-inner, .comment-wrapper {
+  border-top: none;
+}
+
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info, 
+#boxes-box-site_info a {
+  text-decoration:none;
+}
+
+a.rslides_nav {
+  background-color: #ffdb6d;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit, 
+#search-block-form input.form-submit,
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+  background: url('/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png') no-repeat 2px -441px #ffdb6d;
+  height:34px;
+}

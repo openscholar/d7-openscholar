@@ -1,0 +1,782 @@
+<?php
+
+include_once 'os_reader.features.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function os_reader_menu() {
+  $items = array();
+
+  $items['os-reader/copy-feed-to-news/%/%/%/%'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'os_reader_ajax_copy_feed_to_news',
+    'page arguments' => array(2, 3, 4),
+    'access callback' => 'os_reader_ajax_copy_feed_to_news_access',
+    'access arguments' => array(2, 3, 5),
+    'theme callback' => 'cp_theme_name',
+  );
+
+  return $items;
+}
+
+/**
+ * Title callback for a menu item.
+ */
+function os_reader_import_page_title($type) {
+  return t('import @type', array('@type' => $type));
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function os_reader_menu_alter(&$item) {
+  $item['node/add/feed-importer']['access callback'] = 'os_reader_feed_importer_access_callback';
+}
+
+/**
+ * Custom access callback - Verifying the user can add a feed importer although
+ * the OS reader app is disabled.
+ */
+function os_reader_feed_importer_access_callback() {
+  return _os_reader_feed_importer_access_callback("create");
+}
+
+/**
+ * Helper function for determine the access permission for a node.
+ *
+ * @param $op
+ *  The applied operation on the node.
+ *
+ * @return bool
+ *  TRUE/FALSE for the operation which the user try to apply.
+ */
+function _os_reader_feed_importer_access_callback($op) {
+  $string = "{$op} feed_importer content";
+  if ($vsite = vsite_get_vsite()) {
+    return og_user_access('node', $vsite->id, $string);
+  }
+  else {
+    return user_access($string);
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function os_reader_theme() {
+  return array(
+    'os_reader' => array(
+      'variables' => array(
+        'view' => '',
+        'importers' => '',
+        'add_new' => '',
+      ),
+      'template' => 'os-reader',
+      'path' => drupal_get_path('module', 'os_reader') . '/template',
+    ),
+  );
+}
+
+/**
+ * Access callback for the os reader news import.
+ */
+function os_reader_import_news_access_callback() {
+  if ($vsite = vsite_get_vsite()) {
+    return og_user_access('node', $vsite->id, 'create news content') || og_user_access('node', $vsite->id, 'create blog content');
+  }
+
+  return user_access('create news content') || user_access('create blog content');
+}
+
+/**
+ * Page Callback; Display feed items which can be imported into vsite.
+ */
+function os_reader_import_news() {
+  drupal_add_css(drupal_get_path('module', 'os_reader') . '/os_reader.css');
+  drupal_add_js(drupal_get_path('module', 'os_reader') . '/js/os_reader.js');
+
+  $item = menu_get_item();
+  $feed_importer_nid = isset($item['map'][4]) ? $item['map'][4] : NULL;
+
+  // Check if user is allowed to import feeds.
+  if ($vsite = vsite_get_vsite()) {
+    if (og_user_access('node', $vsite->id, 'create feed_importer content')) {
+      $options = array('attributes' => array('class' => array('add-new')));
+      $type = $item['map'][2] == 'news' ? 'feed-importer' : 'blog-import';
+      $add_new = l(t('+ Add new'), 'node/add/' . $type, $options);
+    }
+  }
+
+  $variables = array(
+    'importers' => os_reader_get_importers_list($feed_importer_nid, $item['map'][2]),
+    'view' => views_embed_view('os_reader_feeds', 'default', $feed_importer_nid),
+    'add_new' => empty($add_new) ? '' : $add_new,
+  );
+
+  return theme('os_reader', $variables);
+}
+
+/**
+ * hook_views_query_alter().
+ */
+function os_reader_views_query_alter(&$view, views_plugin_query_default &$query) {
+  if ($view->name != 'os_reader_feeds') {
+    return;
+  }
+
+  $menu = menu_get_item();
+  $type = $menu['original_map'][2];
+
+  $group_key = key($query->where);
+  $query->add_where($group_key, 'os_feed_item.importer_type', $type);
+
+  // This is a workaround solution for loading "cp/os-importer/news/manage" page
+  // Views try to join 2 very big table (1 million records), modify this only one
+  // I try to add more index, but the query getting slower
+  unset($query->tables['os_feed_item']['og_membership_node']);
+  unset($query->tables['os_feed_item']['node_os_feed_item']);
+  unset($query->table_queue['og_membership_node']);
+  unset($query->table_queue['node_os_feed_item']);
+  unset($query->relationships['og_membership_node']);
+  unset($query->relationships['node_os_feed_item']);
+  $gid = 0;
+  foreach ($query->where[1]['conditions'] as $i => &$condition) {
+    if (is_object($condition['field'])) {
+      continue;
+    }
+    if ($condition['field'] == 'og_membership_node.gid') {
+      $gid = $query->where[1]['conditions'][$i]['value'];
+      unset($query->where[1]['conditions'][$i]);
+    }
+    if ($condition['field'] == 'og_membership_node.group_type') {
+      unset($query->where[1]['conditions'][$i]);
+    }
+  }
+  $preQuery = db_select('og_membership', 'om');
+  $preQuery->fields('om', ['etid']);
+  $preQuery->condition('entity_type', 'node');
+  $preQuery->condition('group_type', 'node');
+  $preQuery->condition('gid', $gid);
+  $result = $preQuery->execute()->fetchAllKeyed();
+  $nids = array_keys($result);
+  $query->where[1]['conditions'][] = [
+    'field' => 'os_feed_item.importer_nid',
+    'value' => $nids,
+    'operator' => 'IN',
+  ];
+}
+
+/**
+ * Helper function for import news screen; Returns list of feed importer nodes.
+ *
+ * @param $feed_importer_nid
+ *  Currently viewed importer, will get class 'active'.
+ * @param $type
+ *  The of the feed importer.
+ *
+ * @return string
+ *  Themed item list of feed importers.
+ */
+function os_reader_get_importers_list($feed_importer_nid = NULL, $type) {
+  // Get all feed importer nodes.
+  $query = new EntityFieldQuery();
+  $query
+    ->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $type == 'blog' ? 'blog_import' : 'feed_importer')
+    ->propertyCondition('status', NODE_PUBLISHED);
+
+  // Display only feeds from this viste.
+  if ($vsite = vsite_get_vsite()) {
+    $query->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', $vsite->id);
+  }
+
+  $result = $query->execute();
+
+  if (empty($result['node'])) {
+    // No feed importer nodes.
+    return t('No feed importers found.');
+  }
+  $importers = node_load_multiple(array_keys($result['node']));
+
+  // Create item list of feed importers.
+  $items = array(
+    array(
+      'data' => l(t('All feeds'), 'cp/os-importer/' . $type . '/manage'),
+      'class' => empty($feed_importer_nid) ? array('active') : array(),
+    ),
+  );
+  foreach ($importers as $importer) {
+    if ($feed_importer_nid == $importer->nid) {
+      // Currently viewed importer, display as active text.
+      $item = array(
+        'data' => '<div class="importer-title">' . check_plain($importer->title) . '</div>',
+        'class' => array('active'),
+      );
+    }
+    else {
+      // Display importer as link.
+      $item = array(
+        'data' => '<div class="importer-title">' . l($importer->title, 'cp/os-importer/' . $type . '/manage/' . $importer->nid) . '</div>',
+      );
+    }
+    $path = current_path();
+    $destination = empty($importer->nid) ? $path : str_replace('/' . $importer->nid, '', $path);
+    $item['data'] .= l(t('Delete'), 'node/' . $importer->nid . '/delete', ['attributes' => ['class' => ['importer-delete']], 'query' => ['destination' => $destination]]);
+    $items[] = $item;
+  }
+
+  return theme('item_list', array('items' => $items, 'attributes' => ['class' => 'importer-list']));
+}
+
+/**
+ * Access callback; Feed item copy.
+ *
+ * @param $feed_id
+ *  The feed ID.
+ * @param $nid
+ *  The vsite node ID.
+ * @param $token
+ *  Security token.
+ *
+ * @return bool
+ *  Return true/false whether the user has access to copy the feed.
+ */
+function os_reader_ajax_copy_feed_to_news_access($feed_id, $nid, $token) {
+  if (!drupal_valid_token($token, $feed_id . ':' . $nid)) {
+    // Not a valid token.
+    return;
+  }
+
+  $feed = os_reader_feed_item_load($feed_id);
+  if (!og_user_access('node', $nid, 'create ' . $feed->type . ' content')) {
+    // User does not have access to create "News" in VSite.
+    return;
+  }
+
+  if (!os_reader_feed_item_load($feed_id)) {
+    // Not a valid feed item.
+    return;
+  }
+
+  return TRUE;
+}
+
+/**
+ * AJAX callback for bind feed item to node.
+ *
+ * @param $feed_id
+ *  The feed ID.
+ * @param $vsite_id
+ *  The vsite ID.
+ * @param string $ajax
+ */
+function os_reader_ajax_copy_feed_to_news($feed_id, $vsite_nid, $ajax = 'nojs') {
+  $feed = os_reader_feed_item_load($feed_id);
+  $vsite = vsite_get_vsite($vsite_nid);
+  $vsite_id = $vsite->id;
+  $current_vsite = vsite_get_vsite();
+
+  $importer = os_reader_copy_feed_item_to_news($feed, $vsite);
+
+  if ($ajax == 'ajax') {
+    $generic_message = t('Imported to @vsite. ', array('@vsite' => $vsite->og->title)) . l(t('Edit'), 'node/' . $importer->nid);
+    $vsite_message = t('Imported. !edit', array('!edit' => l(t('Edit'), 'node/' . $importer->nid)));
+    $message = empty($current_vsite) ?  $generic_message : $vsite_message;
+
+    $commands[] = ajax_command_html("#feed-{$feed_id}-{$vsite_id}", $message);
+    $page = array('#type' => 'ajax', '#commands' => $commands);
+    ajax_deliver($page);
+  }
+  else {
+    drupal_set_message(t('Feed item added to @vsite', array('@vsite' => $vsite->og->title)));
+    drupal_goto('cp/os-importer/' . $feed->importer_type . '/manage');
+  }
+}
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_reader_os_app_info() {
+  $apps = array();
+
+  $apps['os_reader'] = array(
+    'path' => 'reader',
+  	'nodetypes' => array(
+      'feed',
+      'feed_importer',
+    ),
+    'hide from toolbar' => array(
+      'feed_importer',
+    ),
+    'views tabs' => array(
+      'reader' => array('page'),
+    ),
+    'searchable' => FALSE,
+    'importers' => array(
+      'feed' => array(
+        'csv' => 'os_feed',
+      ),
+    ),
+    'exclude_from_rss' => array(
+      'feed',
+      'feed_importer'
+    )
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_reader_vsite_og_node_type_info() {
+  return array(
+    'feed' => 'group content',
+    'blog_import' => 'group content',
+    'feed_importer' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function os_reader_entity_info() {
+  return array(
+    'os_feed_item' => array(
+      'label' => t('OS feed item'),
+      'entity class' => 'Entity',
+      'base table' => 'os_feed_item',
+      'fieldable' => TRUE,
+      'controller class' => 'EntityAPIController',
+      'entity keys' => array(
+        'id' => 'id',
+        'label' => 'title',
+        'bundle' => 'type',
+      ),
+      'bundles' => array(
+        'feed_item' => array(
+          'label' => '',
+          'admin' => array(
+            'path' => 'admin/config/content/os_feed/manage/os_feed',
+            'real path' => 'admin/config/content/os_feed/manage/os_feed',
+            'access arguments' => array('os_feed manage'),
+          ),
+        ),
+      ),
+      'views controller class' => 'OsReaderViewsController',
+      'metadata controller class' => 'OsReaderMetadataController',
+    ),
+  );
+}
+
+/**
+ * Create an OS feed item object.
+ *
+ * @param $values
+ *  The initialized values of the OS feed item object.
+ *
+ * @return Entity
+ *  The entity object of the OS feed item entry.
+ */
+function os_reader_feed_item_create($values = array()) {
+  $values += array(
+    'type' => 'feed_item',
+    'created' => time(),
+  );
+  if (!empty($values['importer_nid'])) {
+    $values['gid'] = _os_reader_get_gid_from_og_membership($values['importer_nid']);
+  }
+
+  return entity_create('os_feed_item', $values);
+}
+
+/**
+ * @param $importer_nid
+ *
+ * @return int
+ */
+function _os_reader_get_gid_from_og_membership($importer_nid) {
+  $query = db_select('og_membership', 'om');
+  $query->fields('om', ['gid']);
+  $query->condition('etid', $importer_nid);
+  $query->condition('entity_type', 'node');
+  $result = $query->execute();
+  return $result->fetchField();
+}
+
+/**
+ * Load an OS feed item entry.
+ *
+ * @param $id
+ *  The OS feed item identifier.
+ *
+ * @return Entity
+ *  The OS feed item object.
+ */
+function os_reader_feed_item_load($id) {
+  return entity_load_single('os_feed_item', $id);
+}
+
+/**
+ * Load multiple OS feed item entries.
+ *
+ * @param $ids
+ *  List of IDs to load.
+ *
+ * @return Entity
+ *  List of OS feed item entries.
+ */
+function os_reader_feed_item_load_multiple($ids) {
+  return entity_load('os_feed_item', $ids);
+}
+
+/**
+ * Delete multiple imported entities.
+ *
+ * @param $ids
+ *  The identifiers of the imported entities.
+ */
+function os_reader_feed_item_delete_multiple($ids) {
+  entity_delete_multiple('os_feed_item', $ids);
+}
+
+/**
+ * Implements hook_feeds_plugins().
+ */
+function os_reader_feeds_plugins() {
+  $info = array();
+  $info['OsFeedReaderFetcher'] = array(
+    'name' => t('OS feed reader fetcher'),
+    'description' => t('Fetch info from a out source.'),
+    'handler' => array(
+      'parent' => 'FeedsProcessor',
+      'class' => 'OsFeedReaderFetcher',
+      'file' => 'OsFeedReaderFetcher.inc',
+      'path' => drupal_get_path('module', 'os_reader') . '/plugins',
+    ),
+  );
+  $info['OsFeedFetcher'] = array(
+    'name' => t('OS feed fetcher'),
+    'description' => t('Fetch feed item from urls.'),
+    'handler' => array(
+      'parent' => 'FeedsFetcher',
+      'class' => 'OsFeedFetcher',
+      'file' => 'OsFeedFetcher.inc',
+      'path' => drupal_get_path('module', 'os_reader') . '/plugins',
+    ),
+  );
+  return $info;
+}
+
+/**
+ * Create a news node based on a feed item.
+ *
+ * @param $feed
+ *  The feed object to copy.
+ * @param $vsite
+ *  VSITE object to which to assign the new node.
+ *
+ * @return
+ *  The newly created node object.
+ */
+function os_reader_copy_feed_item_to_news($feed, $vsite) {
+  global $user;
+
+  // Check if the feed was already imported to the VSite.
+  $news_node = os_reader_get_news_by_feed_item($feed->id, $vsite->id);
+  if (!empty($news_node)) {
+    // Feed already imported to VSite.
+    return $news_node;
+  }
+
+  // Create the "News" node.
+  $node = new stdClass();
+  $node->type = $feed->importer_type;
+  $node->title = $feed->title;
+  $node->language = LANGUAGE_NONE;
+
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $wrapper->{OG_AUDIENCE_FIELD}->set(array($vsite->id));
+  $wrapper->author->set($user->uid);
+  $new_description = $feed->description;
+  $doc = new DOMDocument();
+  $doc->encoding = 'utf-8';
+
+  if ($feed->importer_type == 'news') {
+    // Get the first image src.
+    $file = FALSE;
+
+    // todo: use os_copy_file();
+    try {
+      if ($feed->description) {
+        $doc->loadHTML(mb_convert_encoding($new_description, 'HTML-ENTITIES', "UTF-8"));
+        $images = $doc->getElementsByTagName('img')->item(0);
+        $extenstions = array('gif', 'png', 'jpg', 'jpeg');
+
+        if ($images && method_exists($images, 'getAttribute') && $src = $images->getAttribute('src')) {
+          // 16 pixels is a decent image size we can import.
+          list($width, $height) = getimagesize($src);
+          $extension = pathinfo($src, PATHINFO_EXTENSION);
+
+          if (strpos($extension, '?') !== FALSE) {
+            list($extension) = explode('?', $extension);
+          }
+
+          if ($width * $height >= 16 && in_array($extension, $extenstions)) {
+            $file = system_retrieve_file($src, 'public://', TRUE);
+          }
+
+          // Images are found so delete the tags from the description before
+          // assigning it to the body of the node.
+          $new_description = preg_replace('/<img[^>]+\>/i', '', $new_description);
+        }
+      }
+    }
+    catch (Exception $e) {
+      watchdog('os_reader', t('There was a problem when importing the feed item: @message', array('@message' => filter_xss($e->getMessage()))));
+    }
+
+    $wrapper->field_news_date->set($feed->created);
+    $wrapper->field_url->set(array('url' => $feed->url));
+    if ($file) {
+      $wrapper->field_photo->set((array) $file);
+    }
+  }
+
+  // Remove style attribute from div tags anv p tags.
+  if (property_exists($feed, 'description')) {
+    $doc->loadHTML(mb_convert_encoding($new_description, 'HTML-ENTITIES', "UTF-8"), LIBXML_HTML_NOIMPLIED);
+    $xpath = new DOMXPath($doc);
+    $items = $xpath->query("//*[(local-name()='div' or local-name()='span') and @style]");
+
+    foreach($items as $item) {
+      $item->removeAttribute("style");
+    }
+
+    // Remove empty a tags.
+    $items = $xpath->query("//a[.='']");
+
+    foreach ($items as $item) {
+      $item->parentNode->removeChild($item);
+    }
+
+    $new_description = $doc->saveHTML($doc->documentElement);
+
+    $reduce_brs = function($string) use(&$reduce_brs) {
+
+      if (strpos($string, '<br />')) {
+        $string = str_replace('<br />', '<br>', $string);
+      }
+
+      if (strpos($string, '<br><br>')) {
+        // Looping over the string until we don't have double br tags.
+        $string = preg_replace('/<br(.*)><br(.*)>/im', '<br>', $string);
+
+        return $reduce_brs($string);
+      }
+
+      if (($temp = strlen($string) - strlen('<br>')) >= 0 && strpos($string, '<br>', $temp) !== FALSE) {
+        // There is a <br> at the end of the string. Remove it.
+        return substr($string, 0, strlen($string) - 4);
+      }
+
+      return $string;
+    };
+
+    $new_description = $reduce_brs($new_description);
+  }
+
+  $wrapper->body->set(array('value' => $new_description, 'format' => 'filtered_html'));
+  $wrapper->save();
+
+  // Overriding news date to node creation date
+  $node = node_load($node->nid);
+  $node->created = $feed->created;
+  node_save($node);
+
+  // Reference the feed to the VSite.
+  $feed_wrapper = entity_metadata_wrapper('os_feed_item', $feed);
+  $feed_wrapper->field_vsites_reference[] = $vsite->id;
+
+  // Reference the feed to the News node.
+  $feed_wrapper->field_nodes_reference[] = $node->nid;
+  $feed_wrapper->save();
+
+  return $node;
+}
+
+/**
+ * Get news node that was imported from a given OS feed item in a given VSite.
+ *
+ * @param $feed_id
+ *  The feed ID.
+ * @param $vsite_id
+ *  The VSite ID.
+ *
+ * @return bool
+ *  Return node object of the news node related to the feed item if the feed
+ */
+function os_reader_get_news_by_feed_item($feed_id, $vsite_id) {
+  // Load news nodes that were imported from the given feed item.
+  $wrapper_feed = entity_metadata_wrapper('os_feed_item', $feed_id);
+  $news_nodes = $wrapper_feed->field_nodes_reference->value();
+
+  if (empty($news_nodes)) {
+    // No imported news nodes.
+    return FALSE;
+  }
+
+  // Run through imported news nodes to see if any of them belong to the VSite.
+  foreach ($news_nodes as $news_node) {
+    $wrapper_news = entity_metadata_wrapper('node', $news_node);
+
+    if (!empty($wrapper_news->og_group_ref) && $wrapper_news->og_group_ref->get(0)->getIdentifier() == $vsite_id) {
+      // Found news node that matches both feed item and VSite.
+      return $news_node;
+    }
+  }
+
+  // Feed item was not imported to VSite.
+  return FALSE;
+}
+
+/**
+ * Node preprocess.
+ */
+function os_reader_process_node(&$variables) {
+  if ($variables['type'] == 'news') {
+
+    if (os_reader_get_feed_item_by_nid($variables['node']->nid)) {
+      // When watching an imported news item - don't apply the site time zone.
+      $date = new DateTime(NULL, timezone_open('UTC'));
+      $date->setTimestamp($variables['content']['field_news_date']['#items'][0]['value']);
+      $vars['content']['field_news_date'][0]['#markup'] = $date->format('F j, Y');
+    }
+  }
+
+  // When accessing an importer node redirect the user to the importing page.
+  if ($variables['page'] && in_array($variables['type'], array('feed_importer', 'blog_import'))) {
+    $type = $variables['type'] == 'blog_import' ? 'blog' : 'news';
+    $url = 'cp/os-importer/' . $type . '/manage';
+
+    if ($vsite = vsite_get_vsite()) {
+      $node = node_load($variables['nid']);
+      $purl = $vsite->group->purl;
+
+      if (!isset($vsite->group->purl) && is_array($node->purl) && !empty($node->purl['value'])) {
+        $purl = $node->purl['value'];
+      }
+
+      $url = $purl . '/' . $url;
+    }
+
+    drupal_goto($type, array('fragment' => 'overlay=' . $url));
+  }
+}
+
+/**
+ * Implementing hook_form_alter().
+ */
+function os_reader_form_alter(&$form, $form_state, $form_id) {
+  if (!in_array($form_id, array('feed_importer_node_form', 'blog_import_node_form'))) {
+    return;
+  }
+
+  // Remove field 'Feeds'.
+  $form['feeds']['#access'] = FALSE;
+
+  // Place URL field before title field.
+  $form['field_rss_url']['#weight'] = -6;
+
+  // Add description to title field.
+  $form['title']['#description'] = t('Administrative title used to describe this feed ex. \'Sports from The Gazette\'.');
+
+  hide($form['menu']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter(); Remove filter when not inside a VSite.
+ */
+function os_reader_form_views_exposed_form_alter(&$form, &$form_state) {
+  if (empty($form['feed_is_imported'])) {
+    // Not os-reader exposed form.
+    return;
+  }
+
+  // Change option '-Any-' to 'All'.
+  $form['feed_is_imported']['#options']['All'] = t('All');
+
+  $vsite = vsite_get_vsite();
+
+  if (empty($vsite)) {
+    // Not in a VSite, remove views filter.
+    $form['#info'] = array();
+    $form['submit']['#access'] = FALSE;
+    $form['feed_is_imported']['#access'] = FALSE;
+    $form['feed_by_text']['#access'] = FALSE;
+  }
+}
+
+/**
+ * Check if a news item is relate to feed item.
+ *
+ * @param $nid
+ *  The news NID.
+ *
+ * @return bool
+ *  return TRUE/FALSE if the news item is an imported feed item.
+ */
+function os_reader_get_feed_item_by_nid($nid) {
+  $query = new entityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'os_feed_item')
+    ->fieldCondition('field_nodes_reference', 'target_id', $nid)
+    ->execute();
+
+  return !empty($result['os_feed_item']);
+}
+
+/**
+ * Implements hook_cron().
+ */
+function os_reader_cron() {
+  $id = variable_get('os_reader_last_feed_item', 0);
+
+  // Get all the orphans feed items which older then 1 month.
+  $query = db_select('os_feed_item', 'ofi');
+  $query->leftJoin('field_data_field_nodes_reference', 'nr', 'nr.entity_id = ofi.importer_nid');
+  $results = $query
+    ->fields('ofi', array('id'))
+    ->condition('ofi.id', 0, '>')
+    ->condition('ofi.created', strtotime("1 month ago"), '<')
+    ->condition('ofi.id', $id, '>=')
+    ->isNull('nr.entity_id')
+    ->range(0, 500)
+    ->orderBy('ofi.id', 'ASC')
+    ->execute()
+    ->fetchAllAssoc('id');
+
+  if (empty($results)) {
+    return;
+  }
+
+  // Delete the feed items and save the last one we processed.
+  os_reader_feed_item_delete_multiple(array_keys($results));
+  variable_set('os_reader_last_feed_item', end($results)->id);
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function os_reader_node_delete($node) {
+  switch ($node->type) {
+    case 'feed_importer':
+    case 'blog_import':
+      // Delete all related feed item
+      $query = db_delete('os_feed_item');
+      $query->condition('importer_nid', $node->nid);
+      $query->execute();
+      break;
+  }
+}

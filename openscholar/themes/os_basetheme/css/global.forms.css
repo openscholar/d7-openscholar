@@ -1,0 +1,572 @@
+/**
+ * @file
+ * Form Styling
+ */
+
+.form-item
+/* Wrapper for a form element (or group of form elements) and its label */
+
+{
+    margin: 18px 0;
+}
+/* Focus styles for accessibility and usabiltiy */
+
+.form-text:focus,
+.form-checkbox:focus,
+.form-radio:focus,
+.form-select:focus {
+    border: 1px solid #4E84C4;
+    background: #FFF;
+}
+textarea:focus {
+    border: 1px solid #fc0;
+    background: #fff;
+}
+.form-item input.error,
+.form-item textarea.error,
+.form-item select.error
+/* Highlight the form elements that caused a form submission error */
+
+{
+    border: 1px solid #c00;
+}
+.form-item label
+/* The label for a form element */
+
+{
+    display: block;
+    font-weight: bold;
+}
+.form-item label.option
+/* The label for a radio button or checkbox */
+
+{
+    display: inline;
+    font-weight: normal;
+}
+.form-required
+/* The part of the label that indicates a required field */
+
+{
+    color: #c00;
+}
+.form-item .description
+/* The descriptive help text (separate from the label) */
+
+{
+    font-size: 0.8em;
+    color: #555;
+}
+.form-type-radio .description,
+.form-type-checkbox .description {
+    margin-left: 0;
+}
+.form-checkboxes .form-item,
+.form-radios .form-item
+/* Pack groups of checkboxes and radio buttons closer together */
+
+{
+    margin: 0;
+    /* Drupal core uses "0.4em 0" */
+}
+.form-cancel {}
+/*.form-submit  The submit button  {*/
+/*margin-right:10px;*/
+/*}*/
+
+.container-inline div,
+.container-inline label
+/* Inline labels and form divs */
+
+{
+    display: inline;
+}
+.form-type-select .form-select {
+    background: #FFF;
+    min-width: 140px;
+    padding: 5px;
+    font-size: 12px;
+    border: 1px solid #ccc;
+}
+.sidebar .form-type-select .form-select {
+    max-width: 160px;
+}
+#cp-appearance-theme-picker-form .form-type-select .form-select {
+    min-width: 50px !important;
+    max-width: 90px !important;
+    height: 30px;
+}
+/* Fieldsets */
+
+fieldset {
+    background: #F2F3F3;
+    border: 1px solid #dadada;
+    margin: 10px 0;
+    padding: 10px;
+}
+form[id^="os-mailchimp-form--"] fieldset,
+.vertical-tabs-panes fieldset {
+    background: none;
+}
+fieldset fieldset:last-child {
+    margin-bottom: 0;
+}
+legend,
+fieldset legend {
+    border: 0;
+    display: block;
+    font-weight: bold;
+    padding: 0 10px 0 0;
+    white-space: normal;
+    *margin-left: -7px;
+    color: #444;
+    font-size: 1.1em;
+}
+html.js fieldset.collapsed {
+    background: transparent;
+    padding-top: 5px;
+}
+/* Inputs */
+
+input {
+    margin: 0;
+    max-width: 100%;
+}
+#registration-form input.form-text {
+    font-size: 13px;
+    height: auto;
+    padding: 6px 7px;
+    background: none;
+    border: 1px solid #CDCDCD;
+     width: 90%; 
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    border-radius: 2px;
+    background-color: #fff;
+}
+input.text,
+input.title,
+textarea,
+select {
+    border: 1px solid #ccc;
+    margin: 0;
+}
+button::-moz-focus-inner,
+input::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+button,
+input[type="button"],
+input[type="reset"],
+input[type="submit"] {
+    cursor: pointer;
+    -webkit-appearance: button;
+    *overflow: visible;
+}
+button[disabled],
+input[disabled] {
+    cursor: default;
+}
+
+form[id^="os-mailchimp-form--"] input[type="submit"],
+.block-boxes-os_boxes_mailchimp input.form-submit,
+#os-mailchimp-form input.form-submit,
+#registration-form input[type="submit"]{
+	cursor: pointer;
+    padding: 5px 12px;
+    margin-bottom: 1em;
+    margin-right: 1em;
+    color: #fff;
+    text-align: center;
+    font-weight: normal;
+    font-size: 1.077em;
+    border: 1px solid #888;
+    border-bottom: 1px solid #888;
+    border-left-color: #888;
+    border-right-color: #888;
+    background: #888;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    border-radius: 2px;
+    padding: 8px 15px;
+    font-family: helvetica;}
+/** OS LOGIN BUTTON **/
+
+#block-os-login {
+    float: right;
+    position: relative;
+    bottom: -20px;
+}
+#footer .footer-login {
+
+    background-color: #EEE;
+    color: #215990;
+    float: right;
+    display: inline;
+    font-family: helvetica, sans-serif;
+    font-size: 11px;
+    font-weight: normal;
+    padding: 1px 4px 0;
+    font-style: normal;
+    line-height: 18px;
+    text-decoration: none;
+}
+input.text,
+input.title {
+    padding: .5em;
+}
+input.form-text,
+textarea {
+    font-size: 13px;
+    height: auto;
+    padding: 7px;
+    background: url('../images/form-input-bg.gif') repeat-x scroll left top #FFFFFF;
+    border: 1px solid #CDCDCD;
+    width: 60%;
+}
+.page-cp-users-create input.password-confirm,
+.page-cp-users-create input.password-field,
+.page-site-register input.password-confirm,
+.page-site-register input.password-field,
+.page-user-reset input.password-confirm,
+.page-cp-users-create input.password-field,
+.page-user-reset input.password-confirm,
+.page-user-reset input.password-field,
+.page-cp-users-add input.password-confirm,
+.page-cp-users-add input.password-field {
+    width: 40%;
+}
+html.js input.form-autocomplete {
+    background-position: 100% 4px;
+    /* Adjust trobber background position when changing text field padding */
+}
+textarea,
+input {
+    font: 1em normal Arial, Helvetica, sans-serif;
+}
+textarea {
+    overflow: auto;
+    vertical-align: top;
+}
+div.resizable-textarea textarea {
+    margin-top: 0;
+}
+input[type="checkbox"],
+input[type="radio"] {
+    box-sizing: border-box;
+    padding: 0;
+    *height: 13px;
+    *width: 13px;
+}
+/* Addresses styling for 'hidden' attribute not present in IE7/8/9, FF3, S4 */
+.field-name-field-migrate-example-gender,
+[hidden] {
+    display: none;
+}
+
+/* Tips for Drupal's input formats */
+
+.tips {
+    font-size: .857em;
+    margin: 0 0 0 15px;
+    padding: 0;
+}
+.field-type-text-long fieldset {
+    padding: 10px 0;
+}
+.field-type-text-long fieldset .form-item {
+    margin: 0;
+    padding: 0 0 0 15px;
+}
+fieldset .filter-help {
+    padding: 0 15px 5px;
+}
+.filter-guidelines {
+    font-size: .923em;
+    margin: 0;
+    padding: 5px 18px 10px;
+}
+/*
+ * Password confirmation
+ */
+
+.password-parent,
+.confirm-parent {
+    margin: 0;
+}
+/*
+ * Drupal's default login form block
+ */
+
+#user-login-form {
+    text-align: left;
+    /* LTR */
+}
+#user-login-form ul {
+    margin: 0;
+    padding: 0;
+}
+#user-login-form li.openid-link,
+#user-login-form li.user-link {} #user-login ul {
+    margin: 0 0 5px;
+}
+#user-login ul li {
+    margin: 0;
+}
+#user-login-form .item-list li {
+    list-style: none;
+    margin: 0;
+}
+#user-login-form li.openid-link,
+#user-login li.openid-link {
+    background: none;
+}
+/*
+ * OpenID
+ *
+ * The default styling for the OpenID login link seems to assume Garland's
+ * styling of list items.
+ */
+
+#user-login-form ul
+/* OpenID creates a new ul above the login form's links. */
+
+{
+    margin-bottom: 0;
+    /* Position OpenID's ul next to the rest of the links. */
+}
+html.js #user-login-form li.openid-link,
+#user-login-form li.openid-link
+/* The "Log in using OpenID" link. */
+
+{} #user-login-form li.user-link
+/* The "Cancel OpenID login" link. */
+
+{} html.js #user-login-form li.openid-link,
+#user-login-form li.openid-link,
+#user-login-form li.user-link {
+    cursor: pointer;
+}
+#user-login ul {}
+/*
+ * Search
+ */
+/* Search box */
+.search-block-form,
+#search-block-form {
+    padding-bottom: 5px;
+}
+#content .search-block-form,
+#content #search-block-form {
+    margin-top: 2em;
+}
+.search-block-form div.form-item,
+#search-block-form div.form-item {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+.search-block-form .form-item label,
+#search-block-form .form-item label {
+    display: none;
+}
+.search-block-form .container-inline,
+#search-block-form .container-inline {
+    line-height: normal;
+    max-width: 278px;
+    padding-right: 24px;
+    height: 24px;
+}
+.search-block-form .container-inline .form-item,
+#search-block-form .container-inline .form-item {
+    width: 100%;
+}
+.search-block-form .spelling-suggestions,
+#search-block-form .spelling-suggestions {
+    padding-top: 1em
+}
+.search-block-form .spelling-suggestions label,
+#search-block-form .spelling-suggestions label {
+    display: inline;
+}
+.search-block-form .container-inline .form-item,
+.search-block-form .form-submit,
+#search-block-form .container-inline .form-item,
+#search-block-form .form-submit {
+    float: left;
+    position: relative;
+}
+.search-block-form .container-inline .form-item .form-text,
+#search-block-form .container-inline .form-item .form-text {
+    height: 20px;
+    padding: 1px !important;
+    border: none;
+    border: 1px solid #d0d7e1;
+    border-bottom-color: #9eaebb;
+    -moz-border-top-colors: #d0d7e1;
+    -moz-border-left-colors: #d0d7e1;
+    -moz-border-bottom-colors: #9eaebb;
+    border-right: none;
+    background: #FFF;
+    width: 100%;
+    margin: 0;
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+}
+#header-right #vsite-widgets-search-form #edit-search {
+    width: 43px;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    border: medium none;
+    font-size: 10px;
+    height: 24px;
+    width: 24px;
+    margin: 0 -100% 0 0 !important;
+    padding: 0 !important;
+    text-indent: -999em;
+    background: url('../images/scholarbase-sprite.png') no-repeat 0 -64px;
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+}
+.sitewide-front .search-block-form input.form-submit,
+.sitewide-front .search-block-form #edit-submit,
+.sitewide-front #search-block-form input.form-submit,
+.sitewide-front #search-block-form #edit-submit,
+.sitewide-front #search-form #edit-submit {
+    border: medium none;
+    font-size: 10px;
+    height: 43px;
+    width: 83px;
+    margin: 0 -100% 0 70% !important;
+    padding: 0 !important;
+    text-indent: 0 !important;
+    background: url('../images/scholarbase-sprite.png') no-repeat 0 -64px;
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+    border-radius: 0;
+}
+#search-form fieldset.search-advanced {
+    clear: left;
+}
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+.panel-pane .search-block-form,
+.panel-pane #search-block-form {
+    margin-bottom: 20px;
+}
+/*
+ * Advanced search form
+ */
+
+fieldset#edit-advanced fieldset {
+    float: left;
+    margin: 0 10px 10px 0;
+}
+fieldset#edit-advanced fieldset .fieldset-legend {
+    background: none;
+    padding-left: 1em;
+}
+.advanced-search-submit {
+    clear: both;
+}
+.search-advanced .criterion {
+    float: none;
+    margin: 0 5px;
+}
+#edit-keywords-fieldset .form-item:first-child {
+    margin-top: 5px;
+}
+#search-form {
+    margin: 10px 0;
+}
+.page-search .form-item-retain-filters {
+    display: block !important;
+    margin: 5px 73px 20px;
+    padding-bottom: 10px;
+}
+/*
+ * Drupal admin tables
+ *
+ * We overrode these styles in html-reset.css, but restore them for the admin
+ * section of the site.
+ */
+
+form th {
+    text-align: left;
+    /* LTR */
+    
+    padding-right: 1em;
+    /* LTR */
+    
+    border-bottom: 3px solid #ccc;
+}
+form tbody {
+    border-top: 1px solid #ccc;
+}
+form tr.even {
+    background-color: #fff;
+}
+form table .item-list ul {
+    margin: 0;
+}
+.lt-ie8 tr.even th,
+.lt-ie8 tr.even td,
+.lt-ie8 tr.odd th,
+.lt-ie8 tr.odd td {
+    border-bottom: 1px solid #ccc;
+    /* IE doesn't display borders on table rows */
+}
+/* Special case modules */
+
+#devel-switch-user-form {
+    margin-bottom: 0;
+}
+/* CKEDITOR - WYSIWYG */
+
+.tabledrag-toggle-weight-wrapper {
+    display: none;
+}
+/** MAILING LIST SIGNUP FORM - STYLES **/
+	
+form[id^="os-mailchimp-form--"] fieldset {
+	 border: none;
+}
+
+.block-boxes-os_boxes_mailchimp fieldset,
+#os-mailchimp-form fieldset {
+    background: none;
+    border: none;
+    margin: 0 2px;
+    padding: 0.35em 0.625em 0.75em;
+}
+
+div.ctools-modal-content .block-boxes-os_boxes_mailchimp fieldset-legend,
+div.ctools-modal-content #os-mailchimp-form .fieldset-legend {
+    margin: 0;
+    padding: 0.3em 0;
+    color: #666;
+    font-size: 24px;
+    font-weight: normal;
+}
+form[id^="os-mailchimp-form--"] .form-item label,
+div.ctools-modal-content #os-mailchimp-form .form-item label {
+    float: none;
+}
+form[id^="os-mailchimp-form--"] input.form-text {
+
+width:auto;
+
+}
+
+.ui-widget {
+    line-height: 23px;
+}

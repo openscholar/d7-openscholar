@@ -1,0 +1,11 @@
+name = Rbuild
+description = Automatically fetch and create Software Releases using rbuild.
+core = 7.x
+package = IQSS
+dependencies[] = features
+dependencies[] = os_software
+features[features_api][] = api:2
+features[field_base][] = field_rbuild_short_name
+features[field_base][] = field_software_repo
+features[field_instance][] = node-software_project-field_rbuild_short_name
+features[field_instance][] = node-software_project-field_software_repo

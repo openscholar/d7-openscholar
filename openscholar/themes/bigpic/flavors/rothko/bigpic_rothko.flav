@@ -1,0 +1,5 @@
+name = Rothko
+description = A version of the Big Pic theme featuring a Rothko painting
+screenshot = screenshot.png
+
+css[] = rothko.css

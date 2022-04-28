@@ -1,0 +1,4 @@
+name =  Dynamic Text Field
+description = A text field that has Key & Value fields.
+dependencies[] = field
+core = 7.x

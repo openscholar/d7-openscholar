@@ -1,0 +1,12 @@
+<label for="file_name">Name</label>
+<input id="file_name" ng-model="$parent.selected_file.name" class="form-text">
+
+<label for="file_alt">Alt Text</label>
+<input id="file_alt" ng-model="$parent.selected_file.image_alt" class="form-text">
+
+<label for="file_title">Title</label>
+<input id="file_title" ng-model="$parent.selected_file.image_title" class="form-text">
+
+<div class="control">
+    <button ng-click="$parent.save()">Save</button> <button ng-click="$parent.editMode(false))">Cancel</button>
+</div>

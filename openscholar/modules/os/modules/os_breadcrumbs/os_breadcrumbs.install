@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * Sets breadcrumbs to show for all existing vsites with HWPI themes.
+ *
+ * In 7.x-3.8 and previous OpenScholar versions, breadcrumbs defaulted to
+ * not show for all sites.
+ *
+ * In 7.x-3.9, a change was made to show breadcrumbs whenever the theme
+ * was changed to an HWPI theme-- in effect, to make breadcrumbs "default to
+ * enabled for HWPI themes", but not other themes.
+ *
+ * This update makes the "default to on for HWPI themes" principle consistent
+ * by updating existing vsites with HWPI themes to show breadcrumbs.
+ */
+function os_breadcrumbs_update_7000() {
+  // The variable's name and new value.
+  if (function_exists('_is_hwpi_theme')) {
+    $name = 'os_breadcrumbs_show_breadcrumbs';
+    $value = 0;
+
+    // Needed to use os_theme_get()
+    ctools_include('themes', 'os');
+
+    $group_types = array('personal', 'project', 'department');
+    $result = db_select('node', 'n')
+      ->fields('n', array('nid', 'title'))
+      ->condition('type', $group_types, 'IN')
+      ->orderBy('nid', 'DESC')
+      ->range(0, 100)
+      ->execute();
+
+    $count = 0;
+    while ($record = $result->fetchAssoc()) {
+      $vsite = vsite_get_vsite($record['nid']);
+      $theme = $vsite->controllers->variable->get('theme_default');
+      if (_is_hwpi_theme($theme)) {
+        $vsite->controllers->variable->set($name, $value);
+        $count++;
+      }
+    }
+
+    $message = '@count vsite(s) with HWPI themes were found and set to display breadcrumbs.';
+    $replacements = array('@count' => $count);
+    return t($message, $replacements);
+  }
+}
+
+/**
+ * Update default breadcrumb variable in presets
+ */
+function os_breadcrumbs_update_7001() {
+  spaces_preset_load(null, null, true);
+}

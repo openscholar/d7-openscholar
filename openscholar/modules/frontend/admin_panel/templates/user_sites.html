@@ -1,0 +1,35 @@
+<div class="my-sites-click" href="#" data-id='101' ng-click="close_others(101); showSites = ! showSites" ng-class="{menu_modal_open: showSites}">My Sites</div>
+<div class="account_tab_popout user_sites" ng-show="showSites">
+    <div class="new-site-link" ng-show="create_access"><a site-creation-form class="btton add">Add a new site</a></div>
+    <div class="close-link user_sites-close" ng-click="showSites = ! showSites"></div>
+    <div class="vsite-search-row"><input placeholder="Search sites" ng-model="searchString" name="search-site" value="" class="clearable search-vsite-textfield" /><a class="search-clear" ng-click="searchString = ''">x</a></div>
+	<div ng-repeat="(key, own) in [true,false]" ng-init="currentPage[key] = 0">
+        <div ng-show="own && (site_data | filter:{owner: own}:strict).length" class="header-row my-sites">My Sites</div>
+        <div ng-show="!own && (site_data | filter:{owner: own}:strict).length" class="header-row other-sites">Other Sites</div>
+		<div ng-repeat="(key, site) in filtered = (site_data | filter:{owner: own}:strict | filter: {title : searchString}) | limitTo: pageSize: pageSize * currentPage[key] | orderBy: 'title'" class="site-list">
+			<table class="table-shading">
+				<tr>
+                    <td class="site-name"><a href="{{baseUrl}}node/{{ site.id }}" class="text_link">{{ site.title }}</a></td>
+                    <td class="user-site-controls">
+                        <span>
+                       	    <a ng-show="site.subsite_access" site-creation-form class="btton add" parent="{{ site.id }}" id="add-subsite-{{ site.id }}">Add subsite</a>
+                        </span>
+                        <a ng-show="site.delete_access" href="{{site.delete_base_url}}node/{{ site.id }}/delete{{site.id == spaceId ? delete_destination_root : delete_destination}}" class="btton remove">Delete</a>
+                        <a ng-show="!site.delete_access && site.owner" ng-href="{{site.delete_base_url}}os/vsite/delete/{{ site.id }}{{site.id == spaceId ? delete_req_destination_root : delete_destination}}" class="btton remove">Delete</a>
+                    </td>
+			    </tr>
+			</table>
+		</div>
+		<div ng-show="own && (!((site_data | filter:{owner: own}:strict).length) || !(site_data | filter:{owner: own}:strict | filter: {title : searchString}).length)" class="site-list no-search-result">No site found.</div>
+		<div ng-show="!own && (site_data | filter:{owner: own}:strict).length && !(site_data | filter:{owner: own}:strict | filter: {title : searchString}).length" class="site-list no-search-result">No site found.</div>
+		<div ng-if='filtered.length > pageSize' class='pager'>
+			<button ng-disabled="currentPage[key] == 0" ng-click="currentPage[key]=currentPage[key]-1">
+				«
+			</button>
+			{{currentPage[key]+1}}/{{numberOfPages(filtered)}}
+			<button ng-disabled="currentPage[key] >= filtered.length/pageSize - 1" ng-click="currentPage[key]=currentPage[key]+1">
+				»
+			</button>
+		</div>
+	</div>
+</div>

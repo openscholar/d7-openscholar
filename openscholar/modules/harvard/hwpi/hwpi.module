@@ -1,0 +1,253 @@
+<?php
+include_once ('hwpi.features.inc');
+include_once(drupal_get_path('theme', 'hwpi_basetheme') . '/template.php');
+
+/**
+ * Implements hook_cp_settings().
+ */
+function hwpi_cp_settings() {
+  // For non-user-1, only adds the responsive setting for HWPI-themed sites.
+  $theme = variable_get('theme_default');
+  if (!_is_hwpi_theme($theme)) {
+    return;
+  }
+
+  $settings = array();
+  $settings['other_resources'] = array(
+    'group' => array(
+      '#id' => 'documentation',
+      '#title' => t('Documentation'),
+      '#weight' => 50,
+      '#menu_parent' => 'help'
+    ),
+    'form' => array(
+      '#type' => 'markup',
+      '#markup' => '<h2>Other Resources</h2>
+<p>Want an in-person training? Attend one of our regularly scheduled <a href="http://hwp.harvard.edu/calendar/upcoming" target="_blank">OpenScholar training sessions.</a><br />Need help with your project? Contact the <a href="http://hwp.harvard.edu/contact" target="_blank">Harvard Web Publishing Team</a>.</p>'
+    )
+  );
+
+  return $settings;
+}
+
+/**
+ * Implements hook_block_view_alter().
+ *
+ * Hides the search bar title display.
+ */
+function hwpi_block_view_alter(&$render, $block) {
+  if ($block->delta == 'site-search' && (function_exists('_is_hwpi_theme') && _is_hwpi_theme())) {
+    unset($render['content']['search_block_form']['#title_display']);
+  }
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function hwpi_node_insert($node) {
+  // Only continues if the new node is an OG group type.
+  if (!og_is_group_type('node', $node->type)) {
+    return;
+  }
+
+  $vsite = vsite_get_vsite($node->nid);
+
+  if (module_exists('salesforce')) {
+    //PURL is needed but spaces_og_node_insert may not have fired yet
+    if (!isset($vsite->group->purl) && is_array($node->purl) && !empty($node->purl['value'])) {
+      $vsite->group->purl = $node->purl['value'];
+    }
+
+    module_load_include('inc', 'hwpi', 'includes/salesforce');
+    hwpi_salesforce_impl_project_create($vsite, $vsite->group->uid);
+    hwpi_salesforce_support_project_create($vsite, $vsite->group->uid);
+  }
+
+  // Only continues to alter settings if the site's theme is HWPI.
+  $theme = $vsite->controllers->variable->get('theme_default');
+  if (!_is_hwpi_theme($theme)) {
+    return;
+  }
+
+  // Sets all HWPI-theme-specific variable defaults.
+  hwpi_theme_set_defaults();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for cp_appearance_theme_picker_form.
+ */
+function hwpi_form_cp_appearance_theme_picker_form_alter(&$form, &$form_state, $form_id) {
+  $form['#submit'][] = 'hwpi_theme_picker_form_submit';
+}
+
+/**
+ * Submit callback for cp_appearance_theme_picker_form.
+ */
+function hwpi_theme_picker_form_submit($form, &$form_state) {
+  // Only continues if a theme value is set.
+  if (!isset($form_state['values']['theme_default'])) {
+    return;
+  }
+
+  // Only continues if the selected theme is HWPI.
+  $selected_theme = $form_state['values']['theme_default'];
+  if (!_is_hwpi_theme($selected_theme)) {
+    return;
+  }
+
+  // Sets all HWPI-theme-specific variable defaults.
+  hwpi_theme_set_defaults();
+}
+
+/**
+ * Sets all HWPI-theme-specific variable defaults.
+ *
+ * @see hwpi_form_cp_appearance_theme_picker_form_alter()
+ * @see
+ */
+function hwpi_theme_set_defaults() {
+  // Declares settings specific to HWPI themes.
+  $settings = array(
+    'os_breadcrumbs_show_breadcrumbs' => 1,
+    'enable_responsive' => 1,
+  );
+
+  // Sets all HWPI-theme-specific settings.
+  foreach ($settings as $name => $value) {
+    if ($space = spaces_get_space()) {
+      $space->controllers->variable->set($name, $value);
+    }
+    else {
+      variable_set($name, $value);
+    }
+  }
+}
+
+/**
+ * Implements hook_vsite_register_notify_author_body_text_alter().
+ *
+ * The string must be UTF-8 compliant. Which is why the wierd A's are in there.
+ */
+function hwpi_vsite_register_notify_author_body_text_alter(&$body_text) {
+
+  global $base_url;
+
+  $body_text = "Hi !username,\n\n"
+    . "Congratulations! Your new website !site_url has been activated, and you can log "
+    . "into your site at !site_uri with the username !username. "
+    . "Don't forget to bookmark your new site and save this email for future reference.\n"
+    . "\n"
+    . "Here are some handy links for you:\n"
+    . "\n"
+    . " * Logging in to your site: https://help.theopenscholar.com/logging-your-site\n"
+    . " * Sign up for training: http://hwp.harvard.edu/calendar/upcoming \n"
+    . " * OpenScholar documentation: https://help.theopenscholar.com \n"
+    . " * Need help with your project? http://hwp.harvard.edu \n"
+    . "\n"
+    . "Sincerely,\n"
+    . "Harvard Web Publishing\n";
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function hwpi_form_user_login_alter(&$form, $form_state) {
+  $form['message'] = array(
+    '#type' => 'container',
+    '#attributes' => array(
+      'class' => array(
+        'user-login-message-text',
+      )
+    ),
+    'message-text' => array(
+      '#markup' => t('<h2>Help</h2><ul><li>!roadmap-link</li><li>!roadmap-link2</li><li>!roadmap-link3</li></ul>', array(
+        '!roadmap-link' => l('Contact Support', 'mailto:harvard-support@theopenscholar.com'),
+		'!roadmap-link2' => l('Documentation', 'https://help.theopenscholar.com/'),
+		'!roadmap-link3' => l('Training Videos', 'https://help.theopenscholar.com/video-tutorials')
+      ))
+    )
+  );
+    // Overriding the text of first button on the login screen.
+  if (isset($form['pin'])) {
+    $query['destination'] = isset($_GET['destination']) ? $_GET['destination'] : 'user';
+    $form['pin']['#markup'] = l('Log in using your HarvardKey', 'user/pin', array('query' => $query));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * To alter the description.
+ */
+function hwpi_form_cp_user_edit_membership_form_alter(&$form, &$form_state) {
+  $space = spaces_get_space();
+  $name = $form['user_name']['#value'];
+  $group_user_uid = $form['uid']['#value'];
+  $site = $space->group->title;
+
+  // Show the option to change site owner only for the current owner or a support team member with an associated HUID if the pinserver module is enabled
+  global $user;
+  if ($user->uid == 1 || !module_exists('pinserver') || (module_exists('pinserver') && variable_get('pinserver_pin_url', FALSE) && pinserver_user_has_associated_pin($group_user_uid))) {
+  // Please check cp_user_edit_membership_form in cp_user.pages.inc
+  }
+  else {
+    $form['edit_membership']['group_manager'] = array(
+      '#type' => 'markup',
+      '#markup' => '<p>' . t('@name\'s OpenScholar account is not linked to HarvardKey, so this user cannot be made site owner.', array('@name' => $name)) . ' ' . l('Learn more about linking accounts', 'https://harvard.service-now.com/ithelp?id=kb_article&sys_id=bcb7c5eadbba0fc0a914fff31d9619dc', array('attributes' => array('target' => '_blank', 'rel' => 'noopener'))) . '.</p>',
+
+    );
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * To alter the description.
+ */
+function hwpi_form_cp_user_change_site_owner_form_alter(&$form, $form_state, $form_id)
+{
+  if (module_exists('pinserver') && variable_get('pinserver_pin_url', FALSE)) {
+    unset( $form['new_site_owner']['#description']);
+    $form['new_site_owner']['#description'] = t('Only users who have linked their OpenScholar accounts to HarvardKey are listed.') . ' ' . l('Learn more about linking accounts', 'https://harvard.service-now.com/ithelp?id=kb_article&sys_id=bcb7c5eadbba0fc0a914fff31d9619dc', array('attributes' => array('target' => '_blank', 'rel' => 'noopener'))) . '.';
+  }
+}
+
+/**
+ * Implements hook_default_box_alter().
+ *
+ * Changes the default for the contact block to be Harvard-specific.
+ */
+function hwpi_default_box_alter(&$boxes) {
+  $boxes['hwp_personal_contact_html']->options['text']['value'] = '<p>Harvard University<br> (617) 495-1000<br> Massachusetts Hall<br> Cambridge, MA 02138<br> your_name@harvard.edu</p>';
+}
+
+/**
+ * Implements hook_ctools_plugin_directory
+ */
+function hwpi_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'citation_distribute' && $plugin == 'service') {
+    return 'plugins/service/';
+  }
+}
+
+/**
+ * Implements hook_spaces_presets_alter
+ * to override non harvard descriptions
+ */
+function hwpi_spaces_presets_alter(&$export) {
+  $export['hwp_administrative']->description = t('The Harvard Web Publishing standard Adminstrative Department site.');
+  $export['hwp_lab_research_group']->description = t('The Harvard Web Publishing standard Lab and Research Group site.');
+  $export['hwp_project']->description = t('The Harvard Web Publishing standard Project site.');
+  $export['hwp_personal']->description = t('The Harvard Web Publishing standard Personal site.');
+  $export['hwp_event_conference']->description = t('The Harvard Web Publishing standard Event or Conference site.');
+}
+
+/**
+ * Implements hook_module_implements_alter
+ * to put hwpi_form_user_login_alter at last
+ */
+function hwpi_module_implements_alter(&$implementations, $hook) {
+  if (($hook == 'form_alter' || $hook == 'form_node_form_alter') && isset($implementations['hwpi'])) {
+    $group = $implementations['hwpi'];
+    unset($implementations['hwpi']);
+    $implementations['hwpi'] = $group;
+  }
+}

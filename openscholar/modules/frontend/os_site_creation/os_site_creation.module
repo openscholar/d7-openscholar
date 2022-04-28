@@ -1,0 +1,133 @@
+<?php
+
+define('OS_SITE_CREATION_FORM', '1.0.4');
+
+/**
+ * Implements hook_library().
+ */
+function os_site_creation_library() {
+  $libs = array();
+  $self = drupal_get_path('module', 'os_site_creation');
+  $disable = array('alias' => TRUE);
+  $rest = url('api', $disable);
+  // Determining whether user has got huid and Drupal id
+  $vicariousUser = (user_is_anonymous () && variable_get('os_site_creation_allow_anonymous', false));
+  if (module_exists('pinserver')) {
+    if ($huid = pinserver_get_user_huid()) {
+      if (!$uid = pinserver_authenticate_get_uid_from_huid($huid)) {
+        $vicariousUser = true;
+      }
+    }
+  }
+
+  $allPresets = spaces_preset_load();
+  $enabled = variable_get('os_enabled_spaces_presets', array());
+  $allPresets = array_filter($allPresets, function ($i) use ($enabled) {
+    return $enabled[$i->name] !== 0;
+  });
+  $presets = array_map(function ($i) {
+    return array(
+      'name' => $i->name,
+      'title' => $i->title,
+      'description' => $i->description,
+      'site_type' => $i->value['bundles'][0],
+    );
+  }, $allPresets);
+
+  $libs['site_creation'] = array(
+    'title' => 'Site Creation Form',
+    'version' => OS_SITE_CREATION_FORM,
+    'js' => array(
+      $self.'/misc/osSiteCreation.module.js' => array(),
+      $self.'/misc/messages.min.js' => array(),
+      array(
+        'data' => array(
+          'paths' => array(
+            'siteCreationForm' => url($self.'/templates', $disable),
+            'siteCreationModuleRoot' => url(drupal_get_path('module', 'os_site_creation'), $disable),
+            'hasOsId' => $vicariousUser,
+            'api' => $rest,
+          ),
+          'admin_panel' => array(
+            'purl_base_domain' => variable_get('purl_base_domain', $GLOBALS['base_url'])
+          ),
+          'version' => array(
+            'siteCreationForm' => OS_SITE_CREATION_FORM,
+          ),
+          'site_creation' => array(
+            'subsite_types' => variable_get('subsite_bundles', array('personal', 'project')),
+            'privacy_levels' => vsite_access_privacy_available_values (),
+            'tos_label' => variable_get('os_terms_of_use_label', t('Terms of Use')),
+            'tos_url' => variable_get('os_terms_of_use', false),
+            'presets' => $presets,
+            'default_individual_scholar' => variable_get('os_site_creation_default_individual_scholar', 'os_scholar'),
+            'default_project_lab_small_group' => variable_get('os_site_creation_default_project_lab_small_group', 'os_project'),
+            'default_department_school' => variable_get('os_site_creation_default_department_school', 'os_department_minimal'),
+          )
+        ),
+        'type' => 'setting',
+      )
+    ),
+    'css' => array(
+      drupal_get_path('module', 'os_site_creation') . '/misc/os_site_creation.css' => array(
+      'group' => CSS_THEME,
+      'every_page' => TRUE,
+      'media' => 'screen'),
+    ),
+    'dependencies' => array(
+      array('system', 'ui.dialog'),
+      array('os_common', 'auth'),
+      array('os_common', 'angular-modal-service'),
+      array('os_common', 'buttonSpinner'),
+      array('os_common', 'ActiveUser'),
+      array('os_common', 'DependencyManager')
+    )
+  );
+  return $libs;
+}
+
+/**
+ * Implements hook_library_alter().
+ *
+ */
+function os_site_creation_library_alter(&$libs) {
+  if (isset($libs['admin_panel'])) {
+    $libs['admin_panel']['dependencies'][] = array('os_site_creation', 'site_creation');
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Loads angular library if user logged in by Harvard pin but
+ * don't have OS user account yet to open site registratin form.
+ *
+ * is anon and allow_anonymous
+ * is anon and is pin
+ * is auth and vsite_exists
+ */
+function os_site_creation_preprocess_page(&$vars) {
+  if ((variable_get('os_site_creation_allow_anonymous', false) && user_is_anonymous ()) ||
+      (user_is_anonymous () && (module_exists('pinserver') && pinserver_get_user ())) ||
+      vsite_vsite_exists_access ()) {
+    // Load the Angular dependencies
+    drupal_add_library('os_site_creation','site_creation');
+    os_common_angular_apps('SiteCreationForm');
+    global $base_url;
+    drupal_add_js(array('admin_panel' => array('purl_base_domain' => variable_get('purl_base_domain'), 'base_domain' => $base_url)), 'setting');
+    drupal_add_css(drupal_get_path('theme', 'cp_theme').'/css/cp_theme.css');
+  }
+}
+
+function os_site_creation_menu_alter(&$menu) {
+  if (isset($menu['site/register'])) {
+    $menu['site/register']['access callback'] = 'os_site_creation_site_register_access';
+  }
+}
+
+function os_site_creation_site_register_access() {
+  if (variable_get('os_site_creation_allow_anonymous', false) && user_is_anonymous ()) {
+    return true;
+  }
+  return vsite_vsite_exists_access ();
+}

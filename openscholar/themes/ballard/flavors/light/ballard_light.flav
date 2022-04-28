@@ -1,0 +1,5 @@
+name = Light
+description = Light version of the ballard theme
+screenshot = screenshot.png
+
+css[] = light.css

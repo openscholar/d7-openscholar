@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * @file
+ * Install file for the CP appearance.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+/*
+function cp_appearance_requirements() {
+  if (!function_exists('libraries_get_libraries')) {
+    return array();
+  }
+  $libraries = libraries_get_libraries();
+
+  if (!in_array('git', array_keys($libraries))) {
+    $requirements['git_library_missing'] = array(
+      'title' => t('GIT wrapper'),
+      'value' => t("The <a href='@url'>GIT wrapper</a> library is missing. Downaload the library and placed it under @path", array(
+        '@url' => 'https://github.com/cpliakas/git-wrapper',
+        '@path' => drupal_get_path('profile', drupal_get_profile()) . '/libraries/git'
+      )),
+      'severity' => REQUIREMENT_ERROR,
+    );
+
+    return $requirements;
+  }
+
+  if (!file_exists(libraries_get_path('git') . '/autoload.php')) {
+    $requirements['git_class_missing'] = array(
+      'title' => t('GIT wrapper'),
+      'value' => t("The GIT wrapper class is missing. You watch the <a href='@url'>documentation</a> for understading how to install the class.", array(
+        '@url' => 'https://github.com/cpliakas/git-wrapper#installation',
+      )),
+      'severity' => REQUIREMENT_ERROR,
+    );
+
+    return $requirements;
+  }
+}
+ */

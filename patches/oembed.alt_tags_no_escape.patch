@@ -1,0 +1,15 @@
+diff --git a/oembed.module b/oembed.module
+index d5591a9..c8b53ef 100644
+--- a/oembed.module
++++ b/oembed.module
+@@ -514,8 +514,8 @@ function oembed_alt_attr($embed) {
+ 
+   // alt attribute using hopefully available title and provider name.
+   if (isset($embed['title'])) {
+-    $string = '@title';
+-    $options['@title'] = $embed['title'];
++    $string = '!title';
++    $options['!title'] = $embed['title'];
+   } else {
+     $string = 'Embedded @type';
+   }

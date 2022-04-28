@@ -1,0 +1,5 @@
+name = Grey: Black Background
+description = A Grey Version of the scholor-theme-02 theme with a black background
+screenshot = screenshot.png
+
+css[] = greyBlackBackground.css

@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function os_migrate_demo_install() {
+  // Enable all features. We can't use spaces_features() as it might not
+  // populated by the tie we enable this module.
+  $preset = spaces_preset_load('os_scholar', 'og');
+  $features = array(
+    'os_blog',
+    'os_booklets',
+    'os_classes',
+    'os_events',
+    'os_faq',
+    'os_image_gallery',
+    'os_links',
+    'os_news',
+    'os_pages',
+    'os_presentations',
+    'os_profiles',
+    'os_publications',
+    'os_reader',
+    'os_software',
+  );
+  foreach ($features as $feature) {
+    $preset->value['variable']['spaces_features'][$feature] = 1;
+  }
+  unset($preset->value['menus']);
+  spaces_preset_save($preset);
+  module_enable(array('os_dataverse', 'hwpi'));
+
+  $enable = array('hwpi_basetheme');
+  theme_enable($enable);
+}

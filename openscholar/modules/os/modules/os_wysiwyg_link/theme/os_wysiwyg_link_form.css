@@ -1,0 +1,196 @@
+#media-browser-page fieldset .fieldset-wrapper {
+	padding-left: 5px;
+}
+
+.view-media-default {
+	margin-right: 0;
+	border-right: 0;
+}
+
+div.form-item-link-text, div.form-item-link-title {
+	margin-left: 10px;
+	margin-top: 0.3em;
+	position: relative;
+	z-index: 2;
+}
+
+div.form-item-link-text label, div.form-item-link-title label {
+	float: left;
+	margin: 5px 5px 0 0;
+}
+
+div.vertical-tabs {
+	background-position: -120px 0;
+	margin-top: 2em;
+}
+
+div.vertical-tabs:before {
+	content: 'Link To';
+	font-weight: bold;
+	position: relative;
+	top: -2em;
+	left: 10px;
+}
+
+div.vertical-tabs .vertical-tabs-panes {
+	margin-left: 130px;
+	margin-top: -25px
+}
+
+.vertical-tabs-pane input[type=submit] {
+	display: none;
+}
+
+div.vertical-tabs .vertical-tabs-list {
+	width: 120px;
+}
+
+.views-exposed-form .views-exposed-widgets {
+	margin-bottom: 0;
+	border: 0;
+	padding-bottom: 0;
+}
+
+.views-exposed-widget .form-item {
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+.view-content {
+	padding-top: 0.75em;
+	border-top: 1px solid lightgray;
+	margin-top: 0.5em;
+}
+
+#media-browser-library-list li {
+	margin-right: 5px;
+}
+
+#file-entity-add-upload {
+	position: absolute;
+	top: -2px;
+	z-index: 5;
+	height: 40px;
+}
+
+#file-entity-add-upload:after {
+	content: 'Or';
+	position: absolute;
+	top: 1.7em;
+	left: 115px;
+}
+
+#file-entity-add-upload .form-item-upload {
+	margin: 0;
+}
+
+#file-entity-add-upload .form-actions {
+	display: none;
+}
+
+#file-entity-add-upload label[for="edit-upload"] {
+	display: none;
+}
+
+#file-entity-add-upload .form-help {
+	position: absolute;
+	top: 0;
+	right: -15px;
+}
+
+#file-entity-add-upload .description {
+	position: absolute;
+	background: white;
+	padding: 5px;
+	border: 1px solid lightgray;
+	border-radius: 5px;
+	width: 200px;
+	bottom: -146px;
+	left: 0;
+}
+
+.messages {
+	float: right;
+	width: 45%;
+}
+
+#file-entity-add-upload #edit-upload-ajax-wrapper label {
+	padding: 13px 13px;
+	margin-top: 18px;
+}
+
+
+#file-entity-add-upload .form-item-upload .form-file {
+	left: -500px;
+}
+
+.ctools-auto-submit-full-form {
+	margin-left: 150px
+}
+
+.insert-buttons {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: white;
+	border-top: 1px solid lightgray;
+	text-align: right;
+}
+
+.insert-buttons .form-submit {
+	margin-top: 0.5em;
+	margin-bottom: 0;
+}
+
+#edit-upload .messages {
+	position: absolute;
+	width: 300px;
+	right: -650px;
+}
+
+/* 
+  animation for new files added to media browser 
+*/
+
+@keyframes pulse {
+  from {
+    -webkit-transform: scale(1.0, 1.0);
+    -moz-transform: scale(1.0, 1.0);
+    -ms-transform: scale(1.0, 1.0);
+    -o-transform: scale(1.0, 1.0);
+    transform: scale(1.0, 1.0);
+}
+
+  to {
+    -webkit-transform: scale(1.1, 1.1);
+    -moz-transform: scale(1.1, 1.1);
+    -ms-transform: scale(1.1, 1.1);
+    -o-transform: scale(1.1, 1.1);
+    transform: scale(1.1, 1.1);
+  }
+}
+
+@-webkit-keyframes pulse {
+  from {
+    -webkit-transform: scale(1.0, 1.0);
+    transform: scale(1.0, 1.0);
+}
+
+  to {
+    -webkit-transform: scale(1.1, 1.1);
+    transform: scale(1.1, 1.1);
+  }
+}
+
+.media-item-new {
+  animation-duration: 1s;
+  animation-name: pulse;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  
+  -webkit-animation-duration: 1s;
+  -webkit-animation-name: pulse;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-direction: alternate;
+}

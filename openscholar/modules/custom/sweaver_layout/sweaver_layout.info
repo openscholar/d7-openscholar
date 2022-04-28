@@ -1,0 +1,7 @@
+name = Sweaver Layout
+description = Control the placement of blocks on your page from Sweaver
+package = "User interface"
+core = 7.x
+files[] = sweaver_layout.inc
+dependencies[] = sweaver
+dependencies[] = context_ui

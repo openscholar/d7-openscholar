@@ -1,0 +1,25 @@
+body, #container, #header-container,  #footer {
+  background-color: #44514f;
+  }
+  
+.front #columns {
+ background: #44514f;
+  
+  -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  }
+  
+.front #page {
+    width: 910px;
+}
+
+.front #header-container,
+.front #menu-bar {
+  margin-left: 25px;
+  }
+
+.front img {
+    border: none;
+}
+

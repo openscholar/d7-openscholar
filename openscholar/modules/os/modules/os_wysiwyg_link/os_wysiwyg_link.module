@@ -1,0 +1,202 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function os_wysiwyg_link_menu() {
+  $items = array();
+
+  $items['os/wysiwyg/link/insert'] = array(
+    'title' => 'Insert Link',
+    'access arguments' => array('access content'),
+    'page callback' => 'os_wysiwyg_link_insert',
+    'file' => 'os_wysiwyg_link.insert.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+function os_wysiwyg_link_theme($existing, $type, $theme, $path) {
+  return array (
+    'media_views_view_media_browser__media_default__media_browser_1' => array (
+      'variables' => array('view' => NULL, 'options' => NULL, 'rows' => NULL, 'title' => NULL),
+      'template' => 'media-views-view-media-browser--media-default--media-browser-1' ,
+      'base hook' => 'media_views_view_media_browser',
+      'path' => drupal_get_path('module', 'os_wysiwyg_link'),
+    ),
+  ); 
+}
+
+/**
+ * Implements hook_wysiwyg_include_directory().
+ */
+function os_wysiwyg_link_wysiwyg_include_directory($type) {
+  switch ($type) {
+    case 'plugins':
+      return 'wysiwyg_plugins';
+  }
+}
+
+/**
+ * Helper function; Return media browser plugins.
+ */
+function os_wysiwyg_link_get_media_browser_plugins() {
+  return array();
+}
+
+/**
+ * Helper function; Return media browser types.
+ */
+function os_wysiwyg_link_get_media_browser_types() {
+  return array();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_wysiwyg_link_form_file_entity_add_upload_alter(&$form, &$form_state) {
+  $args = $form_state['build_info']['args'][0];
+  if (!empty($args['no_redirect'])) {
+    // Add a submit handler to prevent redirection.
+    $form['#submit'][] = 'os_wysiwyg_link_add_upload_submit';
+  }
+}
+
+/**
+ * Submit handler; Prevent redirection after file upload.
+ */
+function os_wysiwyg_link_add_upload_submit($form, &$form_state) {
+  $form_state['no_redirect'] = TRUE;
+}
+
+/**
+ * Implements hook_filter_info().
+ */
+function os_wysiwyg_link_filter_info() {
+  $filters['owl_filter'] = array(
+    'title' => t('Convert File links to correct path'),
+    'description' => t('This filter will convert the paths of links to files to ensure they\'re always correct.'),
+    'process callback' => 'os_wysiwyg_link_filter',
+    'weight' => 1,
+  );
+
+  return $filters;
+}
+
+/**
+ * Helper function; Replace html links with drupal links in a given string.
+ */
+function os_wysiwyg_link_filter($text) {
+  // Find all html links.
+  $matches = _os_wysiwyg_link_find_links($text);
+
+  foreach ($matches as $m) {
+    switch ($m[2]) {
+      case 'fid':
+        $file = file_load($m[3]);
+        if (isset($file->uri)) {
+          $link = str_replace($m[1], file_create_url($file->uri), $m[0]);
+          $text = str_replace($m[0], $link, $text);
+        }
+        break;
+
+      case 'url':
+        $comps = parse_url($m[3]);
+        $options = array();
+        // set defaults so no notices appear
+        if ($comps) {
+          $comps += array('query' => '', 'fragment' => '');
+          $_page = str_replace(array('?'.$comps['query'], '#'.$comps['fragment']), '', $m[3]);
+          // query string is in var=val&var=val format. parse it into an array for drupal
+          parse_str(htmlspecialchars_decode($comps['query']), $query);
+          $options = array(
+            'query' => $query,
+            'fragment' => $comps['fragment']
+          );
+        }
+        else {
+          $_page = $m[3];
+        }
+
+        $page = _os_wysiwyg_fix_path($_page);
+
+        if (url_is_external($page)) {
+          $url = url($page, $options + array('external' => TRUE));
+        }
+        elseif ($page) {
+          $url = url($page, $options + array('absolute' => TRUE));
+        }
+        // if page is blank, the url is #something, linking to an anchor on the same page
+        // we use the external flag to prevent drupal from changing it to the site's frontpage
+        else {
+          $url = url($page, $options + array('external' => TRUE));
+        }
+        $link = str_replace('href="'.$m[1], 'href="'.$url, $m[0]);
+        $text = str_replace($m[0], $link, $text);
+        break;
+    }
+  }
+
+  return $text;
+}
+
+/**
+ * Helper function; Find html links in a given string.
+ */
+function _os_wysiwyg_link_find_links($str) {
+  $matches = array();
+  preg_match_all('~<a[^>]+href="([^"]+)"[^>]+data-(fid|url)="([^"]*)">~', $str, $matches, PREG_SET_ORDER);
+  return $matches;
+}
+
+/*
+ * Remove extra slashes, dots; add vsite
+ *
+ *  Source: http://www.geekality.net/2011/05/12/php-dealing-with-absolute-and-relative-urls/
+ */
+function _os_wysiwyg_fix_path($url) {
+    $base = base_path();
+    $space = spaces_get_space();
+
+    if ($space) {
+      $vsite = $space->group->purl;
+    }
+
+    // Return base if no url
+    if (! $url) {
+      return $base;
+    }
+
+    // Return if already absolute URL
+    if (parse_url($url, PHP_URL_SCHEME) != '') {
+      return $url;
+    }
+
+    // Urls only containing query or anchor
+    if ($url[0] == '#' || $url[0] == '?') {
+      return $base.$url;
+    }
+
+    // Parse base URL and convert to local variables: $path
+    extract(parse_url($base));
+
+    // If no path, use /
+    if ( ! isset($path)) $path = '/';
+
+    // Remove non-directory element from path
+    $path = preg_replace('#/[^/]*$#', '', $path);
+
+    // Destroy path if relative url points to root
+    if ($url[0] == '/') $path = '';
+
+    // Dirty absolute URL
+    $abs = "/$vsite/$url";
+
+    // Replace '//' or '/./' or '/foo/../' with '/'
+    $re = array('#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#');
+    for ($n = 1; $n > 0; $abs = preg_replace($re, '/', $abs, -1, $n)) {}
+
+    // Absolute URL is ready!
+    return $abs;
+}

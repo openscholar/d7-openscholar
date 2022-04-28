@@ -1,0 +1,16 @@
+name = OpenScholar: Books
+description = Makes browsing through pages of a book easier and quicker
+core = 7.x
+package = OpenScholar
+dependencies[] = book
+dependencies[] = features
+features[features_api][] = api:2
+features[user_permission][] = access printer-friendly version
+features[user_permission][] = add content to books
+features[user_permission][] = administer book outlines
+features[user_permission][] = create book content
+features[user_permission][] = create new books
+features[user_permission][] = delete any book content
+features[user_permission][] = delete own book content
+features[user_permission][] = edit any book content
+features[user_permission][] = edit own book content

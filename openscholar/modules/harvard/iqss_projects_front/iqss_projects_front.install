@@ -1,0 +1,89 @@
+<?php
+/**
+ * Implements hook_install().
+ * Set the default theme to the projects_harvard theme.
+ */
+function iqss_projects_front_install() {
+  // Set the default theme.
+  variable_set('theme_default','projects_harvard');
+  if(module_exists('mollom')) {
+    // Install the mollom forms.
+    iqss_projects_front_init_mollom_forms();
+  }
+}
+
+/**
+ * Insert the forms we want to protect into the Mollom_forms table.
+ */
+function iqss_projects_front_update_7001(&$sandbox){
+  if(module_exists('mollom')) {
+    // Init mollom forms.
+    $res = iqss_projects_front_init_mollom_forms();
+    return t('Forms successfully inserted into Mollom table.');
+  }
+}
+
+/**
+ * Enable the os_pinserver_auth module.
+ */
+function iqss_projects_front_update_7002() {
+  module_enable(array('os_pinserver_auth'));
+
+  //Pinserver should take over registration
+  variable_set('os_pinserver_registration', TRUE);
+}
+
+/**
+ * IQSS site
+ */
+function iqss_projects_front_update_7003() {
+  db_insert('spaces_overrides')
+    ->fields(array(
+      'object_type' => 'variable',
+      'id' => 6235,
+      'type' => 'og',
+      'object_id' => 'os_appearance_department_flavor',
+      'value' => serialize('iqss')
+  ))->execute();
+}
+
+
+/**
+ * Init mollom to protect the following forms.
+ */
+function iqss_projects_front_init_mollom_forms(){
+
+  $fields =  '(form_id,entity,bundle,mode,checks,discard,moderation,enabled_fields,strictness,module)';
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_biblio_form',':entity'=>'comment',':bundle'=>'comment_node_biblio',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_bio_form',':entity'=>'comment',':bundle'=>'comment_node_bio',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_blog_form',':entity'=>'comment',':bundle'=>'comment_node_blog',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_book_form',':entity'=>'comment',':bundle'=>'comment_node_book',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_class_form',':entity'=>'comment',':bundle'=>'comment_node_class',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_class_material_form',':entity'=>'comment',':bundle'=>'comment_node_class_material',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_cv_form',':entity'=>'comment',':bundle'=>'comment_node_cv',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_department_form',':entity'=>'comment',':bundle'=>'comment_node_department',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_event_form',':entity'=>'comment',':bundle'=>'comment_node_event',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_feed_form',':entity'=>'comment',':bundle'=>'comment_node_feed',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_link_form',':entity'=>'comment',':bundle'=>'comment_node_link',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_media_gallery_form',':entity'=>'comment',':bundle'=>'comment_node_media_gallery',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_news_form',':entity'=>'comment',':bundle'=>'comment_node_news',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_page_form',':entity'=>'comment',':bundle'=>'comment_node_page',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_personal_form',':entity'=>'comment',':bundle'=>'comment_node_personal',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_person_form',':entity'=>'comment',':bundle'=>'comment_node_person',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_presentation_form',':entity'=>'comment',':bundle'=>'comment_node_presentation',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_project_form',':entity'=>'comment',':bundle'=>'comment_node_project',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_software_project_form',':entity'=>'comment',':bundle'=>'comment_node_software_project',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'comment_node_software_release_form',':entity'=>'comment',':bundle'=>'comment_node_software_release',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:27:"comment_body][und][0][value";}',':strictness'=>'normal',':module'=>'comment'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'contact_personal_form',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:7:"message";}',':strictness'=>'normal',':module'=>'contact'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'contact_site_form',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:7:"subject";i:1;s:7:"message";}',':strictness'=>'normal',':module'=>'contact'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'user_pass',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:0:{}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:0:{}',':strictness'=>'normal',':module'=>'user'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'user_register_form',':entity'=>'user',':bundle'=>'user',':more'=>1,':checks'=>'a:1:{i:0;s:4:"spam";}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:2:{i:0;s:31:"field_first_name][und][0][value";i:1;s:30:"field_last_name][und][0][value";}',':strictness'=>'normal',':module'=>'user'));
+  db_query("REPLACE INTO `mollom_form` $fields VALUES(:form_id, :entity, :bundle, :more, :checks, :discard, :moderation, :enabled_fields, :strictness, :module)",array(':form_id'=>'vsite_contact_mail_owner',':entity'=>NULL,':bundle'=>NULL,':more'=>1,':checks'=>'a:0:{}',':discard'=>1,':moderation'=>0,':enabled_fields'=>'a:0:{}',':strictness'=>'normal',':module'=>'vsite'));
+
+  $res[] = array(
+    'success' => true,
+    'query' => 'Installed mollom forms',
+  );
+
+  return $res;
+}

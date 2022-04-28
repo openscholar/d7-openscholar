@@ -1,0 +1,330 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code for the OS Classes feature.
+ */
+
+include_once 'os_classes.features.inc';
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function os_classes_views_query_alter(&$view, &$query) {
+  // Order override for semester values in /classes page as N/A, Winter, Fall, Summer, Spring.
+  if ($view->name == 'os_classes' && $view->current_display == 'page') {
+    $query->orderby[2]['field'] = "CASE field_data_field_semester_field_semester_value WHEN 'Winter' THEN 1 WHEN 'Fall' THEN 2 WHEN 'Summer' THEN 3 WHEN 'Spring' THEN 4 ELSE 0 END";
+    $query->orderby[2]['direction'] = 'ASC';
+  }
+}
+
+/**
+ * Implements hook_field_attach_load().
+ */
+function os_classes_field_attach_load($entity_type, $entities, $age, $options) {
+  // Targeting only 'node' type entity of bundle 'class' for all view modes.
+  if ($entity_type == 'node') {
+    foreach ($entities as $entity) {
+      if ($entity->type == 'class') {
+        // If attached field 'field_semester' have no value, displaying N/A as default value.
+        // If field has the value for N/A, N/a or n/A by class import csv, then also output should be displayed as N/A.
+        if (empty($entity->field_semester) || (isset($entity->field_semester[LANGUAGE_NONE][0]['value']) && strtolower($entity->field_semester[LANGUAGE_NONE][0]['value']) == 'n/a')) {
+          $entity->field_semester[LANGUAGE_NONE][0]['value'] = 'N/A';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_classes_form_class_node_form_alter(&$form, &$form_state) {
+  // If field semester default value is empty, then option N/A will be selected in edit mode
+  // During new class creation, default value is empty, then also n/a will be selected.
+  if (empty($form['field_semester'][LANGUAGE_NONE]['#default_value'])) {
+    $form['field_semester'][LANGUAGE_NONE]['#default_value'] = '_none';
+  }
+}
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_classes_os_app_info() {
+  $apps = array();
+
+  $apps['os_classes'] = array(
+    'path' => 'classes',
+  	'nodetypes' => array(
+  	  'class',
+  		'class_material',
+    ),
+    'views tabs' => array(
+      'os_classes' => array('page'),
+    ),
+    'importers' => array(
+      'class' => array(
+        'csv' => 'os_classes',
+      ),
+    ),
+    'require_parent_node' => array(
+      'class_material'=> TRUE,
+    ),
+    'hide from toolbar' => array(
+      'class_material',
+    ),
+    'browse_pages' => array(
+      'class' => array(
+        'url' => 'browse/classes',
+        'title' => t('Classes'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'classes',
+      ),
+    ),
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ *
+ * Exposes a draggable widget for our custom fields, to control field weight.
+ *
+ * @see os_classes_node_view()
+ */
+function os_classes_field_extra_fields() {
+  $extra = array();
+  $extra['node']['class'] = array(
+    'form' => array(
+      'add_class_material' => array(
+        'label' => t('Add "class material" link'),
+        'description' => t('Add "Class Material" to this class'),
+        'weight' => 100,
+      ),
+    ),
+  );
+
+  return $extra;
+}
+
+/**
+ * Implements hook_node_view().
+ *
+ * Adds "Add class material" link to the bottom of Class nodes, for admins only.
+ *
+ * @see os_classes_field_extra_fields()
+ */
+function os_classes_node_view($node, $view_mode, $langcode) {
+  // Only proceeds for class nodes, where the current user has update access.
+  if ($node->type !== 'class') {
+    return;
+  }
+  if (!node_access('update', $node)) {
+    return;
+  }
+
+  // Finds the weight of the extra field.
+  $name = 'add_class_material';
+  $node->content[$name] = array();
+  $extra_fields = field_info_extra_fields('node', 'class', 'form');
+  if (isset($extra_fields[$name]['weight'])) {
+    $node->content[$name]['#weight'] = $extra_fields[$name]['weight'];
+  }
+
+  // Populates the render array with the "Add class material" link.
+  $links = array();
+  $links[] = array(
+    'title' => t("Add class material"),
+    'href' => 'node/add/class-material',
+    'query' => array('field_class' => $node->nid),
+    'attributes' => array('class' => array('class_material_field_class_anchor')),
+  );
+  $node->content[$name]['#markup'] = theme('links', array(
+      'links' => $links,
+      'attributes' => array('class' => array('node-reference-node', 'class_material_field_class')),
+    ));
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function os_classes_node_delete($node) {
+  if ($node->type !== 'class') {
+    return;
+  }
+  _os_classes_delete_children($node->nid);
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_classes_vsite_og_node_type_info() {
+  return array(
+    'class' => 'group content',
+    'class_material' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_context_links_alter().
+ */
+function os_classes_os_add_new_links_alter(&$links) {
+  if (isset($links['class_material'])) {
+    unset($links['class_material']);
+  }
+}
+
+/**
+ * Deletes all Class Material nodes that reference a given deleted Class node.
+ *
+ * @param int $nid
+ */
+function _os_classes_delete_children($nid) {
+  ctools_include('node', 'os');
+  $query = new OSNodeFieldQuery('class_material');
+  $query->fieldCondition('field_class', 'target_id', $nid);
+  $result = $query->execute();
+
+  if (!isset($result['node'])) {
+    return;
+  }
+
+  node_delete_multiple(array_keys($result['node']));
+}
+
+/**
+ * Implements hook_process_HOOK for node.
+ *
+ * Removes EVA field "Related Materials" from Class node teaser.
+ */
+function os_classes_process_node(&$vars) {
+  if ($vars['type'] !== 'class') {
+    return;
+  }
+  if ($vars['view_mode'] !== 'teaser') {
+    return;
+  }
+  // Hides EVA field (attached view) "Related Materials" on /classes.
+  if (isset($vars['content']['os_classes_entity_view_1'])) {
+    unset($vars['content']['os_classes_entity_view_1']);
+  }
+}
+
+/**
+ * Return the weight of the semester.
+ *
+ * @param $semester
+ *   Optional. Specific semester name.
+ * @return array
+ *   Return all the semester and weight. If a semester name was given the
+ *   the function will return the weight for that semester.
+ */
+function os_classes_semester_weights($semester = '') {
+  $weights = array(
+    'spring' => 1,
+    'summer' => 2,
+    'fall' => 3,
+    'winter' => 4,
+  );
+
+  return !empty($semester) ? $weights[$semester] : $weights;
+}
+
+/**
+ * Implements hook_node_presave().
+ */
+function os_classes_node_presave($node) {
+  if ($node->type != 'class') {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper('node', $node);
+
+  if (!$semester = strtolower($wrapper->field_semester->value())) {
+    return;
+  }
+
+  $weight = os_classes_semester_weights($semester);
+
+  if ($wrapper->is_new->value()) {
+    $wrapper->field_weight->set($weight);
+  }
+  else {
+    // The node is being updated. Check for change in the semester field and
+    // update the weight field as well.
+    $original = entity_metadata_wrapper('node', $node->original);
+
+    if ($original->field_semester->value() == $wrapper->field_semester->value()) {
+      return;
+    }
+
+    $wrapper->field_weight->set($weight);
+  }
+}
+
+/**
+ * Implements hook_field_access().
+ */
+function os_classes_field_access($op, $field, $entity_type, $entity, $account) {
+  if ($field['field_name'] == 'field_weight') {
+    return FALSE;
+  }
+}
+
+/**
+ * OS update batch query callback.
+ *
+ * @see os_set_update_batch().
+ */
+function os_classes_count_classes_base_query($id = NULL) {
+  $query = new EntityFieldQuery();
+
+  $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'class')
+    ->addTag('no_field_weight');
+
+  if ($id) {
+    $query->propertyCondition('nid', $id, '>=');
+  }
+
+  return $query;
+}
+
+/**
+ * OS update batch iterator callback.
+ *
+ * @see os_set_update_batch().
+ */
+function os_classes_update_update_class_weight($node) {
+  $wrapper = entity_metadata_wrapper('node', $node);
+  $weight = os_classes_semester_weights(strtolower($wrapper->field_semester->value()));
+
+  if (is_array($weight)) {
+    $weight = 0;
+  }
+  try {
+    $wrapper->field_weight->set($weight);
+    $wrapper->save();
+  } catch (Exception $e) {
+    $params = array(
+      '@error' => $e->getMessage(),
+      '@nid' => $node->nid,
+      '@title' => $node->title,
+      '@value' => $weight,
+    );
+    drupal_set_message(t('There was error updating the node(@nid) @title with the value @value. More info: @error', $params), 'error');
+  }
+}
+
+/**
+* Implements hook_query_TAG_alter()
+*
+* Limits resultset to those courses that do not have a timestamp yet.
+*/
+function os_classes_query_no_field_weight_alter(QueryAlterableInterface $query) {
+  $query->leftJoin('field_data_field_weight', 'field_data_field_weight', '(node.nid = field_data_field_weight.entity_id AND field_data_field_weight.entity_type = \'node\')');
+  $query->isNull('field_data_field_weight.field_weight_value');
+}

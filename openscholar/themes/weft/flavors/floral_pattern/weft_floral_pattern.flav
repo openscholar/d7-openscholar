@@ -1,0 +1,5 @@
+name = Floral Pattern
+description = A Floral Pattern of the scholor-theme-07 theme
+screenshot = screenshot.png
+
+css[] = floral_pattern.css

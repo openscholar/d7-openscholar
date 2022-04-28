@@ -1,0 +1,6 @@
+name = "App Form"
+core = 7.x
+description = "Angular version of the app Enable/Disable form"
+
+dependencies[] = admin_panel
+dependencies[] = os_restful

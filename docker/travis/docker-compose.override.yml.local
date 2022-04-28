@@ -1,0 +1,17 @@
+version: "3.0"
+
+services:
+  web:
+    ports:
+      - "80:80"
+      - "8983:8983"
+    environment:
+      - PHP_IDE_CONFIG="serverName=host.docker.internal"
+
+  mysql:
+    ports:
+      - "3306:3306"
+    volumes:
+      # override mysql config if necessary.
+      - ./docker/travis/mysql/server.cnf:/etc/mysql/conf.d/server.cnf
+      - ./docker/dump:/docker-entrypoint-initdb.d

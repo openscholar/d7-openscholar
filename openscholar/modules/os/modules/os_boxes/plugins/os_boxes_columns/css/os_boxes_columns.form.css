@@ -1,0 +1,344 @@
+
+/**
+ * Styles for the Layout Selection form
+ */
+#boxes-box-form {
+  position: relative;
+  overflow: auto;
+}
+
+#edit-num-cols {
+  padding: 0.23em 0;
+}
+
+#edit-num-cols .form-type-radio {
+  display: inline-block;
+}
+
+#unused-widgets .form-item.form-item-search {
+	padding:0;
+}
+
+#edit-num-cols input,
+#edit-layout input {
+  position: absolute;
+  left: -999em;
+}
+
+#edit-num-cols label {
+  width: 7em;
+  border: 1px solid #ccc;
+  color: darkslategrey;
+  background-color: #efefef;;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  text-align: center;
+  padding: 0.5em 1em;
+}
+
+#edit-num-cols input:checked + label {
+  background-color: #fff;
+  border-bottom-color: #fff;
+}
+
+#edit-layout {
+ width: 708px;
+  border: 1px solid #ccc;
+  padding: 1em;
+
+}
+
+#edit-layout.form-radios {
+ margin-top:-10px;
+}
+
+
+#edit-layout .form-type-radio {
+  display: inline-block;
+  margin-right:5px;
+}
+
+#edit-layout label {
+  display: inline-block;
+  width: 70px;
+  height: 0;
+  font-size:11px;
+  background: url('../images/cols_inline.gif');
+  background-position: 0 0;
+  background-size: 100%;
+  padding:70px 0 0 0;
+  text-align:center;
+  color:#767676;
+}
+
+#edit-layout-two-2x50 ~ label {background-position:0 -158px;}
+
+#edit-layout-two-33-66 ~ label {background-position:0 -78px;}
+
+#edit-layout-two-66-33 ~ label {background-position:0 0;}
+
+#edit-layout-three-3x33 ~ label {background-position:0 -473px;}
+
+#edit-layout-three-25-25-50 ~ label {background-position:0 -394px;}
+
+#edit-layout-three-25-50-25 ~ label {background-position:0 -316px;}
+
+#edit-layout-three-50-25-25 ~ label {background-position:0 -236px;}
+
+#edit-layout-four-4x25 ~ label {background-position:0 -551px;}
+
+#edit-layout-five-5x20 ~ label {background-position:0 -630px;}
+
+/**
+ * Layout tumbnail container
+ */
+#os-boxes-columns-layout-select{margin-left:222px;}
+.form-item.form-type-radios.form-item-num-cols {padding:0;margin:0 0 5px;}
+
+/**
+ * Styling for Unused Widgets container
+ */
+
+#unused-widgets {
+  width: 200px;
+  max-height: 520px;
+  float: left;
+  border: 1px solid #ccc;
+  padding: 5px;
+  margin: -117px 10px 15px 0;
+
+}
+
+#unused-widgets .form-item-search label {font-weight:normal;}
+
+#unused-widgets span {
+ font-size: 13px;
+margin-bottom: 8px;
+display: block;
+}
+
+#unused-widgets .form-wrapper {
+ 
+  height: 510px;
+  overflow:auto;
+  max-height: 435px;
+}
+
+#unused-widgets #edit-search {
+  width: 90%;
+}
+
+#edit-widgets {
+  height: 512px;
+  overflow-y: scroll;
+}
+
+.cp-layout-widget {
+  display: block;
+  width: 90%;
+  width: calc(100% - 10px);
+  min-height: 20px;
+  padding: 8px 0 3px 10px;
+  background-color: #efefef;
+  margin-bottom: -1px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  position: relative;
+  line-height: 14px;
+  margin-bottom: 3px;
+}
+
+.cp-layout-widget:hover {
+background-color: #DDD;
+
+}
+
+
+.cp-layout-widget .widget-controls {
+  display: none;
+}
+
+#edit-regions {
+  float: left;
+  width: 736px;
+  height: 300px;
+  clear: right;
+  margin-top: 10px;
+}
+
+.region {
+  border: 1px solid #ccc;
+  height: calc(100% - 50px);
+  padding-bottom: 50px;
+  display: none;
+  float: left;
+  margin-right: 5px;
+}
+
+.region .cp-layout-widget {
+  border: 0;
+  width: 75%;
+  width: calc(100% - 10px);
+  margin-bottom: 3px;
+}
+
+/**
+ * Two region layout
+ */
+#edit-regions.two-2x50 #region-1-container,
+#edit-regions.two-2x50 #region-2-container {
+  width: 49%;
+  width: calc(50% - 7px);
+  display: block;
+}
+
+#edit-regions.two-33-66 #region-1-container,
+#edit-regions.two-66-33 #region-2-container {
+  width: 32%;
+  width: calc(33% - 10px);
+  display: block;
+}
+
+#edit-regions.two-33-66 #region-2-container,
+#edit-regions.two-66-33 #region-1-container {
+  width: 65%;
+  width: calc(67% - 4px);
+  display: block;
+}
+
+/**
+ * Three region layouts
+ */
+#edit-regions.three-3x33 #region-1-container,
+#edit-regions.three-3x33 #region-2-container,
+#edit-regions.three-3x33 #region-3-container {
+  width: 32%;
+  width: calc(100% / 5px);
+  display: block;
+}
+
+#edit-regions.three-25-25-50 #region-1-container,
+#edit-regions.three-25-25-50 #region-2-container,
+#edit-regions.three-25-50-25 #region-1-container,
+#edit-regions.three-25-50-25 #region-3-container,
+#edit-regions.three-50-25-25 #region-2-container,
+#edit-regions.three-50-25-25 #region-3-container {
+  width: 24%;
+  width: calc(25% - 9px);
+  display: block;
+}
+
+#edit-regions.three-25-25-50 #region-3-container,
+#edit-regions.three-25-50-25 #region-2-container,
+#edit-regions.three-50-25-25 #region-1-container {
+  width: 49%;
+  width: calc(50% - 4px);
+  display: block;
+}
+
+/**
+ * Four region layouts
+ */
+#edit-regions.four-4x25 #region-1-container,
+#edit-regions.four-4x25 #region-2-container,
+#edit-regions.four-4x25 #region-3-container,
+#edit-regions.four-4x25 #region-4-container {
+  width: 24%;
+  width: calc(25% - 7px);
+  display: block;
+}
+
+/**
+ * Five region layouts
+ */
+#edit-regions.five-5x20 #region-1-container,
+#edit-regions.five-5x20 #region-2-container,
+#edit-regions.five-5x20 #region-3-container,
+#edit-regions.five-5x20 #region-4-container,
+#edit-regions.five-5x20 #region-5-container {
+  width: 19%;
+  width: calc(20% - 7px);
+  display: block;
+}
+
+/**
+ * Misc.
+ */
+
+#edit-submit {
+  clear: left;
+}
+
+/**
+ * Widget Type Icons
+
+.os_boxes_addthis:before {
+  background-image: url("../images/addThis.png");
+}
+
+.os_boxes_bio:before {
+  background-image: url("../images/bio.png")
+}
+
+.os_boxes_rss:before,
+.os_boxes_feedreader:before {
+  background-image: url("../images/rss.png");
+}
+
+#boxes-os_booklets_recent_docs:before,
+.os_boxes_booktoc:before,
+#views-os_booklets-block:before {
+  background-image: url("../images/book.png");
+}
+
+.os_boxes_slideshow:before {
+  background-image: url("../images/slideshow.png");
+}
+
+.os_boxes_html:before {
+  background-image: url("../images/text.png");
+}
+
+#views-os_events-block_1:before,
+#views-os_events-block_2:before {
+  background-image: url("../images/calendar.png");
+}
+
+#views-os_software_releases-block_1:before {
+  background-image: url("../images/software.png");
+}
+
+#boxes-os_news_latest:before {
+  background-image: url("../images/announcement.png");
+}
+
+#boxes-os_presentations_recent:before {
+  background-image: url("../images/presentation.png");
+}
+
+#boxes-os_publications_recent:before,
+.os_boxes_pub_ca:before,
+.os_boxes_pub_year:before {
+  background-image: url("../images/publications.png");
+}
+
+.os_boxes_media:before {
+  background-image: url("../images/camera.png");
+}
+
+.os_taxonomy_fbt:before {
+  background-image: url("../images/addThis.png");
+}
+
+#views-os_blog-block:before {
+  background-image: url("../images/post.png");
+}
+
+.os_boxes_twitterfeed:before {
+  background-image: url("../images/twitter.png");
+}
+
+.os_taxonomy_fbt:before {
+  background-image: url("../images/taxo.png");
+}
+*/

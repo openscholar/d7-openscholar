@@ -1,0 +1,24 @@
+diff --git a/filefield_paths.module b/filefield_paths.module
+index c342411..36aa93c 100644
+--- a/filefield_paths.module
++++ b/filefield_paths.module
+@@ -289,14 +289,17 @@ function _filefield_paths_replace_path($old, $new, $entity) {
+   // Build replacement.
+   $info = parse_url(file_stream_wrapper_uri_normalize($new));
+   $info['path'] = !empty($info['path']) ? $info['path'] : '';
+-  $replacement = "_filefield_paths_replace_path_uri_scheme('\\1', '{$old}', '{$new}') . '\\2{$info['host']}{$info['path']}'";
++  $replacement = "_filefield_paths_replace_path_uri_scheme(\$matches[1], '{$old}', '{$new}') . \$matches[2] . '{$info['host']}{$info['path']}'";
++
++  // Create an anonymous function for the replacement via preg_replace_callback.
++  $replacement_callback = create_function('$matches', "return {$replacement};");
+ 
+   $fields = field_info_fields();
+   foreach ($fields as $name => $field) {
+     if ($field['module'] == 'text' && isset($entity->{$field['field_name']}) && is_array($entity->{$field['field_name']})) {
+       foreach ($entity->{$field['field_name']} as &$language) {
+         foreach ($language as &$item) {
+-          $item['value'] = preg_replace("/$regex/e", $replacement, $item['value']);
++          $item['value'] = preg_replace_callback("/$regex/", $replacement_callback, $item['value']);
+         }
+       }
+     }

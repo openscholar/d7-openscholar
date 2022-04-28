@@ -1,0 +1,5 @@
+name = Modern White
+description = A Modern White of the scholor-theme-07 theme
+screenshot = screenshot.png
+
+css[] = modern_white.css

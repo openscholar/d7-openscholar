@@ -1,0 +1,28 @@
+--- a/twitter_pull.class.inc
++++ b/twitter_pull.class.inc
+@@ -104,6 +104,7 @@
+       return;
+     }
+ 
++    $query .= '&tweet_mode=extended';
+     $url = '' . $url;
+ 
+     $twitter = new TwitterAPIExchange($settings);
+@@ -139,7 +140,7 @@
+           $obj->userphoto_https = (isset($item->retweeted_status->user) && !empty($item->retweeted_status->user->profile_image_url_https)) ? $item->retweeted_status->user->profile_image_url_https : $item->retweeted_status->profile_image_url_https;
+           $obj->userphoto_https = check_plain($obj->userphoto_https);
+ 
+-          $obj->text = filter_xss($item->retweeted_status->text);
++          $obj->text = filter_xss($item->retweeted_status->full_text);
+           //-- Convert date to unix timestamp so themer can easily work with it.
+           $obj->timestamp = strtotime($item->retweeted_status->created_at);
+ 
+@@ -155,7 +156,7 @@
+           $obj->userphoto_https = (isset($item->user) && !empty($item->user->profile_image_url_https)) ? $item->user->profile_image_url_https : $item->profile_image_url_https;
+           $obj->userphoto_https = check_plain($obj->userphoto_https);
+ 
+-          $obj->text = filter_xss($item->text);
++          $obj->text = filter_xss($item->full_text);
+           //-- Convert date to unix timestamp so themer can easily work with it.
+           $obj->timestamp = strtotime($item->created_at);
+ 

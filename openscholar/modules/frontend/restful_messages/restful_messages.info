@@ -1,0 +1,4 @@
+name = Restful Messages
+description = Prints drupal messages on screen after a restful request
+core = 7.x
+dependencies[] = os_common

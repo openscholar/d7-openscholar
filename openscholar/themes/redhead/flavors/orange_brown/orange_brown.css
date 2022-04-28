@@ -1,0 +1,24 @@
+a, a:visited {
+    color:#a25d3c;
+    }
+    
+.biblio-title a, .biblio-title-chicago a {
+    color:#a25d3c !important;
+    }    
+
+a:hover {
+    color:#a25d3c;
+}
+
+
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu a.active, 
+#menu-bar ul.nice-menu a:hover,
+#header,
+#header-container, 
+#menu-bar {
+  background: #a25d3c;
+}

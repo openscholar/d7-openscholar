@@ -1,0 +1,6 @@
+name = Monochrome
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = monochrome.css
+css[] = responsive.monochrome.css

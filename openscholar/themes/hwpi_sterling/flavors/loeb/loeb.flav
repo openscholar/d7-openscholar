@@ -1,0 +1,6 @@
+name = Loeb
+description = A loeb version of the Classic theme
+screenshot = screenshot.png
+
+css[] = loeb.css
+css[] = responsive.loeb.css

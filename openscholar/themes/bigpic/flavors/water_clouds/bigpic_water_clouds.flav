@@ -1,0 +1,5 @@
+name = Water Clouds
+description = A version of the scholor-theme-12 theme featuring a surreal water scene
+screenshot = screenshot.png
+
+css[] = water-clouds.css

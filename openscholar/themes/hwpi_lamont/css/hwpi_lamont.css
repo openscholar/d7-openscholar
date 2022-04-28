@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css?family=Droid+Sans:300,400,700|Volkhov:300,400,400i,700');
+
+body {color:#444;}
+
+
+body,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+#footer ul.menu a,
+.section-nav a,
+.block-boxes-os_taxonomy_fbt.navigation,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation,
+#footer ul.menu li ul li a,
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2,
+#layout_16_9_side .slide-copy p,
+#layout_3_1_overlay .slide-copy p,
+#layout_16_9_below .slide-copy p,
+#layout_16_9_overlay .slide-copy p,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+.date-nav h3,
+.cke_editable * {
+    font-family: 'Droid Sans', sans-serif !important;
+}
+#boxes-box-site_info h1 a,
+#page-title,
+.boxes-box-content h2,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+h2.block-title,
+.node-type-person #content-column .node-person h1.node-title {
+    font-family: 'Volkhov', sans-serif !important;
+}
+h1, h2, h3,
+#boxes-box-site_info h2 {
+   
+    font-weight: normal;
+}
+
+#footer a {
+    color: #215990;
+}
+.section-nav .menu-depth-1 > a {
+    background-color: #F3F3F1 !important;
+    color: #333 !important;
+    border-bottom: 1px solid #D7D7D7 !important;
+}
+#boxes-box-os_pages_section_nav,
+.section-nav ul.menu li a {
+    border-color: #D7D7D7;
+}
+h1#page-title {
+    font-size: 2em;
+    line-height: 1.2;
+}
+h2.block-title {
+    font-size: 1.4em;
+}
+#menu-bar ul.nice-menu a {
+    color: #FFF;
+    padding: 16px 14px;
+    text-transform: uppercase;
+}
+#menu-bar {
+    padding: 0;
+}
+#menu-bar ul.nice-menu li {
+    margin-right: 0;
+}
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#header {
+    background-color: #4d5d71;
+}
+#menu-bar {
+    background-color: #3c4858;
+}
+#menu-bar ul.nice-menu .menuparent a:before {
+    background-position: 0 -566px;
+}
+#menu-bar ul.nice-menu .menuparent ul li a, #menu-bar ul.nice-menu .menuparent ul li a.active {
+    color: #FFF;
+    font-size: 13px;
+    font-weight: bold;
+    padding-right: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active {
+   
+     color:#ccc;
+}
+#menu-bar {
+    border-bottom: 9px solid #f5f5f5
+}
+
+.region-header-third ul.nice-menu a,
+#header,
+#header a,
+#boxes-box-site_info a {
+    color: #FFF;
+}
+ul.nice-menu ul {
+    top: 3.8em !important;
+}
+#columns a.node-readmore:after {
+    background: none;
+    padding-right: 0;
+}
+#footer {
+    background-color: #e8e8e8;
+    color: #333;
+}
+#powered-by a {
+    background-position: -14px -520px;
+}
+h2.block-title {
+    padding: 15px 0 10px;
+}
+.footer h2.block-title {
+    padding: 0 0 10px;
+}
+
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    background-color: orange;
+    background: url('/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png') no-repeat 2px -440px orange;
+}
+
+.block-title,
+.node-type-person #content-column .node-person .pic-bio,
+.node-type-person #content-column .node-person .block-title {
+    border-top: 1px solid orange;
+}
+.footer .block-title {
+    border-top: none;
+}
+.event-start .event-start {
+    width: 55px;
+    height: 55px;
+    background: #FFF;
+    border: 1px solid #D4D2D2;
+    border-top: 3px solid #215990;
+    -webkit-border-bottom-right-radius: 5px;
+    -webkit-border-bottom-left-radius: 5px;
+    -moz-border-radius-bottomright: 5px;
+    -moz-border-radius-bottomleft: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+.event-start .event-start {
+    border-top: 3px solid orange;
+}
+.event-start .event-start span {
+    font-weight: normal;
+}
+.event-start-month {
+    color: #000;
+}
+.event-start .event-year {
+    padding: 6px 0 0;
+    font-size: 11px;
+}
+.node-type-person .node-person .field-name-field-professional-title {
+    margin-top: 0;
+}
+#boxes-box-site_info h2 {
+ font-size: 1.3em;
+    font-style: normal;
+        line-height: 28px;
+   
+}
+#columns a.node-readmore {
+    border-bottom: none;
+    font-weight: bold;
+    padding-right: 11px;
+    position: relative;
+    z-index: 9;
+    text-decoration: none;
+    font-size: .90em;
+}
+.rslides_tabs li {
+    background: #CCC !important;
+}
+#layout_16_9_side .slide-copy h2 {
+
+    font-weight: normal;
+}

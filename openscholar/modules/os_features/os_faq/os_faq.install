@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * Refreshes exported variables of the FAQ app
+ */
+function os_faq_update_7000() {
+  $revert = array(
+    'os_faq' => array(
+      'variable'
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Change the FAQ trim length from 100 to 600.
+ */
+function os_faq_update_7001() {
+  features_revert(array('os_faq' => array('field_instance')));
+}

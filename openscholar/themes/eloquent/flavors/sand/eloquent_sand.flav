@@ -1,0 +1,5 @@
+name = Sand
+description = A beige Version of the scholor-theme-06 theme
+screenshot = screenshot.png
+
+css[] = sand.css

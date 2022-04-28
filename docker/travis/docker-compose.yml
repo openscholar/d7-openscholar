@@ -1,0 +1,20 @@
+version: "3.0"
+
+services:
+  web:
+    image: theopenscholar/openscholar-env
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - .:/var/www/html
+
+  mysql:
+    image: mysql:5.6
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: scholar
+      MYSQL_USER: scholar
+      MYSQL_PASSWORD: drupal

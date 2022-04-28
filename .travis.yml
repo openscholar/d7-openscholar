@@ -1,0 +1,41 @@
+sudo: required
+dist: trusty
+group: deprecated-2017Q4
+
+language: php
+
+services:
+  - docker
+
+env:
+  global:
+    - secure: "kbYKhyQY0mHBRcMz82PQDkWSrAjGeQVyk/VC5TJkcGd06QW6ovK3Xyy1FvoyID8ktG56EAe2IOnSE3kt51h8mqGlR6SVfluBJobgWjgcY3+6kSWPNsVrZNUL+hwHytM+OhbacUXP/PedXP55DMMPP0GVQlPgdzaUjzzlScj3w3A="
+    - "ARTIFACTS_S3_BUCKET=travisos"
+    - "ARTIFACTS_AWS_REGION=us-east-1"
+    - secure: "J+GWGGesskpTxCNq/YJJaL+DRnNeFbF3vslBPd47OKQI5kaH5SHfVH70iBaB3taBadf9XuJOj/NdHTSwjSpcY17TROw7ajG0KAOySsgDdpeAQ6lNmPdTc3TPicB6dfv6weGPzJB/pGVZW/ZirOodJsInbUnY7y9KsxfePGUKn4A="
+    - secure: "HvsIfxg/7BaZepgsKc7s9LK/TEf75drUm+LlyE1BiO3HTq5wwOuyWYiJ5/40JhAGnGsU7dEoUqTR5JePjyQxlV6uyIc6suOsZJz4fOuukEPs/dG9B5W4eMP4cS2UoIb/QU2YEd6Uk0OZWCdZCsHlT1j1MFUiuRHWYSIcvrDFKkY="
+  matrix:
+    - TEST_SUITE=restful
+    - TEST_SUITE=features_first
+    - TEST_SUITE=galleries
+    - TEST_SUITE=features_second
+#    - TEST_SUITE=harvard
+    - TEST_SUITE=frontend
+    - TEST_SUITE=misc_first
+    - TEST_SUITE=misc_second
+    - TEST_SUITE=solr
+    - TEST_SUITE=taxonomy
+    - TEST_SUITE=vsite
+    - TEST_SUITE=widgets
+
+#before_script: phpenv config-add travis.ini
+script:
+
+  - docker --version
+  - docker-compose --version
+  - cd /home/travis/build/openscholar/openscholar
+  - cp docker/travis/docker-compose.yml docker-compose.yml
+  - cp docker/travis/docker-compose.override.yml.travis docker-compose.override.yml
+  - docker-compose up -d
+  - docker-compose exec web docker_travis/docker.install.sh
+  - docker-compose exec web docker_travis/run.sh

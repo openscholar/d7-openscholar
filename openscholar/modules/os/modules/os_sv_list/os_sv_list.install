@@ -1,0 +1,98 @@
+<?php 
+
+/**
+ * Updates box displays to view modes, moves image box to file box of type image
+ */
+function os_sv_list_update_7001() {
+  //revert the exports
+  features_revert(array_fill_keys(array('os_publications', 'os_presentations', 'os_news', 'os_faq', 'os_booklets'), array('box')));
+  
+  //update overriden boxes
+  $results = db_select('spaces_overrides', 'so')
+    ->condition('object_type', 'boxes')
+    ->condition('value', '%sv_list_box%', 'LIKE')
+    ->fields('so')
+    ->execute();
+  
+  while ($row = $results->fetchObject()) {
+    $box = unserialize($row->value);
+
+    //images -> file 
+    if ($box->options['content_type'] == 'image') {
+      $box->plugin_key = 'os_sv_list_file';
+      $box->options['display'] = 'os_files_thumbnail';
+    } else {
+      //$box->plugin_key = 'os_sv_list_node'; //necessary now.  are we going to keep the original key later tho? //TODO
+      
+      //view modes for all the node types
+      $view_modes = array(
+        'display_title' => 'title',
+        'display_sidebar_teaser' => 'sidebar_teaser',
+        'display_teaser' => 'teaser',
+        'display_body' => 'full',
+        'display_links' => 'links',
+      );
+      $box->options['display'] = (isset($view_modes[$box->options['display']])) ? $view_modes[$box->options['display']] : $view_modes['display_title'];
+    }
+
+    //write back the changes to db
+    $value = serialize($box);
+    if ($value != $row->value) {
+      db_update('spaces_overrides')
+        ->condition('type', $row->type)
+        ->condition('id', $row->id)
+        ->condition('object_type', $row->object_type)
+        ->condition('object_id', $row->object_id)
+        ->condition('value', $row->value)
+        ->fields(array('value' => $value))
+        ->execute();
+        
+    }
+  }
+  
+}
+
+/**
+ * Update subsite option in sv lists
+ */
+function os_sv_list_update_7002() {
+  //update overriden boxes
+  $results = db_select('spaces_overrides', 'so')
+    ->condition('object_type', 'boxes')
+    ->condition('value', '%query_scope%', 'LIKE')
+    ->fields('so')
+    ->execute();
+  
+  ctools_include('subsite','vsite');
+  
+  while ($row = $results->fetchObject()) {
+    $box = unserialize($row->value);
+    $query_scope = (is_array($box->options['query_scope'])) ? $box->options['query_scope'] : array($box->options['query_scope'] => $box->options['query_scope']);
+    
+    if (isset($query_scope['current']) || isset($query_scope['subsites'])) {
+      $query_scope = array_filter($query_scope);
+      $subsites = vsite_get_subsites($row->id);
+      
+      $new = array();
+      
+      if (empty($query_scope) || (isset($query_scope['current']) && $query_scope['current'])) {
+        $new[$row->id] = "$row->id";
+      }
+      
+      if (isset($query_scope['subsites']) && $query_scope['subsites'] && $subsites) {
+        $new += array_combine($subsites, array_map('strval', $subsites));
+      }
+      
+      $box->options['query_scope'] = array_filter($new);
+      
+      db_update('spaces_overrides')
+        ->condition('type', $row->type)
+        ->condition('id', $row->id)
+        ->condition('object_type', $row->object_type)
+        ->condition('object_id', $row->object_id)
+        ->condition('value', $row->value)
+        ->fields(array('value' => serialize($box)))
+        ->execute();
+    }    
+  }
+}

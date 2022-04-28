@@ -1,0 +1,149 @@
+@import url(https://fonts.googleapis.com/css?family=Raleway);
+
+#page {
+background: #F9F9F9;
+}
+
+a,
+a:visited {
+color: #1b4977;
+}
+
+
+a:hover {
+color: #8996A0;
+}
+
+body,
+.date-nav h3,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation a,
+.block-boxes-os_taxonomy_fbt.navigation a,
+#layout_16_9_side .slide-copy h2, 
+#layout_3_1_overlay .slide-copy h2, 
+#layout_16_9_below .slide-copy h2, 
+#layout_16_9_overlay .slide-copy h2,
+#page-title, 
+.node-title, 
+.page-search .title a, 
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a, 
+.more-link, 
+.links a, 
+#footer ul.menu a, 
+.boxes-box-content h2, 
+.section-nav a, 
+#content-column h2, 
+#content-column h3, 
+#content-column h4, 
+#boxes-box-site_info, 
+#boxes-box-site_info a ,
+#menu-bar ul.nice-menu a,
+.cke_editable * {
+font-family: 'Raleway', Georgia, Baskerville, Palatino, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+}
+
+h2.block-title {
+text-transform: none;
+font-size: 14px;
+letter-spacing: 0;
+font-weight: 900;
+font-family: 'Raleway', arial !important; 
+}
+
+#boxes-box-site_info h1 {
+font-size: 1.96em;
+font-weight: 700;
+}
+
+.region-header-third ul.nice-menu a,
+#search-block-form .form-item label,
+.search-block-form .form-item label,
+#menu-bar,
+#header,
+#boxes-box-site_info, 
+#boxes-box-site_info a,
+#menu-bar ul.nice-menu a {
+color: #FFF;
+}
+
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a,
+#menu-bar,
+#header {
+background: #4E84C4 !important;
+}
+
+#menu-bar {
+border-top: 1px solid #efefef;
+}
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+background-position: 0 -566px;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background-color:  #8996A0;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a.active {
+     text-decoration:underline !important;
+     color:#FFF;
+}
+
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu a:hover {
+    background: #8996A0;
+}
+
+
+.sidebar .block, 
+.front #content-column .block, 
+#content-column .block.block-boxes-os_boxes_columns .block, 
+.node-person .block-inner, 
+.comment-wrapper {
+border-top: 1px solid #999;
+}
+
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit,
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat scroll 2px -440px #8996A0;
+}
+
+
+a.rslides_nav {
+background-color: #8996A0;
+}
+
+#footer {
+	background: #e9e9e9;
+	border-top: 1px solid #999;
+}
+
+.section-nav .menu-depth-1 > a {
+background: none repeat scroll 0 0 #8996A0 !important;
+}
+
+.node-event .field-name-field-date, 
+.node-event .field-name-field-event-location {
+color: #1e1e1e;
+}
+
+.node-type-page .breadcrumb, .breadcrumb, .breadcrumb a {
+letter-spacing: 0;
+}
+
+
+
+
+
+
+
+
+
+

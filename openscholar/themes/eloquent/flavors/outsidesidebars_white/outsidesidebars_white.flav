@@ -1,0 +1,5 @@
+name = Outside Sidebars - White
+description = A white version of the eloquent theme with the sidebars outside of the content area
+screenshot = screenshot.png
+
+css[] = outsidesidebars_white.css

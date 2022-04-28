@@ -1,0 +1,195 @@
+<?php
+
+/**
+ * Implements hook_boot().
+ */
+function os_aws_purge_boot() {
+  global $conf;
+
+  // Enforce Expire 7.x-1.x into functional zombie mode.
+  $conf['expire_include_base_url'] = 0;
+
+  // Enforce Expire 7.x-2.x into functional zombie mode.
+  $conf['expire_debug'] = '0';
+  $conf['expire_status'] = '2';
+}
+
+/**
+ * Purge the paths from a node from Varnish.
+ *
+ * @param object $node
+ *   A Drupal node object that was just inserted or saved.
+ *
+ * @returns
+ *   Progress statistics from the queue manager. Associative array with the keys
+ *   'running', 'total', 'remaining', 'processed', 'percent' and 'purgehistory'.
+ */
+function os_aws_purge_purge_node(&$node) {
+  $paths = array('node/' . $node->nid);
+  if (isset($node->path['alias']) && !empty($node->path['alias'])) {
+    $paths[] = $node->path['alias'];
+  }
+
+  // Return the paths routine and return the statistics from the queue manager.
+  return os_aws_purge_purge_paths($paths);
+}
+
+/**
+ * Purge a certain Drupal path from Varnish.
+ *
+ * @param string $path
+ *   The Drupal path (for example: '<front>', 'user/1' or a alias).
+ */
+function os_aws_purge_purge_path($path) {
+
+  //Special parameters for Wildcard
+  $ban = (substr($path, -1) == "*");
+
+  //OS, we only want to clear the current or passed domain.
+  $domain = $_SERVER['HTTP_HOST'];
+  if (substr($path, 0, 4) == "http") {
+    $pp = parse_url($path);
+    $domain = $pp['host'];
+
+    $path = str_replace("{$pp['scheme']}://{$domain}", '', $path);
+  }
+  $path = ltrim($path, '/');
+
+  $purge = array($path, $domain, $ban);
+
+  // Queue the path.
+  _os_aws_purge_queue_add($purge);
+}
+
+
+/**
+ * Purge a several Drupal paths from Varnish.
+ *
+ * @param string $paths
+ *   Array with Drupal paths (for example: '<front>', 'user/1' or a alias).
+ *
+ */
+function os_aws_purge_purge_paths($paths) {
+
+  // Dispatch the paths to acquia_purge_purge_path().
+  foreach ($paths as $path) {
+    os_aws_purge_purge_path($path);
+  }
+}
+
+/**
+ * Implements hook_expire_cache().
+ */
+function os_aws_purge_expire_cache($paths, $wildcards = array()) {
+  static $patterns;
+
+  // Expire 7.x-2.x changed API and puts paths as array keys, detect that.
+  if (is_string(key($paths))) {
+    // OS: Enable wildcard BAN clearing.
+    foreach ($paths as $internal_path => $absolute_path) {
+      // Check if wildcard is enabled for this URL.
+      if(!empty($wildcards[$internal_path])){
+        //Handle Wildcard paths
+        $paths[$internal_path] = $absolute_path.".*";
+      }
+    }
+  }
+
+  // Expire 7.x-1.x could include full URLs in $paths, strip those out.
+  else {
+
+    // Expire 7.x-1.x is unreliable API-wise as it often gives absolute URLs
+    // instead of relative. In the past we tested for 'expire_include_base_url'
+    // but that didn't always seem to help. We therefore generate a list of
+    // http://domainname patterns to strip them clean. D.o: #2049235, #2133001.
+    if (is_null($patterns)) {
+      $domain = $_SERVER['HTTP_HOST'];
+      foreach (array('http', 'https') as $scheme) {
+        $patterns[] = "$scheme://$domain" . base_path();
+        $patterns[] = "$scheme://$domain";
+      }
+    }
+
+    // Iterate the given paths and strip everything out we can think off.
+    $new_paths = array();
+    foreach ($paths as $path) {
+      foreach ($patterns as $pattern) {
+        $path = str_replace($pattern, '', $path);
+      }
+      $path = ltrim($path, '/');
+      if (!in_array($path, $new_paths)) {
+        $new_paths[] = $path;
+      }
+    }
+    $paths = $new_paths;
+  }
+
+  os_aws_purge_purge_paths($paths);
+
+}
+
+/**
+ * Queue manager: add a single purge to the queue.
+ *
+ * @param string $path
+ *   The Drupal path (for example: '<front>', 'user/1' or a alias).
+ *
+ * @returns
+ *   The total amount of items in the queue (int).
+ */
+function _os_aws_purge_queue_add($path = FALSE) {
+
+  $queue = &drupal_static(__FUNCTION__, array());
+
+  if ($path) {
+    $queue[] = $path;
+  }
+
+  if ($path && count($queue) == 1) {
+    // Register shutdown callback.
+    register_shutdown_function('os_aws_purge_shutdown_send_queue');
+  }
+
+  return $queue;
+}
+
+function os_aws_purge_shutdown_send_queue(){
+
+  $paths = _os_aws_purge_queue_add();
+  if (!count($paths)) {
+    return;
+  }
+
+  $payload = array(
+    'purge' => array(),
+    'ban' => array()
+  );
+
+  foreach ($paths as $clear_data) {
+    list($path, $domain, $ban) = $clear_data;
+
+    foreach (array('http', 'https') as $scheme) {
+      if ($ban) {
+        $payload['ban'][] = "{$scheme}://{$domain}/{$path}";
+      } else {
+        $payload['purge'][] = "{$scheme}://{$domain}/{$path}";
+      }
+    }
+  }
+
+  $data_string = json_encode($payload);
+
+  $ch = curl_init(variable_get('os_varnish_api_endpoint', 'https://lambda-endpoint/dev/varnishPurgeBan'));
+  curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+      'Content-Type: application/json',
+      'Content-Length: ' . strlen($data_string),
+      'x-os-token: ' . variable_get('os_varnish_api_token', ''))
+  );
+
+  $result = curl_exec($ch);
+
+  return $result;
+}

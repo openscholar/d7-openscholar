@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * Disables no-longer-used advanced_help module.
+ */
+function os_help_update_7000() {
+  module_disable(array('advanced_help'));
+  return t('Disabled module: @module', array('@module' => 'advanced_help'));
+}
+
+/**
+ * Change Help Documenation screenshot
+ */
+ function os_help_update_7001() {
+   $nid = variable_get('vsite_register_welcome_message', 0);
+   $old_value = array("http://docs.openscholar.harvard.edu/", "https://cloud.githubusercontent.com/assets/867075/22668310/48267e28-ec8e-11e6-95cc-0eb13240eeda.png");
+   $new_value = array("https://help.theopenscholar.com/", "/profiles/openscholar/themes/os_basetheme/images/os_documentation.png");
+    if ($nid > 0) {
+     $node = node_load($nid);
+     if ($node) {
+       $node->body['und'][0]['value'] = str_replace($old_value, $new_value, $node->body['und'][0]['value']);
+       node_save($node);
+     }
+   }
+ }

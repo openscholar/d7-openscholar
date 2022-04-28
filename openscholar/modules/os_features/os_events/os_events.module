@@ -1,0 +1,3897 @@
+<?php
+// $Id$
+
+include_once 'os_events.features.inc';
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_events_os_app_info() {
+  $apps = array();
+
+  $apps['os_events'] = array(
+    'path' => 'calendar',
+    'nodetypes' => array(
+      'event',
+    ),
+    'views tabs' => array(
+      'os_events' => array(
+        'page_1' => array('calendar'), // Month display
+        'page_2' => array('calendar'), // Week display
+        'page_3' => array('calendar'), // Year display
+        'page_4', // Upcoming
+        'feed_1', // iCal
+        'feed_2', // rss
+      ),
+    ),
+    'importers' => array(
+      'event' => array(
+        'ical' => 'os_ical',
+        'csv' => 'os_events_csv',
+      ),
+    ),
+    'browse_pages' => array(
+      'event' => array(
+        'url' => 'browse/events',
+        'title' => t('Events'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'events',
+      ),
+    ),
+  );
+
+  if (module_exists('os_exporter')) {
+    $apps['os_events']['has_settings'] = true;
+  }
+
+  return $apps;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function os_events_theme() {
+  $theme = array();
+  $theme['field__event__rss'] = array(
+    'base hook' => 'field',
+  );
+  $theme['os_events_export_links'] = array(
+    'variables' => array(
+      'register' => NULL,
+      'ical' => NULL,
+      'subscribe' => NULL,
+    ),
+    'template' => 'os-events-export-links',
+    'path' => drupal_get_path('module', 'os_events') . '/template',
+  );
+
+  return $theme;
+}
+
+/**
+ * Implements settings form for events pages
+ */
+function os_events_settings() {
+  $form = array();
+  $form['os_exporter_disable_event_export'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Do not display export options on event pages.'),
+    '#default_value' => variable_get('os_exporter_disable_event_export', 0),
+  );
+
+  return system_settings_form($form);
+}
+
+
+/**
+ * Returns an authorized API client.
+ * @return Google_Client the authorized client object
+ */
+function getClient() {
+  global $is_https;
+
+  $path = libraries_get_path('google-api-php-client');
+  include_once "$path/vendor/autoload.php";
+
+  if (!defined('APPLICATION_NAME')) {
+    define ('APPLICATION_NAME', "OpenScholar Calendar Exporter");
+  }
+  if (!defined('SCOPES')) {
+    define ('SCOPES', implode (' ', array (Google_Service_Calendar::CALENDAR)));
+  }
+
+  $google_client_secret = variable_get('client_secret_key');
+  $google_client_ID = variable_get('client_id');
+  $google_developer_key = variable_get('developer_api_key');
+
+  $client = new Google_Client();
+  $client->setApplicationName(APPLICATION_NAME);
+  $client->setScopes(SCOPES);
+  $client->setAccessType('offline');
+  $client->setApprovalPrompt('force');
+  $client->setClientId($google_client_ID);
+  $client->setClientSecret($google_client_secret);
+  $client->setDeveloperKey($google_developer_key);
+
+  // Load previously authorized credentials from a file.
+  $credentialsPath = variable_get('google_credentials');
+
+  // If the credentials exist, and are valid
+  if ($credentialsPath) {
+    $accessToken = $credentialsPath;
+  }
+  else {
+    $token = $client->getAccessToken();
+    $accessToken = json_encode($token);
+    $get_refresh_token = $client->getRefreshToken();
+    $refresh_token = json_encode($get_refresh_token);
+  }
+
+  $client->setAccessToken($accessToken);
+  $client->setRedirectUri(variable_get('callback_url'));
+  return $client;
+}
+
+function os_events_get_access_token_with_auth_code() {
+  global $is_https;
+
+  if (!isset($_GET['code'])) {
+    error_log("Did not receive a Google auth code in the query string with which to create an access code or " .
+              "the user did not grant access to their Google Calendar.");
+    $vsite = vsite_get_vsite($_GET["state"]);
+    drupal_set_message("Calendar export cancelled", 'Status');
+    drupal_goto(url('/' . $vsite->group->purl . '/calendar'));
+    return;
+  } else {
+    $authCode = $_GET['code'];
+  }
+
+  $client = getClient();
+  $client->setState('1');
+  $client->setRedirectUri(variable_get('callback_url'));
+
+  // Exchange authorization code for an access token.
+  $accessToken = $client->fetchAccessTokenWithAuthCode($authCode);
+  if (! isset($accessToken['error']) && isset($accessToken['access_token'])) {
+    $client->setAccessToken($accessToken['access_token']);
+    variable_set('google_credentials', json_encode($accessToken));
+    error_log("Credentials saved to database.");
+  } else {
+    error_log("Error getting access token via auth code.");
+  }
+  os_events_gcal_create_calendar();
+}
+
+/**
+ * @file
+ * Synchronizing the openscholar calendar events with
+ * Googlw calendar.
+ */
+
+function os_events_gcal_create_calendar() {
+  global $is_https, $user;
+
+  $name = "os_events";
+  $display_id = "feed_2_no_cache";
+  $args = array("upcoming", "all");
+
+  // The vsite group ID is stored in the state parameter
+  $vsite = vsite_get_vsite($_GET["state"]);
+  // Set the vsite space, since we've moved to the top-level docroot
+  spaces_set_space($vsite);
+  $vsite->activate_user_roles();
+  $vsite->init_overrides();
+
+  // Load the view so we can iterate over it's results
+  $get_fresh_view = true;
+  if ($view = views_get_view($name, $get_fresh_view)) {
+    ob_get_contents();
+    $view->execute_display($display_id, $args);
+    ob_end_clean ();
+  }
+
+  $client = getClient ();
+  $calendarService = new Google_Service_Calendar($client);
+  $calendar_name = trim(variable_get('university_name') . ' ' . $vsite->group->title);
+  //$calendar_name = 'OpenScholar';
+  $calendar_id = createCalendar ($calendar_name);
+  //deleteEventsfromGCal($view, $calendar_name);
+
+  // Collect a list of all events already pushed to Google Calendar
+  $all_events = $calendarService->events->listEvents ($calendar_id);
+  $received = array();
+  foreach ($all_events->getItems () as $all_event) {
+    $received[] = $all_event->getId();
+  }
+
+  $local = array();
+  // Push all local events to Google Calendar
+  foreach ($view->result as $e) {
+    $local[] = $id = _os_events_generate_uuid ($e->_field_data['nid']['entity']->nid);
+    if (!in_array($id, $received)) {
+
+      # Create event and add it to the calendar
+      $event = new Google_Service_Calendar_Event();
+
+      $event->setDescription ($e->_field_data['nid']['entity']->body[LANGUAGE_NONE][0]['value']);
+      $event->setLocation ($e->_field_data['nid']['entity']->field_event_location[LANGUAGE_NONE][0]['value']);
+      $event->setSummary ($e->_field_data['nid']['entity']->title);
+      $event->setId ($id);
+
+      $dt1 = new DateTime($e->field_data_field_date_field_date_value . "Z");
+      $dt2 = new DateTime($e->field_data_field_date_field_date_value2 . "Z");
+
+      $calendarDateTime1 = new Google_Service_Calendar_EventDateTime();
+      $calendarDateTime2 = new Google_Service_Calendar_EventDateTime();
+      $calendarDateTime1->setDateTime ($dt1->format (DateTime::RFC3339));
+      $event->setStart ($calendarDateTime1);
+      $calendarDateTime2->setDateTime ($dt2->format (DateTime::RFC3339));
+      $event->setEnd ($calendarDateTime2);
+      $calendarInsert = $calendarService->events->insert ($calendar_id, $event);
+    } else {
+      # Update events to the Google calendar
+      $event = $calendarService->events->get ($calendar_id, $id);
+
+      $event->setDescription ($e->_field_data['nid']['entity']->body[LANGUAGE_NONE][0]['value']);
+      $event->setLocation ($e->_field_data['nid']['entity']->field_event_location[LANGUAGE_NONE][0]['value']);
+      $event->setSummary ($e->_field_data['nid']['entity']->title);
+
+      $dt1 = new DateTime($e->field_data_field_date_field_date_value . "Z");
+      $dt2 = new DateTime($e->field_data_field_date_field_date_value2 . "Z");
+
+      $calendarDateTime1 = new Google_Service_Calendar_EventDateTime();
+      $calendarDateTime2 = new Google_Service_Calendar_EventDateTime();
+      $calendarDateTime1->setDateTime ($dt1->format (DateTime::RFC3339));
+      $event->setStart ($calendarDateTime1);
+      $calendarDateTime2->setDateTime ($dt2->format (DateTime::RFC3339));
+      $event->setEnd ($calendarDateTime2);
+
+      $calendarUpdate = $calendarService->events->update ($calendar_id, $event->getId (), $event);
+    }
+  }
+
+  // Delete any events on Google Calendar that are not on local anymore
+  $delete = array_diff($received, $local);
+  foreach ($delete as $id) {
+    $calendarService->events->delete ($calendar_id, $id );
+  }
+
+  if($calendarInsert || $calendarUpdate) {
+    drupal_set_message(t('Calendar successfully sync with Google calendar.'));
+  }
+
+  drupal_goto($vsite->get_absolute_url('calendar'));
+}
+
+/**
+ * Generates the UUID for an event
+ */
+function _os_events_generate_uuid($nid) {
+  $base = variable_get('purl_base_domain', $GLOBALS['base_url']).':node:'.$nid;
+  return sha1($base);
+}
+
+/**
+ * Creates a new calendar
+ *
+ * @param string calendar name
+ * @return string calendar ID (or false on failure)
+ */
+function createCalendar($calendarName) {
+  $client = getClient();
+  $calendar_exists = false;
+  $service = new Google_Service_Calendar($client);
+  $calendarList = $service->calendarList->listCalendarList();
+  foreach ($calendarList->getItems() as $calendarListEntry) {
+    if ($calendarListEntry->getSummary() == $calendarName) {
+      $calendar_exists = true;
+      $calendar_id = $calendarListEntry->getId();
+      break;
+    }
+  }
+  if($calendar_exists) {
+    return $calendar_id;
+  }
+  else {
+    // set up the calendar and save
+    $calendar = new Google_Service_Calendar_Calendar();
+    $calendar->setSummary($calendarName);
+    $calendar->setTimeZone(date_default_timezone_get());
+    try {
+        $createdCalendar = $service->calendars->insert($calendar);
+    } catch (Exception $e) {
+        return false;
+    }
+    return $createdCalendar->getId();
+  }
+}
+
+/**
+ * Check if this events is already on Google Calendar
+ * @param $event_id
+ *
+ * @return bool true if event don't exists
+ */
+function checkEventExists($event_id, $calendar_id) {
+  $client = getClient();
+  $calendarService = new Google_Service_Calendar($client);
+  try {
+      $calendarService->events->get($calendar_id, $event_id);
+  }
+  catch (Exception $e) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Delete events from Google Calendar
+ * @param array $view
+ * @param string $calendar_name
+ *
+ */
+/*function deleteEventsfromGCal($view, $calendar_name) {
+  $client = getClient();
+  $service = new Google_Service_Calendar($client);
+  $events = $service->events->listEvents($calendar_name);
+  foreach ($view->result as $e) {
+    foreach ($events->getItems() as $event) {
+      if($event->getId() != $e->_field_data['nid']['entity']->nid) {
+        $service->events->delete($calendar_name, $event->getId());
+      }
+    }
+  }
+}*/
+
+
+/**
+ * @file
+ * Administration page callbacks for the google calendar settings.
+ */
+/**
+ * Form builder. Configure google calendar account.
+ *
+ * @ingroup forms
+ * @see system_settings_form().
+ */
+function google_account_form() {
+
+  global $is_https;
+  $redirect_url = (($is_https) ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . '/admin/config/get-google-access-token-with-auth-code';
+
+  $form['developer_api_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Api Key'),
+    '#description' => t('The server api key of web application.'),
+    '#default_value' => variable_get('developer_api_key'),
+    '#size' => 3,
+    '#required' => TRUE
+  );
+  $form['client_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Client Id'),
+    '#description' => t('The CLIENT ID in the "Client ID for web application" section.'),
+    '#default_value' => variable_get('client_id'),
+    '#size' => 3,
+    '#required' => TRUE
+  );
+  $form['client_secret_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Client Secret Key'),
+    '#description' => t('The CLIENT SECRET in the "Client ID for web application" section.'),
+    '#default_value' => variable_get('client_secret_key'),
+    '#size' => 3,
+    '#required' => TRUE
+  );
+  $form['callback_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Redirect Url'),
+    '#description' => t('Copy this url and paste it in google project as a authorized redirect url.'),
+    '#default_value' => $redirect_url,
+    '#size' => 3,
+    '#attributes' => array('readonly' => 'readonly'),
+  );
+
+  return system_settings_form($form, TRUE);
+}
+
+/**
+ * Helper function to send notification emails to event registrants if there is any cancellations or change in event timings.
+ *
+ * @param $registration
+ *   The registration entity.
+ * @param $params
+ *   The email content parameters.
+ * @param $mail_key
+ *   The mail key for notification.
+ */
+function os_events_event_change_notification($registration, $params, $mail_key) {
+  // Not sending notification to past events registrants.
+  if (strtotime($params['@event-date']) < REQUEST_TIME) {
+    return;
+  }
+  // Triggering email to registrants if event timings / location are changed or events are deleted.
+  $from = variable_get('site_mail', ini_get('sendmail_from'));
+  $language = language_default();
+  $to = $registration->anon_mail;
+  $params['@event-date'] = date('l, F j, Y g:ia', strtotime($params['@event-date'] .' UTC'));
+  if ($mail_key == 'event_time_updated_notification') {
+    $params['@event-new-date'] = date('l, F j, Y g:ia', strtotime($params['@event-new-date'] .' UTC'));
+  }
+  $params['@user-name'] = $registration->field_full_name[LANGUAGE_NONE][0]['value'];
+  drupal_mail('os_events', $mail_key, $to, $language, $params, $from);
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function os_events_node_delete($node) {
+  if ($node->type !== 'event') {
+    return;
+  }
+
+  // Flush event views caches.
+  _os_events_flush_og_views_caches('os_events', 'calendar/');
+
+  // Initializing EntityFieldQuery to obtain all registration entities with a certain event node id
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'registration')
+    ->entityCondition('bundle', 'event_signup_simple')
+    ->propertyCondition('entity_id', $node->nid);
+  $result = $query->execute();
+  if (!count($result)) {
+    return;
+  }
+  $entity_ids = array_keys($result['registration']);
+  $registration_entities = entity_load('registration', $entity_ids);
+
+  $params = array(
+    '@title' => $node->title,
+    '@location' => !empty($node->field_event_location[LANGUAGE_NONE][0]['value']) ? ' at ' . $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+    '@site' => variable_get('site_name', 'OpenScholar'),
+    '@event-url' => url('calendar', array('absolute' => TRUE))
+  );
+  foreach ($registration_entities as $registration) {
+    list($repeating_event_date_value, $event_author_mail) = _os_events_get_settings_by_registration($node, $registration);
+
+    $params['@event-creator-mail'] = $event_author_mail;
+    // Sending email notification to registrants for event cancellation.
+    $params['@event-date'] = $repeating_event_date_value;
+    os_events_event_change_notification($registration, $params, 'event_cancel_notification');
+  }
+}
+
+/**
+ * @param $node
+ * @param $registration
+ *
+ * @return array
+ */
+function _os_events_get_settings_by_registration($node, $registration) {
+  // Get author mail id
+  $repeating_event_date_value = !empty($registration->field_repeating_event_date[LANGUAGE_NONE][0]['value'])
+    ? $registration->field_repeating_event_date[LANGUAGE_NONE][0]['value']
+    : '';
+  $wrapper = entity_metadata_wrapper('registration', $registration);
+  $settings = os_events_registration_repeating_entity_settings('node',
+    $node->nid, $repeating_event_date_value);
+  $event_author_mail = _os_events_get_node_event_creator_email($settings['settings']['from_address'],
+    $wrapper);
+  return [$repeating_event_date_value, $event_author_mail];
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function os_events_node_insert($node) {
+  if ($node->type !== 'event') {
+    return;
+  }
+
+  // Flush event views caches.
+  _os_events_flush_og_views_caches('os_events', 'calendar/');
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function os_events_node_update($node) {
+  if ($node->type !== 'event') {
+    return;
+  }
+
+  // Flush event views caches.
+  _os_events_flush_og_views_caches('os_events', 'calendar/');
+
+  // For non-recurring events.
+  if (!empty($node->field_date) && !empty($node->original->field_date) && empty($node->field_date[LANGUAGE_NONE][0]['rrule'])) {
+    // If event start date or location has been altered, then registrants should be notified.
+    $date = $node->field_date[LANGUAGE_NONE][0]['value'];
+    $original_date = $node->original->field_date[LANGUAGE_NONE][0]['value'];
+    $location = !empty($node->field_event_location) ? $node->field_event_location[LANGUAGE_NONE][0]['value'] : "";
+    $original_location = !empty($node->original->field_event_location) ? $node->original->field_event_location[LANGUAGE_NONE][0]['value'] : '';
+    if ($date != $original_date || $location != $original_location) {
+      // Initializing EntityFieldQuery to obtain all registration entities with a certain event node id
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'registration')
+        ->entityCondition('bundle', 'event_signup_simple')
+        ->propertyCondition('entity_id', $node->nid);
+      $result = $query->execute();
+      if (!empty($result['registration'])) {
+        $entity_ids = array_keys($result['registration']);
+        $registration_entities = entity_load('registration', $entity_ids);
+        $params = array(
+          '@title' => $node->title,
+          '@event-date' => $node->original->field_date[LANGUAGE_NONE][0]['value'],
+          '@event-new-date' => $node->field_date[LANGUAGE_NONE][0]['value'],
+          '@location' => !empty($node->original->field_event_location[LANGUAGE_NONE][0]['value']) ? ' at ' . $node->original->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+          '@new-location' => !empty($node->field_event_location[LANGUAGE_NONE][0]['value']) ? ' at ' . $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+          '@event-url' => url('node/' . $node->nid, array('absolute' => TRUE)),
+          '@site' => variable_get('site_name', 'OpenScholar')
+        );
+        // Sending notification email to each registrants for this event time change.
+        foreach ($registration_entities as $registration) {
+          list(, $event_author_mail) = _os_events_get_settings_by_registration($node, $registration);
+          $params['@event-creator-mail'] = $event_author_mail;
+          os_events_event_change_notification($registration, $params, 'event_time_updated_notification');
+        }
+      }
+    }
+    return;
+  }
+
+  $deleted_dates = array();
+  $submitted_dates = array();
+  foreach ($node->field_date[LANGUAGE_NONE] as $date) {
+    $submitted_dates[] = format_date(strtotime($date['value']), 'custom', 'Y-m-d');
+  }
+
+  // Detecting deleted event date instances for repeating events.
+  foreach ($node->original->field_date[LANGUAGE_NONE] as $date) {
+    if (!in_array(format_date(strtotime($date['value']), 'custom', 'Y-m-d'), $submitted_dates)) {
+      $deleted_dates[] = format_date(strtotime($date['value']), 'custom', 'Y-m-d');
+    }
+  }
+
+  // If time-slot or location is changed for repeating events, all registrants will be notified.
+  if ((format_date(strtotime($node->original->field_date[LANGUAGE_NONE][0]['value']), 'custom', 'H:i:s') != format_date(strtotime($node->field_date[LANGUAGE_NONE][0]['value']), 'custom', 'H:i:s')) || $node->field_event_location[LANGUAGE_NONE][0]['value'] != $node->original->field_event_location[LANGUAGE_NONE][0]['value']) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'registration')
+      ->entityCondition('bundle', 'event_signup_simple')
+      ->propertyCondition('entity_id', $node->nid);
+    $result = $query->execute();
+    $entity_ids = array_keys($result['registration']);
+    $registration_entities = entity_load('registration', $entity_ids);
+    $params = array(
+      '@title' => $node->title,
+      '@location' => !empty($node->original->field_event_location[LANGUAGE_NONE][0]['value']) ? ' at ' . $node->original->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+      '@new-location' => !empty($node->field_event_location[LANGUAGE_NONE][0]['value']) ? ' at ' . $node->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+      '@site' => variable_get('site_name', 'OpenScholar')
+    );
+    $repeats = array();
+    // Generating repeat date array to determine the delta value from repeat date.
+    foreach ($node->field_date[LANGUAGE_NONE] as $delta => $date) {
+      $repeats[$date['value']] = $delta;
+    }
+    // Saving registration entity with new time slots and sending notifications to registrants.
+    foreach ($registration_entities as $registration) {
+      $event_date = format_date(strtotime($registration->field_repeating_event_date[LANGUAGE_NONE][0]['value']), 'custom', 'Y-m-d');
+      // If this registration entity is going to be deleted, then notification for event update will not be sent.
+      if (in_array($event_date, $deleted_dates)) {
+        continue;
+      }
+      list(, $event_author_mail) = _os_events_get_settings_by_registration($node, $registration);
+      $params['@event-creator-mail'] = $event_author_mail;
+      $params['@event-date'] = $registration->field_repeating_event_date[LANGUAGE_NONE][0]['value'];
+      $registration->field_repeating_event_date[LANGUAGE_NONE][0]['value'] = format_date(strtotime($registration->field_repeating_event_date[LANGUAGE_NONE][0]['value']), 'custom', 'Y-m-d') . ' ' . format_date(strtotime($node->field_date[LANGUAGE_NONE][0]['value']), 'custom', 'H:i:s');
+      $params['@event-new-date'] = $registration->field_repeating_event_date[LANGUAGE_NONE][0]['value'];
+      $params['@event-url'] = url('node/' . $node->nid, array('absolute' => TRUE, 'query' => array('delta' => $repeats[$params['@event-new-date']])));
+      entity_save('registration', $registration);
+      // Sending email notification to registrants.
+      os_events_event_change_notification($registration, $params, 'event_time_updated_notification');
+    }
+  }
+
+  // Checking if event date instances have been deleted.
+  if (count($deleted_dates) > 0) {
+    $params = array(
+      '@title' => $node->title,
+      '@location' => !empty($node->original->field_event_location[LANGUAGE_NONE][0]['value']) ? ' at ' . $node->original->field_event_location[LANGUAGE_NONE][0]['value'] : '',
+      '@site' => variable_get('site_name', 'OpenScholar'),
+      '@event-url' => url('calendar', array('absolute' => TRUE))
+    );
+    // Checking each deleted dates, if they have registration entities for the editing event node.
+    foreach ($deleted_dates as $date) {
+      // Initializing EntityFieldQuery to obtain all registration entities with a certain deleted date
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'registration')
+        ->entityCondition('bundle', 'event_signup_simple')
+        ->propertyCondition('entity_id', $node->nid)
+        ->fieldCondition('field_repeating_event_date', 'value', $date . '%', 'LIKE');
+      $result = $query->execute();
+      $entity_ids = array_keys($result['registration']);
+      $registration_entities = entity_load('registration', $entity_ids);
+      foreach ($registration_entities as $registration) {
+        list(, $event_author_mail) = _os_events_get_settings_by_registration($node, $registration);
+        $params['@event-creator-mail'] = $event_author_mail;
+        // Sending email notification to registrants for event cancellation.
+        $params['@event-date'] = $registration->field_repeating_event_date[LANGUAGE_NONE][0]['value'];
+        os_events_event_change_notification($registration, $params, 'event_cancel_notification');
+      }
+      // Deleting registration entities for target registration ids for all deleted event dates.
+      entity_delete_multiple('registration', $entity_ids);
+    }
+  }
+}
+
+/**
+ * Helper callback to flush views caches of events.
+ *
+ * @param string $view_name
+ *   Name of the view which cache should be cleared (query + render).
+ *   If ommitted, no views cache invalidation happens at all.
+ * @param string $page_wildcard
+ *   Page path wildcard where page cache should be dropped.
+ *   If ommitted, no page cache clear happens at all.
+ */
+function _os_events_flush_og_views_caches($view_name = NULL, $page_wildcard = NULL) {
+  // For result and output key calc, check get_results_key() and
+  // get_output_key() funcions in views_og_cache_plugin_cache_time.inc.
+  if ($view_name && views_get_view($view_name)) {
+    $og_context = og_context();
+    $view_og_cid_wildcard =
+      'og:' .
+      $og_context['group_type'] . ':' .
+      $og_context['gid'] . ':' .
+      $view_name . ':';
+
+    cache_clear_all($view_og_cid_wildcard, 'cache_views_data', TRUE);
+    cache_clear_all($view_og_cid_wildcard, 'cache_views', TRUE);
+  }
+
+  if ($page_wildcard && $base_url = _os_events_site_url()) {
+    cache_clear_all($base_url . '/' . $page_wildcard, 'cache_page', TRUE);
+  }
+}
+
+/**
+ * Helper callback which returns current vsites' absolute url.
+ *
+ * @return string|false
+ *   The absolute url string of the current vsite or FALSE if it cannot be
+ *   determined.
+ */
+function _os_events_site_url() {
+  $og_context = og_context();
+  $site_url = FALSE;
+  if (module_exists('spaces') && $vsite = spaces_load('og', $og_context['gid'])) {
+    if ($vsite->purl_provider) {
+      $site_url = url(NULL, array(
+        'absolute' => TRUE,
+        'purl' => array(
+          'id' => $vsite->id,
+          'provider' => $vsite->purl_provider ? $vsite->purl_provider : 'spaces_og',
+        ),
+      ));
+    }
+  }
+
+  return $site_url;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function os_events_menu() {
+  $items = array();
+
+  $items['os_events/%ctools_js/registration/%node'] = array(
+    'title callback' => 'os_events_register_form_title',
+    'title arguments' => array('node', 3),
+    'page callback' => 'os_events_events_register',
+    'page arguments' => array(1, 3),
+    'access arguments' => array('create event_signup_simple registration'),
+  );
+
+  $items['node/%node/registrations/export/%'] = $items['node/%node/registrations/export'] = array(
+    'title' => 'Export attendees to csv',
+    'access callback' => 'registration_administer_registrations_access',
+    'access arguments' => array(0, 1),
+    'page arguments' => array(1),
+    'page callback' => 'os_events_export_to_csv',
+  );
+
+  $items['features/os_events'] = array(
+    'title' => 'Event Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_events_settings'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['calendar/gcal-create-calendar'] = array(
+    'title' => 'Create Calendar on Google',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_events_gcal_create_calendar'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/config/get-google-access-token-with-auth-code'] = array(
+    'title' => 'Get Access Token With Auth Code',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_events_get_access_token_with_auth_code'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+    $items['admin/config/services/google-account-settings'] = array(
+    'title' => 'Google Calendar Settings',
+    'description' => 'Google account settings for calendar',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('google_account_form'),
+    'access arguments' => array('administer site configuration'),
+    );
+
+    $items['admin/config/services/google-account-settings/google-account-settings'] = $items['admin/config/services/google-account-settings'];
+    $items['admin/config/services/google-account-settings/google-account-settings']['type'] = MENU_DEFAULT_LOCAL_TASK;
+
+  return $items;
+}
+
+/**
+ * Implements template_preprocess_views_view_row_rss()
+ */
+function os_events_preprocess_views_view_row_rss(&$variables) {
+  // Hack: instead of the last modified date, Openscholar wants to have
+  // the events' date in the RSS feed as pubDate.
+  // TODO: revise this: if feed date can be valid again, this code could be
+  // removed safely.
+  if (isset($variables['row']->nid) && !empty($variables['row']->nid) && isset($variables['row']->elements) && !empty($variables['row']->elements) && is_array($variables['row']->elements)) {
+    $node_wrapper = entity_metadata_wrapper('node', $variables['row']->nid);
+
+    if ($node_wrapper->getBundle() != 'event') {
+      return;
+    }
+
+    $event_date = FALSE;
+
+    if (isset($node_wrapper->field_date) && !empty($node_wrapper->field_date) && !empty($node_wrapper->field_date[0]->value())) {
+      $event_date_value = $node_wrapper->field_date[0]->value();
+      $event_date = is_array($event_date_value) && !empty($event_date_value['date_type']) ?
+        new DateObject($event_date_value['value'], $event_date_value['timezone_db']) : FALSE;
+
+      if ($event_date) {
+        $timezone = new DateTimeZone($event_date_value['timezone']);
+        $event_date->setTimezone ($timezone);
+        foreach ($variables['row']->elements as $delta => $meta) {
+          if ($meta['key'] == 'pubDate') {
+            $variables['row']->elements[$delta]['value'] = $event_date->format(DateTime::RSS);
+            break 1;
+          }
+        }
+
+        $variables['item_elements'] = format_xml_elements($variables['row']->elements);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function os_events_entity_view_alter(&$build, $type) {
+  // Removing extra fields from event registration page in full view mode.
+  if ($type == 'registration' && $build['#view_mode'] == 'full' && $build['#bundle'] == 'event_signup_simple') {
+    $param = drupal_get_query_parameters();
+    $node = node_load($build['#entity']->entity_id);
+
+    // Overriding Event entity link display.
+    $build['host_entity_link']['#label'] = t('Event');
+    $build['host_entity_link']['#items'][0]['#markup'] = isset($build['host_entity_link']['#items'][0]['#markup']) ? l($node->title, 'node/' . $build['#entity']->entity_id, array('query' => $param)) : NULL;
+    $build['host_entity_link']['#weight'] = -20;
+    $entity_link_tmp = $build['host_entity_link'];
+    unset($build['host_entity_link']);
+    $build['entity_link'] = $entity_link_tmp;
+
+    // Overriding Created date display.
+    $build['created']['#weight'] = -9;
+    $created_tmp = $build['created'];
+    unset($build['created']);
+    $build['created'] = $created_tmp;
+
+    // Reset additional fields display.
+    unset($build['spaces']);
+    unset($build['author']);
+    unset($build['state']);
+  }
+}
+
+/**
+ * Page callback; Exports event's registrants.
+ */
+function os_events_export_to_csv($node, $delta = FALSE) {
+  if (!module_exists('os_exporter')) {
+    return;
+  }
+
+  if (! $delta) {
+    $url = drupal_parse_url($_SERVER['HTTP_REFERER']);
+    $delta = $url['query']['delta'];
+  }
+
+  $exporter = os_exporter_get_exporter_handler('csv');
+  $exporter->setFileHeader(array(t('Event Date'), t('Event Title'), t('Email'), t('Created Time'), t('Department'), t('Full name')));
+
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'registration')
+    ->propertyCondition('entity_id', $node->nid)
+    ->propertyCondition('entity_type', 'node');
+
+  if ($delta !== FALSE && isset($node->field_date[LANGUAGE_NONE][$delta])) {
+    $dates[] = $node->field_date[LANGUAGE_NONE][$delta]['value'];
+    $query->fieldCondition('field_repeating_event_date', 'value', $dates[0]);
+  } else if (isset($node->field_date[LANGUAGE_NONE][0]['value'])) {
+
+    // cycle through the [possibly repeating] event date(s)
+    $delta = 0;
+    while ($node->field_date[LANGUAGE_NONE][$delta]) {
+      $dates[] = $node->field_date[LANGUAGE_NONE][$delta]['value'];
+      $delta++;
+    }
+  }
+
+  $result = $query->execute();
+
+  if (empty($result['registration'])) {
+    return;
+  }
+
+  $attendees = entity_load('registration', array_keys($result['registration']));
+
+  foreach ($attendees as $attendee) {
+
+    $wrapper = entity_metadata_wrapper('registration', $attendee);
+
+    // Attendees register for specific or all occurrences of the event
+    $date = $attendee->field_repeating_event_date[LANGUAGE_NONE][0]['value'];
+    if (! $date) {
+      foreach ($dates as $d) {
+        $exporter->addContent(array(
+            $d,
+            $node->title,
+            $attendee->anon_mail,
+            '"' . format_date($attendee->created) . '"',
+            $wrapper->field_department->value(),
+            $wrapper->field_full_name->value(),
+        ));
+      }
+    } else {
+
+      $exporter->addContent(array(
+          $date,
+          $node->title,
+          $attendee->anon_mail,
+          '"' . format_date($attendee->created) . '"',
+          $wrapper->field_department->value(),
+          $wrapper->field_full_name->value(),
+      ));
+    }
+  }
+
+  $exporter->exportToFile($node->title . '-' . (isset($date)?$date . '-':'') .'attendees.csv');
+
+  return $node->title;
+}
+
+/**
+ * Check the capacity if the event reach it's capacity.
+ *
+ * @param $node
+ *  The event to check capacity for.
+ * @return bool
+ *  Returns TRUE if user has registration access and capacity hasn't been reached
+ *  or if the event has unlimited capacity. Otherwise, return FALSE.
+ */
+function os_events_event_registration_reach_capacity($node, $date = '') {
+  // Check how much registration exists for this event.
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'registration')
+    ->propertyCondition('entity_id', $node->nid)
+    ->propertyCondition('entity_type', 'node');
+
+  // Get all registrations unless we specify a date to check.
+  if ($date) {
+    $query->fieldCondition('field_repeating_event_date', 'value', $date);
+  }
+
+  $registrations_number = $query->count()->execute();
+
+  // Get the settings of the registration for this event.
+  $settings = os_events_registration_repeating_entity_settings('node', $node->nid, $date);
+
+  if (!$settings['status']) {
+    return FALSE;
+  }
+
+  // When the capacity set to 0 the registration number is unlimited. When not,
+  // check if the registration number didn't pass the capacity number.
+  if ($settings['capacity'] == 0 xor $registrations_number < $settings['capacity']) {
+    return user_access('create event_signup_simple registration');
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Title callback for the event registration menu item.
+ *  The entity type.
+ *
+ * @param $entity_type
+ *  The entity type.
+ * @param $entity_id
+ *  The entity ID.
+ *
+ * @return string
+ *  The title of the menu item.
+ */
+function os_events_register_form_title($entity_type, $entity_id) {
+  $wrapper = entity_metadata_Wrapper($entity_type, $entity_id);
+  return t('Register to @title', array('@title' => $wrapper->label()));
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function os_events_admin_paths() {
+  return array(
+    'os_events/registration/*' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_os_entity_view_modes()
+ */
+function os_events_os_entity_view_modes() {
+  return array('node' =>
+    array('event' => array('sidebar_teaser')
+  ));
+}
+
+/**
+ * hook os_widget
+ *
+ * Events blocks that can be used on an OpenScholar site
+ */
+function os_events_os_widget() {
+  $items = array();
+
+  //Mini calendar that displays events by month
+  $items['views-os_events-block_1'] = array(
+    'module' => 'views',
+    'delta' => 'os_events-block_1',
+    'region' => 'sidebar_second',
+    'weight' => '-10',
+    'info' => t('Mini Calendar'),
+  );
+
+  return $items;
+}
+
+// TODO: Remove when os_layout_get is refactored to handle widget titles better
+function os_events_os_widget_alter(&$widget) {
+  if ($widget['delta'] == 'os_events-block_1') {
+    $widget['info'] = t('Mini Calendar');
+  }
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_events_vsite_og_node_type_info() {
+  return array(
+    'event' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_default_registration_type().
+ */
+function os_events_default_registration_type() {
+  $items = array();
+  $items['event_signup_simple'] = entity_import('registration_type', '{
+    "name" : "event_signup_simple",
+    "label" : "Event signup",
+    "locked" : "0",
+    "weight" : "0",
+    "data" : null,
+    "rdf_mapping" : []
+  }');
+  return $items;
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function os_events_views_pre_render(&$view) {
+  if ($view->name != 'os_events') {
+    return;
+  }
+
+  // Not a page display.
+  if (strpos($view->current_display, 'page') !== 0) {
+    return;
+  }
+
+  if (empty($view->attachment_before)) {
+    return;
+  }
+
+  // only display subscribe links if listing is the events landing page or a list of upcoming events
+  // and if it is set to be displayed as per cp/settings page checkbox
+  if (!variable_get('os_exporter_disable_event_export', 0) && ((isset($view->exposed_input['month']) && $view->exposed_input['month'] == date('Y-m')) || strpos($view->get_path(), "calendar/upcoming") !== FALSE)) {
+    $view->attachment_before = '<a title="Note: Past events are not included" class="cal-export">' . t('Export') . '</a>' . $view->attachment_before;
+  }
+}
+
+/**
+ * Implements hook_date_formatter_pre_view_alter().
+ */
+function os_events_date_formatter_pre_view_alter(&$entity, &$vars) {
+  if ($entity->type != 'event') {
+    return;
+  }
+
+  if (!isset($entity->date_id)) {
+       // The current view rendering this entity. We try and set it if it is not already set.
+    if ((isset($entity->view) || $entity->view = views_get_current_view()) && isset($entity->view->row_index) && isset($entity->view->result[$entity->view->row_index])) {
+
+      // This entity is being rendered by a view.
+      $view = $entity->view;
+      //The current row we are on holds the date information for repeated events.
+      $result = $view->result[$view->row_index];
+      $field = 'field_data_field_date_field_date_value';
+      $delta = -1;
+
+      // Sometimes the result will hold the delta directly, we can use that if we have it.
+      if (isset($result->field_data_field_date_delta)) {
+        $delta = $result->field_data_field_date_delta;
+      }
+      else {
+        // Use the date in the result field to get the delta on the repeated field_date field.
+        foreach ($entity->field_date[LANGUAGE_NONE] as $d => $r) {
+          if ($r['value'] == $result->{$field}) {
+            $delta = $d;
+            break;
+          }
+        }
+      }
+      $entity->date_id = 'node.'.$entity->nid.'.field_date.'.$delta;
+    }
+    else {
+      if (isset($_GET['delta'])) {
+        // The repeat number is set in the query string.
+        $entity->date_id = 'node.' . $entity->nid . '.field_date.' . $_GET['delta'];
+      }
+      else {
+        // This is a single node, and we need to filter it down to just the next occurence of an event.
+        if (count($vars['items']) > 1) {
+          foreach ($vars['items'] as $d => $i) {
+            if (REQUEST_TIME < strtotime($i['value'])) {
+              $entity->date_id = 'node.' . $entity->nid . '.field_date.' . $d;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_process_node().
+ */
+function os_events_process_node(&$variables) {
+  if ($variables['type'] != 'event') {
+    return;
+  }
+
+  $variables['content']['page'] = array(
+    '#markup' => '<div id="export-to-google-calendar-dialog-confirm"></div>',
+    '#weight' => 0,
+  );
+
+  // Move the event date above the event description.
+  if(isset($variables['content']['field_date'])) {
+    $variables['content']['field_date']['#weight'] = 0;
+    // Append <p></p> tags for spacing.
+    if(isset($variables['content']['field_date'][0]['#markup'])) {
+      $variables['content']['field_date'][0]['#markup'] .= '<p></p>';
+    }
+  }
+
+  $variables['link_title_text'] = '';
+  $date = '';
+  $delta = FALSE;
+  if (isset($variables['date_id'])) {
+    list(,,$field,$delta) = explode('.', is_array($variables['date_id']) ? reset($variables['date_id']) : $variables['date_id']);
+    $delta = intval($delta);
+    $date = field_get_items('node', $variables['node'], $field);
+    $date = $date[$delta]['value'];
+    $variables['link_title_text'] = t('On @date', array('@date' => date('D M j', strtotime($date.' UTC'))));
+    if (isset($variables['content']['links']['node']['#links']['node-readmore'])) {
+      $variables['content']['links']['node']['#links']['node-readmore']['attributes']['title'] .= ' on '.date('D M j', strtotime($date.' UTC'));
+    }
+  }
+
+  $register = '';
+  if ($variables['page'] && empty($variables['sv_list'])) {
+
+    $registrations_type = !empty($variables['node']->field_event_registration[LANGUAGE_NONE][0]['registration_type']);
+
+    // Show the signup link if capacity isn't reached.
+    if ($registrations_type && os_events_event_registration_reach_capacity($variables['node'], $date)) {
+      // In full view mode show a link to a modal.
+      if ($variables['view_mode'] == 'full' && os_events_register_show_register_link($variables['node'], $date)) {
+        $register = os_events_generate_modal_register_link($variables['node']->nid, $delta, array());
+      } elseif ($variables['view_mode'] == 'full' && !os_events_register_show_register_link($variables['node'], $date)) {
+        $result = os_events_registration_repeating_entity_settings('node', $variables['node']->nid, $date);
+        $register = REQUEST_TIME >= strtotime($result['open']) ? '<span class="register-event-full">' . t('Registration Closed') . '</span>' : '';
+      }
+      // In teaser view mode link to the event page.
+      elseif ($variables['view_mode'] == 'teaser') {
+        $options = array();
+        if ($delta !== FALSE) {
+          $options = array('query' => array('delta' => $delta));
+        }
+        $register = '<div class="register-link-teaser">' . l(t('Registration is required'), 'node/' . $variables['node']->nid, $options) . '</div>';
+      }
+    }
+    elseif ($registrations_type && $variables['view_mode'] == 'full' ) {
+      $event_start_date = $variables['node']->field_date[LANGUAGE_NONE][0]['value'];
+      // If the event is a past event
+      if(!empty($event_start_date) && REQUEST_TIME > strtotime($event_start_date)) {
+        $register = '<span class="register-event-full">' . t('Registration Closed') . '</span>';
+      } else {
+        $register = '<span class="register-event-full">' . t('Sorry, the event is full') . '</span>';
+      }
+    }
+
+    // Seperate $register from export link
+    $register_full_view_theme = '';
+    if ($register != '' && $variables['view_mode'] == 'full') {
+      if(isset($variables['content']['field_event_registration'])) {
+        $variables['content']['field_event_registration'][0]['#markup'] = $register;
+      } elseif(isset($variables['content']['og_vocabulary'])) {
+        $variables['content']['og_vocabulary'][0]['#markup'] =  '<div class="os-events-signup-full">' . $register . '</div>' . $variables['content']['og_vocabulary'][0]['#markup'];
+      } else {
+        $register_full_view_theme = $register;
+      }
+    }
+
+    // Change the date markup if this is a recurring event.
+    if ($variables['content']['field_date']['#items'][0]['rrule']) {
+      $variables['content']['field_date'][0]['#markup'] = _os_events_style_recurring_event($variables['content']['field_date'][0]['#markup']);
+    }
+
+    $options = array('absolute' => TRUE, 'attributes' => array('class' => array('subscribe')));
+    $subscribe = l(t('subscribe'), 'calendar/single/'  . $variables['node']->nid . '/export.ics', $options);
+    $subscribe = str_replace('http://', 'webcal://', $subscribe);
+
+    // Hiding the original registration link because we are using our own link
+    // with a ctools modal effect and because we placing the registration link
+    // in the export area.
+
+    $ical = l(t('iCal'), 'calendar/single/' . $variables['node']->nid . '/export.ics', array('attributes' => array('class' => array('ical'))));
+
+    $params = array(
+      'register' => $register_full_view_theme,
+      'ical' => $ical,
+      'subscribe' => $subscribe,
+    );
+    // Do not display event export links as per cp/settings page checkbox option.
+    if (!variable_get('os_exporter_disable_event_export', 0)) {
+      $variables['content']['export'] = array(
+        '#markup' => theme('os_events_export_links', $params),
+        '#weight' => 10,
+      );
+    }
+  }
+
+  // In case of a "teaser" view mode, put the link before the date.
+  if ($variables['view_mode'] == 'teaser') {
+    $registrations_type = !empty($variables['node']->field_event_registration[LANGUAGE_NONE][0]['registration_type']);
+    // If the event is allowed for signup and allowed to show to the users.
+    $show_register_link = os_events_register_show_register_link($variables['node'], $date);
+    if ($registrations_type && $show_register_link) {
+      // Checking if the event has not reached its max registration limit.
+      if (os_events_event_registration_reach_capacity($variables['node'], $date)) {
+        $register = '<div class="register-link-teaser">' . t('Registration is required') . '</div>';
+      } else {
+        $register = '<span class="register-event-full">' . t('Sorry, the event is full') . '</span>';
+      }
+    } elseif ($registrations_type && !$show_register_link) {
+        $event_start_date = $variables['node']->field_date[LANGUAGE_NONE][0]['value'];
+        // If the event is a past event
+        if (!empty($event_start_date) && REQUEST_TIME > strtotime($event_start_date)) {
+          $register = '<span class="register-event-full">' . t('Registration Closed') . '</span>';
+        } elseif (os_events_event_registration_reach_capacity($variables['node'], $date)) {
+          // Checking if the event has not reached its max registration limit.
+          $register = '<span class="register-event-full">' . t('Registration Closed') . '</span>';
+        } else {
+          $register = '<span class="register-event-full">' . t('Sorry, the event is full') . '</span>';
+        }
+    }
+    $variables['content']['field_date'][0]['#markup'] = $register . $variables['content']['field_date'][0]['#markup'];
+  }
+
+  // Hide the repeat rule summary from sidebar_teaser.
+  if ($variables['view_mode'] == 'sidebar_teaser' && $variables['content']['field_date']['#items']) {
+    $rule = theme_date_repeat_display(array(
+      'item' => array('rrule' => $variables['content']['field_date']['#items'][0]['rrule']),
+      'field' => field_info_field('field_date'),
+    ));
+    $variables['content']['field_date'][0]['#markup'] = str_replace($rule, '', $variables['content']['field_date'][0]['#markup'] );
+  }
+}
+
+/**
+ * Helper function; Changes the order or the repeat rule and dates for repeated
+ * events.
+ *
+ * @param $markup
+ *  The default markup that needs reordering.
+ *
+ * @return string
+ *  The altered date markup..
+ */
+function _os_events_style_recurring_event($markup) {
+
+  // Get the repeat rule section.
+  $pattern = '/<div class="date-repeat-rule">[\s\S]*<\/div>/';
+  if (preg_match($pattern, $markup, $matches)) {
+    $repeat_rule = $matches[0];
+
+    // Remove it from the markup.
+    $markup = str_replace($repeat_rule, '', $markup);
+
+    // Clear the period in the repeat rule.
+    $repeat_rule = str_replace('.', '', $repeat_rule);
+
+    // Rebuild the markup.
+    $markup = $markup . $repeat_rule;
+  }
+  // Or, get the date section
+  // relies on the regex being greedy
+  $pattern = '/<span class="date-display-single">[\s\S]*<\/span>/';
+  if (preg_match($pattern, $markup, $matches)) {
+    $date = $matches[0];
+
+    $markup = str_replace($date, '', $markup);
+
+    $markup = $date . $markup;
+  }
+
+  $markup = preg_replace('/\s+\./', '.', $markup);
+  return $markup;
+}
+
+/**
+ * Generate the link for revealing the modal registration form.
+ *
+ * @param $nid
+ *  The event NID.
+ * @param $modal_settings
+ *  Ctools modal settings.
+ * @parm $sv_list
+ *  TRUE if this is included in a sv_list
+ *
+ * @return string
+ *  Link for the revealing the modal.
+ */
+function os_events_generate_modal_register_link($nid, $delta = FALSE, $modal_settings = array(), $sv_list = FALSE) {
+  global $language;
+  $modal_settings += array(
+    'modalSize' => array(
+      'type' => 'fixed',
+      'width' => 700,
+      'height' => 500,
+      'addWidth' => 10,
+      'addHeight' => 10,
+      'contentRight' => 0,
+      'contentBottom' => 0,
+    ),
+  );
+
+  ctools_include('ajax');
+  ctools_include('modal');
+  ctools_modal_add_js();
+  $modal_style = array(
+    'events-modal-style' => $modal_settings,
+  );
+  drupal_add_js($modal_style, 'setting');
+
+  $path = 'os_events/nojs/registration/' . $nid;
+  if ($delta !== FALSE) {
+    $path = $path . '/' . $delta;
+
+    // Display all date options if this node is not in a sv_list
+    if (!$sv_list) {
+      static $options_cache;
+
+      if(!isset($options_cache[$nid])) {
+        $wrapper = entity_metadata_wrapper('node', $nid);
+        $options_cache[$nid] = array();
+
+        foreach ($wrapper->field_date as $d => $field_date) {
+          $date = $field_date->value();
+          if($d == $delta) continue;
+          // Repetitive events 'choose another date' dropdown options should have only future dates.
+          if (REQUEST_TIME >= strtotime($date['value'].' UTC')) continue;
+          $options_cache[$nid][url($_GET['q'],array('query' => array('delta' => $d)))] = date('l, F j, Y', strtotime($date['value'].' UTC'));
+        }
+      }
+
+      $options = $options_cache[$nid];
+    }
+
+    //Only allow switching if there is more than one option.
+    if ($options) {
+      $settings = array(
+        'choose' => '-Select a different occurance-',
+      );
+      $form_state = array();
+      ctools_include('jump-menu');
+      $form = ctools_jump_menu(array(), $form_state, $options, $settings);
+      $form['#attached']['js'][] = drupal_get_path('module', 'os') . '/theme/os_toggle.js';
+
+      $date_switch  = l('(another date?)', $_GET['q'], array('attributes' => array('class' => array('os_event-moredates-link', 'toggle'))));
+      $slider['abstract_slider'] = array(
+        '#type' => 'container',
+        '#weight' => 3,
+        '#attributes' => array(
+          'class' => array(
+            'os_event-moredates-display',
+            'os-slider',
+          ),
+        ),
+        'abstract' => array(
+          '#markup' => drupal_render($form)
+        ),
+      );
+      $slider = drupal_render($slider);
+    }
+  }
+
+  // Adding recaptcha's js since ctools modal don't add the js.
+  drupal_add_js(drupal_get_path('module', 'recaptcha') . '/js/recaptcha.js');
+  drupal_add_js(url('https://www.google.com/recaptcha/api.js', array('query' => array('hl' => $language->language, 'render' => 'explicit', 'onload' => 'drupalRecaptchaOnload'), 'absolute' => TRUE)), 'external');
+
+  $sign_up = ctools_ajax_text_button(t('Sign up for this event'), $path, '', 'ctools-use-modal ctools-modal-events-modal-style register use-ajax');
+
+  return isset($date_switch)? $sign_up . $date_switch . $slider : $sign_up;
+}
+
+/**
+ * Menu callback; Display the registration form in modal window.
+ *
+ * @param $js
+ *  Ctools JS settings.
+ * @param $node
+ *  The node object.
+ */
+function os_events_events_register($js, $node, $date_id = FALSE) {
+  ctools_include('modal');
+  ctools_include('ajax');
+  $repeating = $node->field_date['und'][0]['rrule'];
+  // Repeating delta not present.
+  if($repeating && $date_id === FALSE && !$js) {
+    return;
+  }
+
+  $registration_type = registration_get_entity_registration_type('node', $node);
+  $registration = entity_get_controller('registration')->create(array(
+    'entity_type' => 'node',
+    'entity_id' => $node->nid,
+    'type' => $registration_type,
+    'repeat_date' => $date_id,
+  ));
+
+  $registration->ajax = $js;
+  $registration_form = drupal_get_form('registration_form', $registration);
+
+  // Hide the OG audience field.
+  $registration_form[OG_AUDIENCE_FIELD]['#access'] = FALSE;
+
+  $date = '';
+  if ($date_id !== FALSE) {
+    $date = $registration_form['field_repeating_event_date']['und'][0]['value']['#default_value'];
+  }
+
+  if (!$js) {
+    return $registration_form;
+  }
+
+  if (!os_events_event_registration_reach_capacity($node, $date) || ($repeating && $date_id === FALSE)) {
+
+    if($repeating && $date_id == FALSE) {
+      drupal_set_message(t('Unable to register for this repeating event, bad link detected.'), 'error');
+    }
+
+    if (!os_events_event_registration_reach_capacity($node, $date)) {
+      drupal_set_message(t('The event has reached his maximum capacity of registrations. Sorry.'), 'error');
+    }
+    $commands = array();
+
+    // dismiss the window
+    $commands[] = ctools_modal_command_display(t('Error'), theme('status_messages'));
+
+    print ajax_render($commands);
+    drupal_exit();
+    return;
+  }
+
+  $form_state = array(
+    'title' => os_events_register_form_title('node', $node->nid),
+    'ajax' => $js,
+    'use_ctools' => TRUE,
+  );
+
+  $output = ctools_modal_form_render($form_state, $registration_form);
+  print ajax_render($output);
+  drupal_exit();
+}
+
+/**
+ * Extra Validation for registration submission
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function os_events_modal_validate($form, &$form_state) {
+
+  if (empty($form_state['values']['anon_mail'])) {
+    return;
+  }
+
+  $date = '';
+  if (!empty($form_state['values']['field_repeating_event_date']['und'][0]['value'])) {
+    $date = $form_state['values']['field_repeating_event_date']['und'][0]['value'];
+  }
+  $email_query = new EntityFieldQuery();
+  $email_query->entityCondition('entity_type', 'registration')->propertyCondition('anon_mail', $form_state['values']['anon_mail']);
+
+  if (isset($form['#entity']->registration_id)) {
+    $email_query->propertyCondition('registration_id', $form['#entity']->registration_id, '<>');
+  }
+
+  if ($date) {
+    $email_query->fieldCondition('field_repeating_event_date', 'value', $date);
+  } //Flter to just this occurance
+
+  if(count($email_query->execute())) {
+    form_set_error('anon_mail', t('You have already registered and may not register again.'));
+    return;
+  }
+
+  if ($user = user_load_by_mail($form_state['values']['anon_mail'])) {
+    $user_query = new EntityFieldQuery();
+    $user_query->entityCondition('entity_type', 'registration')->propertyCondition('user_uid', $user->uid);
+
+    if ($date) {
+      $user_query->fieldCondition('field_repeating_event_date', 'value', $date);
+    }
+
+    if(count($email_query->execute())) {
+      form_set_error('anon_mail', t('You have already registered and may not register again.'));
+      return;
+    }
+  }
+}
+
+/**
+ * Submit handler; Dismissing the ctools modal window and display a message
+ * when the registration is completed.
+ */
+function os_events_modal_submit($form, &$form_state) {
+  if (!$form_state['registration']->ajax) {
+    // The AJAX is disabled. Don't invoke the ajax_render command.
+    return;
+  }
+
+  $commands = array();
+
+  // dismiss the window
+  $commands[] = ctools_modal_command_dismiss();
+  // Display messages.
+  $commands[] = ajax_command_before('#header', theme('status_messages'));
+
+  // In case event is full update the register links via ajax.
+  $event = node_load($form_state['registration']->entity_id);
+
+  // Obtaining menu router item of the Ajax URL.
+  $menu_item = menu_get_item();
+
+  // If delta argument is present in URL, then query option will be available in url parameter otherwise no delta parameter will be available in email link.
+  if ($menu_item['path'] == "os_events/%/registration/%" && isset($menu_item['original_map'][4]) && !empty($menu_item['original_map'][4])) {
+    $query = array('delta' => $menu_item['original_map'][4]);
+  } else {
+    $query = array();
+  }
+
+  // Checking if this event is repeating event.
+  $date = '';
+  if (isset($menu_item['original_map'][4])) {
+    $date = $event->field_date[LANGUAGE_NONE][$menu_item['original_map'][4]]['value'];
+  }
+
+  if (!os_events_event_registration_reach_capacity($event, $date)) {
+    $selectors = array(
+      '#node-' . $event->nid . ' .field-name-field-event-registration',
+      '.os_events_export_links .first',
+      '.register-link-teaser',
+    );
+
+    foreach ($selectors as $selector) {
+      $commands[] = ajax_command_html($selector, '<span class="register-event-full">' . t('Sorry, the event is full') . '</span>');
+    }
+
+    // Triggering email to event author if the registration quota is full.
+    $event_author = user_load($event->uid);
+    $from = variable_get('site_mail', ini_get('sendmail_from'));
+    $language = language_default();
+    $params = array(
+      '@url' => url('node/' . $event->nid, array('absolute' => TRUE, 'query' => $query)),
+      '@title' => $event->title,
+      '@user-name' => isset($event_author->field_first_name[LANGUAGE_NONE][0]['value']) ? $event_author->field_first_name[LANGUAGE_NONE][0]['value'] : $event_author->name,
+      '@site' => variable_get('site_name', 'OpenScholar')
+    );
+    drupal_mail('os_events', 'registration_full_notification', $event_author->mail, $language, $params, $from);
+  }
+
+  // Clean any message.
+  drupal_get_messages();
+
+  print ajax_render($commands);
+  drupal_exit();
+}
+
+/**
+ * Calendar datebox preprocess.
+ *
+ * RE-build the links to use query strings, instead of "clean urls".
+ */
+function os_events_preprocess_calendar_datebox(&$vars) {
+  $date = $vars['date'];
+  $view = $vars['view'];
+  $vars['day'] = intval(substr($date, 8, 2));
+  $day_path = calendar_granularity_path($view, 'day');
+
+  $options = array(
+    'query' => array(
+      'type' => 'day',
+      'day' => $vars['date'],
+    ),
+    'absolute' => TRUE,
+  );
+
+  $vars['link'] = !empty($day_path) ? l($vars['day'], 'calendar', $options) : $vars['day'];
+}
+
+/**
+ * Implements hook_views_pre_view().
+ */
+function os_events_views_pre_view(&$view, &$display_id, &$args) {
+  global $is_https;
+
+  if ($view->name != 'os_events') {
+    return;
+  }
+
+  if (!in_array($display_id, array('block_2', 'block_1'))) {
+    $buttons = array(
+      'subscribe' => 'calendar/upcoming/all/export.ics',
+      'iCal' => 'calendar/upcoming/all/export.ics',
+      'rss' => 'calendar/upcoming/all/rss.xml'
+    );
+
+    # Show the Google export button, if we have a Google API account
+    $google_client_secret = variable_get('client_secret_key');
+    $google_client_ID = variable_get('client_id');
+    $google_developer_key = variable_get('developer_api_key');
+
+    if ($google_client_ID && $google_client_secret && $google_developer_key) {
+      $client = getClient();
+      $_base_path = rtrim(ltrim(base_path(), '/'), '/');
+      $base_path = ((strlen($_base_path) == 0) ? '' : '/' . $_base_path);
+      $vsite = vsite_get_vsite();
+      $client->setState($vsite->group->nid);
+      $client->setRedirectUri(variable_get('callback_url'));
+
+      $authUrl = $client->createAuthUrl($client->getScopes());
+      $buttons['Google'] = $authUrl;
+    }
+
+    foreach ($buttons as $label => $path) {
+      // When the user is filtering events by taxonomy term we need to add the
+      // path to the iCal/rss export path.
+      $term_path = os_taxonomy_in_taxonomy_term_context($view);
+      if ($term_path) {
+        // Get the current taxonomy term path from the $_GET['q'] and remove the
+        // word calendar for prevent duplication of the word.
+        $path_parts = explode("/", $term_path);
+        $tid = array_pop($path_parts);
+        $path = str_replace("upcoming/all/", "term/$tid/", $path);
+      }
+
+      $links[$label] = array(
+        'title' => t($label),
+        'href' => $path,
+        'attributes' => array('class' => array(strtolower($label))),
+      );
+    }
+
+    // Make sure webcal link uses webcal protocol.
+    $links['subscribe']['href'] = str_replace('http://', 'webcal://', url($links['subscribe']['href'], array('absolute' => TRUE)));
+
+    $view->attachment_before .= theme('links', array(
+      'links' => $links,
+      "attributes" => array('class' => array('links', 'inline')),
+    ));
+
+    // For /calendar pages, for month, weeks and days view where export links are available.
+    if (strpos($display_id, 'page') === 0) {
+      $export_result = views_get_view_result('os_events', 'feed_1');
+      // Checking if there are no rows in views result for export as ical or rss
+      if (count($export_result) == 0) {
+        $warning_msg = array();
+        $warning_msg[] = t('No events are available for export');
+        $view->attachment_before = theme('item_list', array('items' => $warning_msg, 'attributes' => array('class' => 'links no-event-export')));
+      }
+    }
+  }
+
+  if (empty($view->display_handler->display->display_options['pager']['options']['date_id'])) {
+    // Not a calendar view, or a mini-calendar
+    return;
+  }
+
+  // Add JS for event popup.
+  drupal_add_js(drupal_get_path('module', 'os_events') . '/js/os_events_popup.js');
+  drupal_add_library('system', 'ui.dialog');
+
+  $handler = &$view->display_handler;
+
+  // Adding the JS for side by side events display for the week view mode.
+  if (isset($_GET['type']) && $_GET['type'] == 'week') {
+    drupal_add_js(drupal_get_path('module', 'os_events') . '/js/os_events.js');
+  }
+
+  if (!empty($view->display_handler->display->display_options['style_options']['mini'])) {
+    // Set the default date of the mini calendar to the date the user watching.
+    $format = array('year' => 'Y', 'month' => 'Y-m', 'week' => 'Y-\W', 'day' => 'Y-m-d');
+
+    if (isset($_GET['type']) && $_GET['type'] == 'year') {
+      // The user watch a year, return him the current time.
+      $time = time();
+    }
+    else {
+        if (isset($_GET['type']) && isset($_GET[$_GET['type']])) {
+          $time = strtotime($_GET[$_GET['type']]);
+        } else {
+          $time = time();
+        }
+    }
+
+    $view->args[0] = date($format['month'], $time);
+    return;
+  }
+
+  if (empty($_GET['type']) || !in_array($_GET['type'], array('day', 'week', 'month', 'year'))) {
+    return;
+  }
+
+  if ($_GET['type'] != 'month') {
+    $handler->set_option('style_plugin', 'calendar_style');
+  }
+
+  $values = $handler->get_option('style_options');
+  $values['calendar_type'] = $_GET['type'];
+  $values['groupby_times'] = 'hour';
+  $handler->set_option('style_options', $values);
+
+  $values = $handler->get_option('pager');
+  $values['options']['date_id'] = $_GET['type'];
+  $handler->set_option('pager', $values);
+
+
+  $values = $handler->get_option('arguments');
+  $values['date_argument']['granularity'] = $_GET['type'];
+  $handler->set_option('arguments', $values);
+}
+
+/**
+ * Implements hook_preprocess_date_views_pager().
+ *
+ * Dealing with different context of the calendar view modes.
+ */
+function os_events_preprocess_date_views_pager(&$variables) {
+  if ($variables['plugin']->options['date_id'] == 'mini') {
+    return;
+  }
+
+  // Define some variables.
+  $plugin = $variables['plugin'];
+  $view = $plugin->view;
+  $date_info = $view->date_info;
+  $next_url = &$variables['next_url'];
+  $prev_url = &$variables['prev_url'];
+  $granularity = !empty($date_info->calendar_type) ? $date_info->calendar_type : 'month';
+  $format = array('year' => 'Y', 'month' => 'Y-m', 'week' => 'Y-\W', 'day' => 'Y-m-d');
+
+  // Get information about dates.
+  $min_date = $date_info->min_date;
+
+  $prev_date = clone $min_date;
+  $next_date = clone $min_date;
+
+  $prev_date->modify('-1 ' . $granularity);
+  $next_date->modify('+1 ' . $granularity);
+
+  switch ($granularity) {
+    case 'week':
+      $next_week = date_week(date_format($next_date, 'Y-m-d'));
+      $prev_week = date_week(date_format($prev_date, 'Y-m-d'));
+      $next_arg = date_format($next_date, $format[$granularity]) . date_pad($next_week);
+      $prev_arg = date_format($prev_date, $format[$granularity]) . date_pad($prev_week);
+      break;
+    default:
+      $next_arg = date_format($next_date, $format[$granularity]);
+      $prev_arg = date_format($prev_date, $format[$granularity]);
+  }
+
+  // Change the link URL and arguments.
+  $variables['next_options']['query'] = array($granularity => $next_arg, 'type' => $granularity);
+  $variables['prev_options']['query'] = array($granularity => $prev_arg, 'type' => $granularity);
+  $next_url = $_GET['q'];
+  $prev_url = $_GET['q'];
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Setting a default value to the $_GET['month'] or $_GET['type'] if not exists.
+ *
+ * When filtering by terms there could be a case when the type or the month are
+ * not defined in the $_GET variables.
+ */
+function os_events_views_query_alter($view, views_plugin_query_default $query) {
+  if ($view->name != 'os_events' ) {
+    return;
+  }
+
+  // is this a view a feed view?
+  if ($view->current_display == 'feed_1' || $view->current_display == 'feed_2') {
+    // Alter the exported events according the current path.
+    $menu = menu_get_item();
+
+    // narrow down export to single event
+    if ($menu['map'][1] == "single" && is_numeric($menu['map'][2])) {
+      unset($query->where[1]['conditions'][4]);
+      $query->add_where($query->options['group'], "node.nid", $menu['map'][2], "=");
+    }
+    else {
+      // filter by the current taxonomy term filtering.
+      if ($menu['map'][1] == 'term' && is_numeric($menu['map'][2])) {
+        $alias = $query->add_table('field_data_og_vocabulary');
+        $query->set_distinct();
+        $query->add_where($query->options['group'], "$alias.og_vocabulary_target_id", $menu['map'][2], '=');
+      }
+    }
+  }
+  else {
+    $format = array('year' => 'Y', 'month' => 'Y-m', 'week' => 'Y-\W', 'day' => 'Y-m-d');
+
+    // Determine the type of the displayed month by the argument from the address
+    $_GET['type'] = isset($_GET['type']) ? $_GET['type'] : 'month';
+
+    // Determine the value of the calendar view mode(day, year, month) argument value
+    $_GET[$_GET['type']] = isset($_GET[$_GET['type']]) ? $_GET[$_GET['type']] : date($format[$_GET['type']], time());
+  }
+}
+
+/**
+ * Implements hook_url_outbound_alter().
+ *
+ * Change the url of the prev and next links.
+ */
+function os_events_url_outbound_alter(&$path, &$options, $original_path) {
+
+  // Overriding View/Edit/Delete links in Event sign up registration listing.
+  if (preg_match('|^registration/([0-9]*)(/.*)?|', $path, $matches)) {
+    if (isset($matches[2]) && in_array($matches[2], array('/edit', '/delete'))) {
+      $options['query'] = array_merge(drupal_get_query_parameters(), drupal_get_destination());
+    } else {
+      $options['query'] = drupal_get_query_parameters();
+    }
+  }
+
+  $view_modes = array(
+    'calendar/day',
+    'calendar/year',
+  );
+
+  if (!in_array($original_path, $view_modes) && strpos($path, 'calendar/month/') === FALSE) {
+    return;
+  }
+
+  $mini_calendar = strpos($path, 'calendar/month/') !== FALSE;
+  $data = explode('/', $original_path);
+  $path = $data[0];
+
+  $format = array('year' => 'Y', 'month' => 'Y-m', 'day' => 'Y-m-d');
+  $date_format = new DateTime;
+
+  if (isset($_GET[$data[1]])) {
+    if ($_GET['type'] == 'year') {
+      // The user watch in a year, return him to the first day of the year.
+      $time = mktime(12, 0, 0, 1, 1, $_GET[$data[1]]);
+    }
+    else {
+      $time = strtotime($_GET[$data[1]]);
+    }
+    $date_format->setTimestamp($time);
+  }
+
+  $date = date_format($date_format, $format[$data[1]]);
+
+  $type = $data[1];
+
+  if ($mini_calendar) {
+    $type = 'month';
+    $date = $data[2];
+  }
+
+  $options['query'] = array(
+    'type' => $type,
+    $data[1] => $date,
+  );
+}
+
+/**
+ * Implements hook_preprocess_menu_local_task().
+ *
+ * Remove the active from any tab in the calendar page and add active to the
+ * correct tab.
+ */
+function os_events_preprocess_menu_local_task(&$variables) {
+  if ($_GET['q'] != 'calendar' || !isset($_GET['type'])) {
+    return;
+  }
+  $element = &$variables['element'];
+  $element['#active'] = FALSE;
+
+  $cases = array(
+    'day' => 'calendar/day',
+    'week' => 'calendar/week',
+    'year' => 'calendar/year',
+    'month' => 'calendar/month',
+  );
+
+  if (isset($cases[$_GET['type']]) && $cases[$_GET['type']] == $element['#link']['path']) {
+    $element['#active'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_preprocess_link().
+ *
+ * Remove the active from any link in the calendar page and add active class to
+ * the correct link.
+ */
+function os_events_preprocess_link(&$variables) {
+  if ($_GET['q'] != 'calendar') {
+    return;
+  }
+
+  if ($variables['path'] == 'calendar' && $variables['text'] == t('Month')) {
+    // The user watch different view modes of the calendar, remove the active
+    // from the the month link.
+    if (!in_array($_GET, array('day', 'week', 'year')) && !empty($_GET['type'])) {
+      $key = array_search('active', $variables['options']['attributes']['class']);
+      unset($variables['options']['attributes']['class'][$key]);
+    }
+  }
+
+  $view_modes = array(
+    'calendar/week',
+    'calendar/day',
+    'calendar/year',
+  );
+
+  if (empty($_GET['type']) || !in_array($variables['path'], $view_modes)) {
+    return;
+  }
+
+  $cases = array(
+    'day' => 'calendar/day',
+    'week' => 'calendar/week',
+    'year' => 'calendar/year',
+    'month' => 'calendar/month',
+  );
+
+  if (isset($cases[$_GET['type']]) && $cases[$_GET['type']] == $variables['path']) {
+    $variables['options']['attributes']['class'][] = 'active';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_events_form_registration_entity_settings_form_alter(&$form, $form_state) {
+  $wrapper = entity_metadata_wrapper('node', $form_state['entity']['entity_id']);
+  // Hide the tokens list for sending messages to registrants.
+  unset($form['token_tree']);
+
+  $repeating_event_date = FALSE;
+  if (isset($form_state['build_info']['args'][0]['repeating_event_date'])) {
+    $repeating_event_date = $form_state['build_info']['args'][0]['repeating_event_date'];
+  }
+
+  // Default value of the From field should be the author of the event's e-mail
+  // in case it hasn't been changed yet (if it hasn't been changed yet, the email
+  // will be set by default to be as defined in the field instance).
+  $from_default_value = _os_events_get_node_event_creator_email($form['settings']['from_address']['#default_value'], $wrapper);
+
+  $form['status']['#title'] = t('Enable registrations');
+  $form['status']['#description'] = t('Users must register their attendance in advance.');
+
+  $open_date = $form['scheduling']['open']['#default_value'];
+  $close_date = $form['scheduling']['close']['#default_value'];
+  $reminder_date = $form['reminder']['reminder_settings']['reminder_date']['#default_value'];
+  $reminder_on = $form['reminder']['reminder_settings']['reminder_status']['#default_value'];
+
+  $format = 'M d Y h:i A';
+  // Replace textual date fields in favor of date popup.
+  $form['scheduling']['open'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('Open date'),
+    '#description' => t('When to automatically open registrations'),
+    '#default_value' => empty($open_date) ? date('Y-m-d H:i') : date('Y-m-d H:i', strtotime($open_date)),
+    '#date_format' => $format,
+  );
+
+  $form['scheduling']['close'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('Close date'),
+    '#description' => t('When to automatically close registrations.'),
+    '#default_value' => empty($close_date) ? '' : date('Y-m-d H:i', strtotime($close_date)),
+    '#date_format' => $format,
+  );
+
+  // Add 'from' field.
+  $form['from'] = array(
+    '#type' =>'textfield',
+    '#title' => t('Event Organizer email'),
+    '#required' => TRUE,
+    '#description' => t('Email address to be displayed as the event organizer in mail content.'),
+    '#default_value' => $from_default_value,
+    '#element_validate' => array('os_events_validate_mail'),
+  );
+
+  // Set the default time for a reminder to be a day before the event.
+  $event_date = $wrapper->field_date->get(0)->value();
+  $reminder = empty($reminder_date) ? strtotime('-1 day', strtotime($repeating_event_date?$repeating_event_date:$event_date['value'])) : strtotime($reminder_date);
+  $form['reminder']['reminder_settings']['reminder_date'] = array(
+    '#type' => 'date_popup',
+    '#title' => t('Reminder Date'),
+    '#description' => t('When to send reminders.'),
+    '#default_value' => $reminder && !empty($reminder_date) ? date('Y-m-d H:i', strtotime($reminder_date)) : date('Y-m-d H:i'),
+    '#date_format' => $format,
+    '#states' => array(
+      'visible' => array(
+        ':input[name="reminder[send_reminder]"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+
+  // Remove the template, reminder date is no longer inside a container.
+  $delta = empty($_GET['delta']) ? 0 : $_GET['delta'];
+  $form['reminder']['reminder_settings']['reminder_template'] = $form['reminder']['reminder_settings']['reminder_template'] + array(
+    '#access' => FALSE,
+    '#value'  => $reminder_on ? variable_get('os_reminder_template', "
+Hello,
+
+This is only a friendly reminder that you registered the event <a href='[node:url]?delta={$delta}'>[node:title]</a>.") : '',
+  );
+  $form['reminder']['reminder_settings']['token_tree']['#access'] = FALSE;
+  $form['reminder']['reminder_settings']['#type'] = 'container';
+  $form['reminder']['#type'] = 'container';
+
+
+  // Default to no repeating event date.
+  $form['field_repeating_event_date'] = array(
+    '#type' => 'value',
+    '#value' => $repeating_event_date,
+  );
+
+  if ($repeating_event_date) {
+    $defaults  = l('(change defaults)', $_GET['q'], array('attributes' => array('class' => array('os_event-default-settings-link'))));
+
+    $form['field_repeating_event_date_text'] = array(
+      '#type' => 'item',
+      '#markup' => '<span class="date-display-single">'. t('Changing settings for @date', array('@date' => date('l, F j, Y', strtotime($repeating_event_date.' UTC'))))."</span>".$defaults,
+      '#weight' => -10,
+    );
+  } elseif ($repeating_event_date === '' && count($wrapper->field_date) > 1) {
+    // Changing for all instances.
+    $form['field_repeating_event_date_text'] = array(
+      '#type' => 'item',
+      '#markup' => '<span class="date-display-single">'. t('You are changing the default settings for all occurances of this event.')."</span>",
+      '#weight' => -10,
+    );
+
+    foreach ($wrapper->field_date as $delta => $field_date) {
+      $date = $field_date->value();
+      $options[url($_GET['q'],array('query' => array('delta' => $delta)))] = date('l, F j, Y', strtotime($date['value'].' UTC'));
+    }
+    $settings = array(
+      'choose' => t('-- Go to a specific date instead --'),
+    );
+    if (isset($options)) {
+      ctools_include('jump-menu');
+      $form =  $form + ctools_jump_menu($form, $form_state, $options, $settings);
+      $form['jump']['#weight'] = $form['go']['#weight'] = -9;
+    }
+  }
+
+  $form['settings']['#access'] = FALSE;
+
+  $form['reminder']['#weight'] = 9;
+  $form['scheduling']['#weight'] = 10;
+  $form['save']['#weight'] = 11;
+
+  // Add handler to populate the "from_address" field in the form with the value
+  // submitted in the "from" field. This is done since the registration module
+  // needs the email value to be in the "settings" element which is given a
+  // "#access = FALSE".
+  $form['#validate'][0] = 'os_registration_entity_settings_form_validate';
+  $form['#validate'][] = '_os_events_update_from_address';
+  $form['#validate'][] = 'os_events_validate_end_date_after_start';
+  $default_submit = array_search('registration_entity_settings_form_submit',$form['#submit']);
+  $form['#submit'][$default_submit] = 'os_events_registration_entity_settings_form_submit';
+  $form['#submit'][] = 'os_events_invalidate_cache';
+
+  $form['#attached']['js'][] = drupal_get_path('module', 'os_events') . '/js/os_events.js';
+
+  $form['#after_build'][] = 'os_events_registration_entity_after_build';
+}
+
+/**
+ * Custom Submit handler for registration_entity_settings_form().
+ *
+ * @array $form
+ * @array $form_state
+ */
+function os_registration_entity_settings_form_validate($form, &$form_state) {
+  // Ensure capacity is a non-negative integer.
+  $capacity = $form_state['values']['capacity'];
+  if (!is_numeric($capacity) || ((int) $capacity != $capacity) || ($capacity < 0)) {
+    form_set_error('capacity', t('"Capacity" must be a positive integer or 0 for unlimited.'));
+  }
+
+  // Ensure slot limit is a non-negative integer.
+  $slot_limit = $form_state['values']['settings']['maximum_spaces'];
+  if (!is_numeric($slot_limit) || ((int) $slot_limit != $slot_limit) || ($slot_limit < 0)) {
+    form_set_error('maximum_spaces', t('"Spaces allowed" must be a positive integer or 0 for unlimited.'));
+  }
+
+  // Validate from address:
+  if (!valid_email_address($form_state['values']['settings']['from_address'])) {
+    form_set_error('settings][from_address', t('From email address is invalid.'));
+  }
+
+  // Validate open date:
+  if (!empty($form_state['values']['scheduling']['open']) && is_string($form_state['values']['scheduling']['open']) && strtotime($form_state['values']['scheduling']['open']) === FALSE) {
+    form_set_error('scheduling][open', t('Date is invalid.'));
+  }
+
+  // Validate close date:
+  if (!empty($form_state['values']['scheduling']['close']) && is_string($form_state['values']['scheduling']['close']) && strtotime($form_state['values']['scheduling']['close']) === FALSE) {
+    form_set_error('scheduling][close', t('Date is invalid.'));
+  }
+
+  // If sending a reminder, ensure date and template are set.
+  $reminder = $form_state['values']['reminder'];
+  if ($reminder['send_reminder'] && (empty($reminder['reminder_settings']['reminder_date']) || empty($reminder['reminder_settings']['reminder_template']))) {
+    form_set_error('reminder][send_reminder', t('If sending a reminder, provide a date and template.'));
+  }
+
+  // If reminder date or template are set, ensure we're sending a reminder.
+  if (empty($reminder['send_reminder'])) {
+    if (!empty($reminder['reminder_settings']['reminder_template'])) {
+      form_set_error('reminder][reminder_settings][reminder_template', t('You have provided a reminder template, but not opted to send a reminder. Either check the box to send a reminder, or do not provide a reminder template.'));
+    }
+  }
+
+  // Validate reminder date:
+  if (!empty($reminder['reminder_settings']['reminder_date'])
+    && strtotime($reminder['reminder_settings']['reminder_date']) === FALSE
+  ) {
+    form_set_error('reminder][reminder_settings][reminder_date', t('Reminder date is invalid.'));
+  }
+
+  // Ensure reminder date is not in the past when "send_reminder" is TRUE:
+  if ($reminder['send_reminder'] && !empty($reminder['reminder_settings']['reminder_date'])) {
+    if (strtotime($reminder['reminder_settings']['reminder_date']) <= time()) {
+      form_set_error('reminder][reminder_settings][reminder_date', t('Reminder must be in the future.'));
+    }
+  }
+}
+
+/**
+ * After build; Change the order the validation handlers.
+ */
+function os_events_registration_entity_after_build($form, $form_state) {
+  array_unshift($form['#validate'], 'os_events_validate_handle_reminder');
+  return $form;
+}
+
+/**
+ * Validate handler; Take care with bad values from the reminder part.
+ */
+function os_events_validate_handle_reminder($form, &$form_state) {
+  // Since we are hiding the reminder template from the form the and the user
+  // switch from not reminding to reminding the original validation handler
+  // messed up.
+  $delta = empty($_GET['delta']) ? 0 : $_GET['delta'];
+  $reminder = &$form_state['values']['reminder'];
+  $reminder['reminder_settings']['reminder_template'] = $form_state['values']['reminder']['send_reminder'] ? variable_get('os_reminder_template', "
+Hello,
+
+This is only a friendly reminder that you registered the event <a href='[node:url]?delta={$delta}'>[node:title]</a>.") : '';
+}
+
+/**
+ * Validate handler; Verifying the end date set to be after the start date.
+ */
+function os_events_validate_end_date_after_start($form, $form_state) {
+  if (empty($form_state['values']['scheduling']['close'])) {
+    return;
+  }
+
+  $scheduling = $form_state['values']['scheduling'];
+
+  $start = strtotime($scheduling['open']);
+  $end = strtotime($scheduling['close']);
+
+  if ($start > $end) {
+    form_set_error('scheduling][close', t('The End date must be greater than the Start date'));
+  }
+}
+
+/**
+ * Implements hook_token_info_alter().
+ */
+function os_events_token_info_alter(&$data) {
+  // Adding token for the registration entity.
+  $data['tokens']['registration']['attendee_name'] = array(
+    'name' => t("The attendee name"),
+    'description' => t("The name of the attendee according to the name field."),
+  );
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function os_events_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+
+  // Only handling registration.
+  if ($type != 'registration') {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper('registration', $data['registration']);
+
+  $replacements['[registration:attendee_name]'] = $wrapper->field_full_name->value() ? ' ' . $wrapper->field_full_name->value() : '';
+
+  return $replacements;
+}
+
+/**
+ * Helper function; Populates the settings of the registration with the "from"
+ * email address.
+ */
+function _os_events_update_from_address(&$form, &$form_state) {
+  $form_state['values']['settings']['from_address'] = $form_state['values']['from'];
+}
+
+/**
+ * Element validate; Validate the email of the user.
+ */
+function os_events_validate_mail($element, $form_state, $form) {
+  if (!valid_email_address($element['#value'])) {
+    form_error($element, t('This is not a valid email address.'));
+  }
+}
+
+/**
+ * Implements hook_field_widget_WIDGET_TYPE_form_alter().
+ */
+function os_events_field_widget_registration_select_form_alter(&$element, &$form_state, $context) {
+  $element['registration_type']['#type'] = 'checkbox';
+
+  // Set the "return value" to our default signup.
+  $element['registration_type']['#return_value'] = 'event_signup_simple';
+
+  $items = $context['items'];
+  $element['registration_type']['#default_value'] = !empty($items[0]['registration_type']);
+
+  // Remove the options, so they won't fail our validation.
+  unset($element['registration_type']['#options']);
+
+  $element['registration_type']['#title'] = t('Signup');
+  $element['registration_type']['#description'] = t('If checked, users will be able to signup for this event.');
+
+  // Add JS to change button description,
+  $element['registration_type']['#attached']['js'] = array(
+    drupal_get_path('module', 'os_events') . '/js/os_events_signup_description.js'
+  );
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function os_events_menu_alter(&$items) {
+  $items['node/%entity_object/register']['access callback'] = FALSE;
+  $items['admin/structure/registration/registration_states']['access callback'] = FALSE;
+
+  //Use custom settings callback
+  $items['node/%entity_object/registrations/settings']['page callback'] = 'os_events_entity_settings_page';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_events_form_registration_registrations_broadcast_form_alter(&$form, $form_state) {
+  // Hide the tokens list for sending messages to registrants.
+  unset($form['token_tree']);
+
+  // Extend the length of the "subject" field.
+  $form['subject']['#maxlength'] = 150;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_events_form_registration_form_alter(&$form, &$form_state) {
+
+  $registration = $form_state['registration'];
+  if(isset($registration->repeat_date) && $registration->entity_type == 'node') {
+    $node = node_load($registration->entity_id);
+
+    $delta = intval($registration->repeat_date);
+    $date = field_get_items('node', $node, 'field_date');
+    if (isset($date[$delta])) {
+      // Set the date for the registration.
+      $form_state['registration']->field_repeating_event_date['und'][0]['value'] = $date[$delta]['value'];
+      // Use custom registration settings.
+      $settings_overrides = os_events_registration_repeating_entity_settings($registration->entity_id, $registration->entity_type, $date[$delta]['value']);
+      if ($settings_overrides) {
+        $form['#registration_settings'] = $settings_overrides;
+      }
+
+      //Set the default in the form
+      $form['field_repeating_event_date']['und'][0]['value']['#default_value'] = $date[$delta]['value'];
+      $form['field_repeating_event_date']['#access'] = FALSE;
+
+      $form['field_repeating_event_date_text'] = array(
+        '#type' => 'item',
+        '#markup' => '<span class="date-display-single">'. t('On @date', array('@date' => date('l, F j, Y', strtotime($date[$delta]['value'].' UTC'))))."</span>",
+        '#weight' => -10,
+      );
+
+    }
+  } elseif (isset($form['field_repeating_event_date'])) {
+    $form['field_repeating_event_date']['#access'] = FALSE;
+    $form['og_group_ref']['#access'] = FALSE;
+  }
+
+  $form['who_is_registering'] = array(
+    '#type' => 'value',
+    '#value' => 'registration_registrant_type_anon',
+  );
+
+  //Don't show the state dropdown
+  $form['state']['#access'] = FALSE;
+
+  if (isset($form['#entity']->registration_id)) {
+    $form['actions']['cancel'] = array(
+      '#type' => 'submit',
+      '#value' => t('Cancel'),
+      '#submit' => array('cancel_button_destination_callback'),
+      '#limit_validation_errors' => array(),
+    );
+  } else {
+    $form['actions']['cancel']['#access'] = FALSE;
+  }
+
+  $form['actions']['submit']['#value'] = isset($form['#entity']->registration_id) ? t('Save') : t('Signup');
+
+  $form['anon_mail']['#required'] = TRUE;
+
+  $form['event_register'] = array(
+    '#type' => 'container',
+    '#title' => t('Sign up for this event'),
+
+    'field_full_name' => $form['field_full_name'],
+    'field_department' => $form['field_department'],
+    'anon_mail' => $form['anon_mail'],
+  );
+
+  // Make sure the form it rebuilt, so if there's a validation error, we can
+  // keep the event registration fieldset open.
+  $form_state['rebuild'] = TRUE;
+  unset($form['field_full_name'], $form['field_department'], $form['anon_mail'], $form['user']);
+
+  $form['#validate'][] = 'os_events_registration_form_validate';
+  $form['#validate'][] = 'os_events_modal_validate';
+  $form['#submit'][] = 'os_events_modal_submit';
+}
+
+/**
+ * Validation callback for registration_form().
+ */
+function os_events_registration_form_validate($form, &$form_state) {
+  $registration = $form_state['registration'];
+  $count = $form_state['values']['count'];
+  $entity = entity_load_single($registration->entity_type, $registration->entity_id);
+  $label = entity_label($registration->entity_type, $entity);
+  // Test status on new registrations.
+  if (isset($registration->is_new) && $registration->is_new) {
+    $errors = array();
+    $registration_status = registration_status($registration->entity_type, $registration->entity_id, TRUE, $count, $registration->registration_id, $errors);
+
+    if (!$registration_status) {
+      form_set_error('', t('Sorry, unable to register for %label due to: %errors.',
+        array('%label' => $label, '%errors' => implode(', ', $errors))
+      ));
+    }
+  }
+  // Only check capacity for existing registrations that are active.
+  elseif (in_array($registration->state, registration_get_active_states())) {
+    $has_room = registration_has_room($registration->entity_type, $registration->entity_id, $count, $registration->registration_id);
+    if (!$has_room) {
+      form_set_error('', t('Sorry, unable to register for %label due to: insufficient spaces remaining.',
+        array('%label' => $label)));
+    }
+  }
+
+  $settings = registration_entity_settings($registration->entity_type, $registration->entity_id);
+  $allow_multiple = $entity->field_mutliple_event_signup['und'][0]['value'];
+
+  // Validate according to who's registering.
+  switch ($form_state['values']['who_is_registering']) {
+    case REGISTRATION_REGISTRANT_TYPE_ANON:
+      $form_state['values']['anon_mail'] = trim($form_state['values']['anon_mail']);
+      if (!valid_email_address($form_state['values']['anon_mail'])) {
+        form_set_error('anon_mail', t('The email address is invalid.'));
+      }
+      if (!$allow_multiple && registration_is_registered($registration, $form_state['values']['anon_mail'])) {
+        form_set_error('anon_mail', t('%mail is already registered for this event.',
+          array('%mail' => $form_state['values']['anon_mail'])));
+      }
+      break;
+
+    case REGISTRATION_REGISTRANT_TYPE_ME:
+      global $user;
+      if (!$allow_multiple && registration_is_registered($registration, NULL, $user->uid)) {
+        form_set_error('user', t('You are already registered for this event.'));
+      }
+      break;
+
+    case REGISTRATION_REGISTRANT_TYPE_USER:
+      if (empty($form_state['values']['user'])) {
+        form_set_error('user', t('User name is required.'));
+      }
+      $user = user_load_by_name($form_state['values']['user']);
+      if ($user) {
+        if (!$allow_multiple && registration_is_registered($registration, NULL, $user->uid)) {
+          if (user_access('access user profiles')) {
+            form_set_error('user', t('%user is already registered for this event.', array('%user' => $user->name)));
+          }
+          else {
+            form_set_error('user', t('Registration Failed.'));
+          }
+        }
+      }
+      else {
+        if (user_access('access user profiles')) {
+          form_set_error('user', t('%user is not a valid user.', array('%user' => $form_state['values']['user'])));
+        }
+        else {
+          form_set_error('user', t('Registration Failed.'));
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * When clicking on cancel button in event registration edit page.
+ */
+function cancel_button_destination_callback($form, &$form_state) {
+  $destination = drupal_get_destination();
+  drupal_goto($destination);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_events_form_registration_delete_confirm_alter(&$form, &$form_state) {
+  drupal_set_title(t('Are you sure you want to delete registration for !name (@email)?', array('!name' => $form['registration']['#value']->field_full_name[LANGUAGE_NONE][0]['value'], '@email' => $form['registration']['#value']->anon_mail)));
+}
+
+/**
+ * When changing the settings of the a registration invalidate the cache.
+ */
+function os_events_invalidate_cache($form, $form_state) {
+  os_boxes_invalidate_cache($form_state['entity']['entity_id'], 'node');
+}
+
+/**
+ * Implements hook_preprocess_table().
+ */
+function os_events_preprocess_table(&$variables) {
+  $menu = menu_get_item();
+
+  if ($menu['path'] != 'node/%/registrations') {
+    return;
+  }
+
+  $event = $menu['page_arguments'][1];
+  $repeating = $event->field_date['und'][0]['rrule'];
+  if ($repeating && isset($_GET['delta'])) {
+    $delta = intval($_GET['delta']);
+    $d = field_get_items('node', $event, 'field_date');
+    $date = $d[$delta]['value'];
+  }
+
+
+  // Change the title of the registrations table.
+  $variables['caption'] = t('List of registrations for %multiple %title.', array(
+    '%multiple' => ($repeating)? (isset($date)?date('l, F j, Y', strtotime($date.' UTC'))." of":"all occurances of"):"",
+    '%title' => entity_label('node', $menu['map'][1]),
+  ));
+
+  if ($repeating && !isset($date)) {
+
+    $date = field_get_items('node', $event, 'field_date');
+
+    $form_state = array();
+    foreach ($date as $delta => $field_date) {
+      $options[url($_GET['q'],array('query' => array('delta' => $delta)))] = date('l, F j, Y', strtotime($field_date['value'].' UTC'));
+    }
+    $settings = array(
+      'choose' => t('-- Go to a specific date instead --'),
+    );
+    if(isset($options)) {
+      ctools_include('jump-menu');
+      $form = ctools_jump_menu($form, $form_state, $options, $settings);
+      $variables['caption'] .= drupal_render($form);
+    }
+  }
+
+  // Remove the "id", "user", "count" and the "states" from the table head.
+  unset($variables['header'][0], $variables['header'][2], $variables['header'][4], $variables['header'][6]);
+
+  // Remove the "id", "user", "count" and the "states" from each table row.
+  foreach (array_keys($variables['rows']) as $delta) {
+    unset($variables['rows'][$delta][0], $variables['rows'][$delta][2], $variables['rows'][$delta][4], $variables['rows'][$delta][6]);
+  }
+}
+
+/**
+ * Implements hook_entity_query_alter().
+ */
+function os_events_entity_query_alter($query) {
+
+  // Skip this if we are not looking for registrations.
+  if (empty($query->entityConditions['entity_type']) || $query->entityConditions['entity_type']['value'] != 'registration') {
+    return;
+  }
+
+  $menu = menu_get_item();
+  $event = NULL;
+  if ($menu['path'] == 'node/%/registrations' && is_object($menu['page_arguments'][1])) {
+    $event = $menu['page_arguments'][1];
+  }
+
+  if ($menu['path'] == 'node/%/registrations/broadcast' && is_object($menu['page_arguments'][2])) {
+    $event = $menu['page_arguments'][2];
+  }
+
+  if (!$event) {
+    return;
+  }
+
+  $repeating = $event->field_date['und'][0]['rrule'];
+
+  // Is this the registration list EFQ.
+  if (!$repeating) {
+    return;
+  }
+
+  if (!isset($_GET['delta'])) {
+    return;
+  }
+
+  $delta = intval($_GET['delta']);
+  $date = field_get_items('node', $event, 'field_date');
+  $date = $date[$delta]['value'];
+  $query->fieldCondition('field_repeating_event_date', 'value', $date);
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Add a dropdown menu for the registration page.
+ */
+function os_events_preprocess_page(&$variables) {
+  $menu = menu_get_item();
+
+  // Hidden export dialog div (only shown when exporting to Google Calendar)
+  if (!empty($variables['page']['content']['system_main']['main'])) {
+    $variables['page']['content']['system_main']['main']['#markup'] .= '<div id="export-to-google-calendar-dialog-confirm"></div>';
+  }
+
+  // If we're exporting events, prompt user to either overwrite an old or create new calendar
+  if (isset($_SESSION['exported_events'])) {
+    if (isset($_GET['overwrite'])) {
+
+      if ($_GET['overwrite'] == -1) {
+        unset($_SESSION['exported_events']);
+        unset($_SESSION['listCalendarList']);
+        drupal_save_session();
+        return;
+      }
+
+      // 0: Create, 1 : Overwrite
+      $events = unserialize($_SESSION['exported_events']);
+      $listCalendarList = unserialize($_SESSION['listCalendarList']);
+      _os_events_export_events_to_google($events, $listCalendarList, $_GET['overwrite']);
+      unset($_SESSION['exported_events']);
+      unset($_SESSION['listCalendarList']);
+      drupal_save_session();
+      return;
+
+    } else {
+      ctools_include('modal');
+      ctools_modal_add_js();
+      drupal_add_js(drupal_get_path('module', 'os_events') . '/js/os_events_google_export.js');
+    }
+  }
+
+  if (strpos($menu['path'], 'node/%/registrations') !== 0) {
+    return;
+  }
+
+  if (empty($variables['tabs']['#secondary'])) {
+    return;
+  }
+
+  // Remove the "Simple view" tab from the navigation tabs.
+  foreach ($variables['tabs']['#secondary'] as $index => $tab) {
+    if ($tab['#link']['title'] == 'Simple view') {
+      unset($variables['tabs']['#secondary'][$index]);
+      break;
+    }
+  }
+
+  // If there are no registrants, do not display the download link.
+  if (empty($menu['original_map'][1])) {
+    return;
+  }
+
+  $event_id = $menu['original_map'][1];
+  $node = node_load($event_id);
+  $delta = isset($_GET['delta']) ? $_GET['delta'] : FALSE;
+  $repeating = $node->field_date['und'][0]['rrule'];
+  $date = '';
+  if ($repeating && $delta !== FALSE) {
+    $date = $node->field_date['und'][$delta]['value'];
+  }
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'registration')
+      ->propertyCondition('entity_id', $event_id)
+      ->propertyCondition('entity_type', 'node');
+
+  // Filter to just this occurrence.
+  if ($date) {
+    $query->fieldCondition('field_repeating_event_date', 'value', $date);
+  }
+
+  $result = $query->execute();
+
+  if (empty($result['registration'])) {
+    return;
+  }
+
+  // Create drop-down links for simple view and export of registrants.
+  $event = node_load($event_id);
+  $registration_links = array(
+    'export' => array(
+      'title' => t('CSV'),
+      'href' => 'node/' . $event_id . '/registrations/export' . (($date)? '/' . $delta : ''),
+    ),
+    'simple_view' => array(
+      'title' => t('Simple view'),
+      'href' => 'node/' . $event_id . '/registrations/simple_view' . (($date)? '/' . $date : ''),
+    ),
+  );
+  $variables['tabs']['#secondary']['registration_links'] = array(
+    '#theme' => 'ctools_dropdown',
+    '#links' => $registration_links,
+    '#title' => t('Download Registrant List'),
+    '#class' => 'section_links registration_links',
+    '#access' => registration_administer_registrations_access('node', $event),
+  );
+}
+
+function _os_events_export_events_to_google($events, $listCalendarList, $overwrite = true) {
+
+  // Get the API client and construct the service object.
+  $client = getClient();
+
+  // The vsite group ID is stored in the state parameter
+  $vsite = vsite_get_vsite($_GET["state"]);
+  $redirectUri = url('/' . $vsite->group->purl . '/calendar');
+  $client->setRedirectUri($redirectUri);
+
+  $calendarService = new Google_Service_Calendar($client);
+
+  # Create a new calendar to import events into
+  $calendar_calendar = new Google_Service_Calendar_Calendar();
+
+  $calendar = null;
+  if ($overwrite) {
+    foreach ($listCalendarList->getItems() as $item) {
+      if ($item->getSummary() == $vsite->group->title) {
+        $calendar = $calendarService->calendars->delete($item->getId());
+        break;
+      }
+    }
+  }
+
+  _os_events_set_calendar_parameters($vsite, $calendar_calendar, $calendarService);
+  $calendar = $calendarService->calendars->insert($calendar_calendar);
+
+  foreach ($events as $event) {
+    $calendarService->events->insert($calendar->getId(), $event);
+  }
+
+}
+
+/*
+ * Helper function to set calendar metadata (title, location, timezone, etc.)
+ */
+function _os_events_set_calendar_parameters($vsite, $calendar_calendar, $calendarService) {
+  $calendar_calendar->setDescription(isset($vsite->group->field_site_description[LANGUAGE_NONE][0]['safe_value']) ? $vsite->group->field_site_description[LANGUAGE_NONE][0]['safe_value'] : "");
+  $calendar_calendar->setSummary(isset($vsite->group->title) ? $vsite->group->title : "OpenScholar Calendar");
+  $calendar_calendar->setLocation(isset($vsite->group->field_site_address[LANGUAGE_NONE][0]['value']) ? $vsite->group->field_site_address[LANGUAGE_NONE][0]['value'] : "");
+  $calendar_calendar->setTimezone('America/New_York');
+}
+
+/**
+ * Implements hook_mollom_form_list().
+ */
+function os_events_mollom_form_list() {
+  $forms = array();
+  $forms['registration_form'] = array(
+    'title' => t('Registration form'),
+    'entity' => 'registration',
+    'bundle' => 'event_signup_simple',
+  );
+  return $forms;
+}
+
+/**
+ * Implements hook_mollom_form_info().
+ */
+function os_events_mollom_form_info($form_id) {
+  $form_info = array(
+    'bundle' => 'event_signup_simple',
+    'elements' => array(),
+    'mapping' => array(
+      'author_email' => 'anon_email',
+    ),
+  );
+
+  mollom_form_info_add_fields($form_info, 'registration', 'event_signup_simple');
+
+  return $form_info;
+}
+
+/**
+ * Save the settings for the mollom form.
+ */
+function os_events_save_mollom_settings() {
+  $mollom_form = array(
+    'form_id' => 'registration_form',
+    'mode' => '1',
+    'checks' => array('spam'),
+    'enabled_fields' => array(
+      'field_department][und][0][value',
+      'field_full_name][und][0][value',
+    ),
+    'strictness' => 'normal',
+    'discard' => '1',
+    'moderation' => 0,
+    'entity' => 'registration',
+    'bundle' => 'event_signup_simple',
+    'module' => 'os_events',
+    'title' => 'Registration form',
+    'elements' => array(
+      'field_department][und][0][value' => 'Department',
+      'field_full_name][und][0][value' => 'Full Name',
+    ),
+    'mapping' => array(
+      'author_email' => 'anon_email',
+      'post_id' => 'registration_id',
+    ),
+    'bypass access' => array(),
+    'mail ids' => array(),
+  );
+
+  mollom_form_save($mollom_form);
+}
+
+/**
+ * Implements hook_modules_enabled().
+ *
+ * When enabling the mollom module we need to add the event registration form
+ * to mollom form protection list.
+ */
+function os_events_modules_enabled($modules) {
+  if (!in_array('mollom', $modules)) {
+    return;
+  }
+
+  os_events_save_mollom_settings();
+}
+
+/**
+ * Implements hook_date_ical_feed_event_render_alter().
+ */
+function os_events_date_ical_feed_event_render_alter(&$event, $view, &$context) {
+  $wrapper = entity_metadata_wrapper('node', $context['entity']);
+  $event['description'] = '';
+  $event['summary'] = $wrapper->label();
+  $event['description'] = strip_tags(preg_replace("/[[[{].*?[}]]]/i",'',$context['entity']->body[LANGUAGE_NONE][0]['value']));
+  $event['location'] = $wrapper->field_event_location->value();
+}
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Sending notification for user when subscribing to event.
+ */
+function os_events_entity_insert($entity, $type) {
+  if ($type != 'registration') {
+    return;
+  }
+  $wrapper = entity_metadata_Wrapper($type, $entity);
+  $node = node_load($entity->entity_id);
+
+  // Obtaining menu router item of the Ajax URL.
+  $menu_item = menu_get_item();
+
+  // If delta argument is present in URL, then query option will be available in url parameter otherwise no delta parameter will be available in email link.
+  if ($menu_item['path'] == "os_events/%/registration/%" && isset($menu_item['original_map'][4]) && !empty($menu_item['original_map'][4])) {
+     $query = array('delta' => $menu_item['original_map'][4]);
+     $delta = $menu_item['original_map'][4];
+  } else {
+    $query = array();
+    $delta = 0;
+  }
+
+  // Determine if the event is a All Day event
+  $start = date('Y-m-d H:i:s', strtotime($node->field_date['und'][$delta]['value'].' UTC'));
+  $end = date('Y-m-d H:i:s', strtotime($node->field_date['und'][$delta]['value2'].' UTC'));
+  $all_day = date_is_all_day($start, $end);
+
+  // Showing time value in case of not All Day event
+  if ($all_day) {
+    $date = date('l, F j, Y', strtotime($node->field_date['und'][$delta]['value'].' UTC'));
+  } else {
+    $date = date('l, F j, Y g:ia', strtotime($node->field_date['und'][$delta]['value'].' UTC'));
+  }
+
+  // Get author mail id
+  $settings = os_events_registration_repeating_entity_settings('node', $node->nid, $node->field_date['und'][$delta]['value']);
+  $event_author_mail = _os_events_get_node_event_creator_email($settings['settings']['from_address'], $wrapper);
+
+  $module = 'os_events';
+  $key = 'registration_confirmation';
+  $language = language_default();
+  $params = array(
+    '@url' => url('node/' . $node->nid, array('absolute' => TRUE, 'query' => $query)),
+    '@title' => $node->title,
+    '@user-name' => $wrapper->field_full_name->value(),
+    '@event_date_time' => $date,
+    '@event_location' => $node->field_event_location['und'][0]['value'],
+    '@event-creator-mail' => $event_author_mail,
+  );
+
+  // Pass the entity type and ID to give modules implementing
+  // hook_mail_alter() more context.
+  $params['context'] = array(
+    'entity_type' => 'node',
+    'entity_id' => $node->nid,
+  );
+
+  $params['headers']['Reply-To'] =  $event_author_mail;
+  $from = variable_get('site_mail', ini_get('sendmail_from'));
+
+  // Displaying confirmation message to user's screen.
+  drupal_set_message(t('You have successfully registered for the event. Please check your email for confirmation.'));
+
+  drupal_mail($module, $key, $wrapper->anon_mail->value(), $language, $params, $from);
+}
+
+/**
+ * @param $from_address_value
+ * @param $wrapper
+ *
+ * @return string
+ */
+function _os_events_get_node_event_creator_email($from_address_value, $wrapper) {
+
+  $info = field_info_instance('node', 'field_event_registration', 'event');
+  $default_email = $info['settings']['default_registration_settings']['settings']['from_address'];
+  if ($from_address_value == $default_email) {
+    $event_author_mail = $wrapper->author->mail->value();
+  }
+  else {
+    $event_author_mail = $from_address_value;
+  }
+  return $event_author_mail;
+}
+
+/**
+ * Implements hook_mail().
+ */
+function os_events_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'registration_broadcast':
+    case 'registration_confirmation':
+        $message['subject'] = t("@title event registration confirmation", $params);
+        $message['body'] = array();
+        $message['body'][0] = t("Hello @user-name", $params);
+        $message['body'][1] = t("You have been registered for @title", $params);
+        if (!empty($params['@event_date_time'])) {
+          $message['body'][1].= t(" on @event_date_time", $params);
+        }
+        if (!empty($params['@event_location'])) {
+          $message['body'][1].= t(" at @event_location", $params);
+        }
+        $message['body'][1].= ".";
+        $message['body'][2] = t("View the event listing here: @url", $params);
+        $message['body'][3] = t("Questions? Email the event organizer @event-creator-mail", $params);
+        $message['body'][4] = t("See you there!", $params);
+        break;
+
+    case 'registration_full_notification':
+        $message['subject'] = t("@title event registration is full", $params);
+        $message['body'] = array();
+        $message['body'][] = t("Hi @user-name", $params);
+        $message['body'][] = t("This email is to let you know that the event you created, @title, is now full.\nYou can manage your registrations here: @url.\n\nThe @site Team", $params);
+        break;
+
+    case 'event_cancel_notification':
+        $message['subject'] = t("@title has been cancelled", $params);
+        $message['body'] = array();
+        $message['body'][] = t("Hello @user-name,", $params);
+        $message['body'][] = t('You had been registered for @title on @event-date@location.', $params);
+        $message['body'][] = t('This event has been cancelled. To view our other events, please visit the event page here: @event-url', $params);
+        $message['body'][] = t("Questions? Email the event organizer @event-creator-mail.\n\nThe @site Team", $params);
+        break;
+
+    case 'event_time_updated_notification':
+        $message['subject'] = t("Change in @title", $params);
+        $message['body'] = array();
+        $message['body'][] = t("Hello @user-name,", $params);
+        $message['body'][] = t('You had been registered for @title on @event-date@location.', $params);
+        $message['body'][] = t('That ​event​ has been changed, and you are now registered for @event-new-date@new-location.', $params);
+        $message['body'][] = t('Please visit the event page here: @event-url', $params);
+        $message['body'][] = t("Questions? Email the event organizer @event-creator-mail.\n\nThe @site Team", $params);
+        break;
+  }
+}
+
+/**
+ * Implements hook_mail_alter().
+ */
+function os_events_mail_alter(&$message) {
+  //Array for event mails
+  $eventEmailArr = array("broadcast","registration_confirmation","event_cancel_notification","event_time_updated_notification");
+
+  $defaultMail = variable_get('site_mail', ini_get('sendmail_from'));
+
+
+  //Check if it is an event related mail
+  if(in_array($message['key'],$eventEmailArr)) {
+
+    $event_author_email = "";
+
+    //Get the value of event creator email for all event related emails except broadcast.
+    foreach($message['params'] as $param_key => $param_value){
+      if ($param_key == '@event-creator-email' || $param_key == '@event-creator-mail') {
+       // Get event author event's author email address.
+       $event_author_email = check_plain(trim($param_value));
+      }
+    }
+
+    //Get the value of event creator email for broadcast.
+    if ($event_author_email == "") {
+        $node = node_load($message['params']['context']['entity_id']);
+        $registration_settings = registration_entity_settings('node', $node->nid);
+
+      if($registration_settings['settings']['confirmation']) {
+        $event_author_email = $message['from'];
+      }
+      else {
+        $user = user_load($node->uid);
+        $event_author_email = $user->mail;
+      }
+    }
+
+    // Set default value of the "From" field to author of the event's e-mail
+    $message['headers']['From'] = $message['from'] = $defaultMail;
+    $message['headers']['Reply-To'] = $event_author_email;
+
+    // Set the sender and return-path headers.
+    $message['headers']['Sender'] = $message['headers']['Return-Path'] = $defaultMail;
+  }
+  else {
+    // Set default value of the "From" field.
+    if (!isset($message['headers']['From'])) {
+      $message['headers']['From'] = variable_get('site_from_email',$defaultMail);
+    }
+    if (!isset($message['from'])) {
+      $message['from'] = variable_get('site_from_email',$defaultMail);
+    }
+
+    // Set default value of the "Sender" field.
+    if (!isset($message['headers']['Sender'])) {
+      $message['headers']['Sender'] = variable_get('site_from_email',$defaultMail);
+    }
+    // Set default value of the "Return-Path" field.
+    if (!isset($message['headers']['Return-Path'])) {
+      $message['headers']['Return-Path'] = variable_get('site_from_email',$defaultMail);
+    }
+  }
+
+  //Adding the footer physical address for all emails
+  $message['body'][] = '';
+  $message['body'][] = variable_get('site_physical_address');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Include JS to update the End Date field according to the Start Date field on
+ * event node form.
+ */
+function os_events_form_event_node_form_alter(&$form, &$form_state) {
+
+  $form['#attached']['js'][] = drupal_get_path('module', 'os_events') . '/js/os_events.js';
+  $form['#validate'][] = 'os_events_validate_repeat_on_checkbox';
+  // Attaching form state behavior to show the checkbox only when signup and repeat checkboxes are with checked state.
+  if( !isset($form_state['storage']['confirm'] ) ) {
+    $form['field_mutliple_event_signup']['#states'] = array(
+      'visible' => array(
+        ':input[name="field_event_registration[und][0][registration_type]"]' => array('checked' => TRUE),
+        ':input[name="field_date[und][0][show_repeat_settings]"]' => array('checked' => TRUE),
+      ),
+    );
+  } else {
+    $form['event_registration_group']['field_mutliple_event_signup']['#attributes']['class'][] = 'element-hidden';
+  }
+  // Div wrapper to display Sign up and multiple registration select checkbox jointly.
+  $form['event_registration_group'] = array(
+    '#type' => '#markup',
+    '#prefix' => '<div>',
+    '#suffix' => '</div>',
+    '#weight' => 6
+  );
+  // Inserting both checkboxes into above container div and removing form form element array.
+  $form['event_registration_group']['field_mutliple_event_signup'] = $form['field_mutliple_event_signup'];
+  $form['event_registration_group']['field_event_registration'] = $form['field_event_registration'];
+  unset($form['field_mutliple_event_signup']);
+  unset($form['field_event_registration']);
+  // Markup for repeating event warning message.
+  $form['field_date'][LANGUAGE_NONE][0]['repeat_event_change_message'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div id="event-change-notify" class="messages warning element-hidden">You will need to inform the registrants if you make any changes to this event. If you change the date, registrants will be removed and will have to re-register.</div>',
+    '#weight' => 1.3
+  );
+
+  if(!isset($form_state['storage']['confirm']) && isset($form['nid']['#value'])) {
+    $form['actions']['submit']['#submit'] = array('os_events_form_submit');
+  } elseif (isset($form_state['storage']['confirm']) && isset($form['nid']['#value'])) {
+    $form = confirm_form($form, '', '', $description = "Warning: If you change the date, registrants will be removed and will have to re-register. Learn how to export the registrant list " . l('here', 'https://help.theopenscholar.com', array('attributes' => array('target' => '_blank'))) . ".<br/></br>", "Ok", "Cancel" );
+    $form['actions']['submit']['#submit'][] = 'node_form_submit';
+    $form['menu']['#attributes']['class'][] = 'element-hidden';
+    $form['#after_build'][] = 'os_events_confirm_after_build';
+    hide($form['title']);
+    $form['title']['#default_value'] = $form_state['values']['title'];
+  }
+}
+
+/**
+ * After build callback for event_node_form form.
+ */
+function os_events_confirm_after_build(&$form, &$form_state) {
+  global $base_path;
+  $form['field_date']['#attributes']['class'][] = 'element-hidden';
+  $form['actions_top']['#attributes']['class'][] = 'element-hidden';
+  $form['event_registration_group']['#attributes']['class'][] = 'element-hidden';
+  $form['field_upload']['#attributes']['class'][] = 'element-hidden';
+  $form['body']['#attributes']['class'][] = 'element-hidden';
+  $form['field_event_location']['#attributes']['class'][] = 'element-hidden';
+  $form['options']['#attributes']['class'][] = 'element-hidden';
+  $form['author']['#attributes']['class'][] = 'element-hidden';
+  $form['path']['#attributes']['class'][] = 'element-hidden';
+  $form['actions']['delete']['#access'] = FALSE;
+  $form['og_vocabulary']['#attributes']['class'][] = 'element-hidden';
+  $form['event_registration_group']['field_event_registration']['#attributes']['class'][] = 'element-hidden';
+  $form['event_registration_group']['field_mutliple_event_signup']['#attributes']['class'][] = 'element-hidden';
+  $menu_item = menu_get_item();
+  $form['actions']['cancel']['#markup'] = l('Cancel', $menu_item['href'], array('query' => drupal_get_destination(), 'attributes' => array('class' => array('form-cancel'))));
+  return $form;
+}
+
+/**
+ * #submit callback for event_node_form form.
+ */
+function os_events_form_submit($form, &$form_state) {
+  $repeating_event = isset($form_state['values']['field_date'][LANGUAGE_NONE][0]['rrule']);
+  if($repeating_event && !isset($form_state['storage']['confirm'])) {
+    $deleted_dates = array();
+    $submitted_dates = array();
+    foreach ($form_state['values']['field_date'][LANGUAGE_NONE] as $date) {
+      $submitted_dates[] = format_date(strtotime($date['value']), 'custom', 'Y-m-d');
+    }
+    // Detecting deleted event date instances for repeating events.
+    foreach ($form['#node']->field_date[LANGUAGE_NONE] as $date) {
+      if (!in_array(format_date(strtotime($date['value']), 'custom', 'Y-m-d'), $submitted_dates)) {
+        $deleted_dates[] = format_date(strtotime($date['value']), 'custom', 'Y-m-d');
+      }
+    }
+    // If at least one existing event dates are deleted, warning will be shown, otherwise form will be submitted as it is.
+    if (count($deleted_dates) > 0) {
+      $form_state['storage']['confirm'] = TRUE;
+      $form_state['rebuild'] = TRUE;
+    } else {
+      node_form_submit($form, $form_state);
+    }
+  } else {
+    node_form_submit($form, $form_state);
+  }
+}
+
+/**
+ * Validate handler; Verifying if at least one day/month checkbox is selected for 'Repeat on' section in Weekly/Monthly/Yearly repeating event form.
+ */
+function os_events_validate_repeat_on_checkbox($form, $form_state) {
+  // Obtaining repeat rules from form submission.
+  $repeating = $form_state['values']['field_date'][LANGUAGE_NONE][0]['rrule'];
+
+  // For non-repeating events, $repeating will be NULL.
+  if ($repeating) {
+    // Formatting repeat rules in structured array.
+    $parts = date_repeat_split_rrule($repeating);
+    $rrule = $parts[0];
+    $parsed_exceptions = (array) $parts[1];
+    $exception_count = 0;
+    foreach ($parsed_exceptions as $exception) {
+      $date = date_ical_date($exception, 'UTC');
+      date_timezone_set($date, date_default_timezone_object());
+      $exceptions = date_format($date, 'Y-m-d');
+      if (isset($form_state['values']['field_date'][LANGUAGE_NONE][0]['value'])) {
+        $event_start_date = date('Y-m-d', strtotime($form_state['values']['field_date'][LANGUAGE_NONE][0]['value']));
+        if ($exceptions <= $event_start_date) {
+          form_set_error('field_date][' . LANGUAGE_NONE . '][0][rrule][exceptions][EXDATE][' . $exception_count . '][datetime][date', t('The first occurrence of a repeating event cannot be an exception.'));
+        }
+      }
+      if (isset($rrule['UNTIL'])) {
+        $end_date = date_ical_date($rrule['UNTIL'], 'UTC');
+        date_timezone_set($end_date, date_default_timezone_object());
+        $end_date = date_format($end_date, 'Y-m-d');
+        if ($exceptions >= $end_date) {
+          form_set_error('field_date][' . LANGUAGE_NONE . '][0][rrule][exceptions][EXDATE][' . $exception_count . '][datetime][date', t('The first occurrence of a repeating event cannot be an exception.'));
+        }
+      }
+      $exception_count++;
+    }
+    // Validation for weekly, monthly and yearly repeating events.
+    if (!isset($rrule['BYDAY']) && $rrule['FREQ'] == 'WEEKLY') {
+      form_set_error('field_date][' . LANGUAGE_NONE . '][0][rrule][FREQ', t('You must select at least one day.'));
+    } elseif (!isset($rrule['BYMONTH']) && $rrule['FREQ'] == 'MONTHLY') {
+        form_set_error('field_date][' . LANGUAGE_NONE . '][0][rrule][FREQ', t('You must select at least one month.'));
+    } elseif (!isset($rrule['BYMONTH']) && $rrule['FREQ'] == 'YEARLY') {
+        // Validation for two types of radio button choice for monthly and yearly repeating events.
+        // e.g On day <NUM> of <MONTH> / On the <FIRST> <SUNDAY> of <MONTH>.
+        if (!isset($rrule['BYMONTHDAY'])) {
+          form_set_error('field_date][' . LANGUAGE_NONE . '][0][rrule][FREQ', t('Repeats On the field must have at least one month option checked.'));
+        } else {
+          form_set_error('field_date][' . LANGUAGE_NONE . '][0][rrule][FREQ', t('You must select at least one month.'));
+        }
+    }
+  }
+}
+
+/**
+ * Determine if the user can register to the event.
+ *
+ * @param $node
+ *   The node object.
+ *
+ * @return bool
+ */
+function os_events_register_show_register_link($node, $date = '') {
+  if ($node->type != 'event') {
+    return;
+  }
+
+  $result = os_events_registration_repeating_entity_settings('node', $node->nid, $date);
+
+  if (empty($result)) {
+    return FALSE;
+  }
+
+  if (!$result['status']) {
+    return FALSE;
+  }
+
+  // If there is no closing date given, checking if current date is greater than the opening date or not.
+  if (isset($result['open']) && REQUEST_TIME >= strtotime($result['open']) && !$result['close']) {
+    return os_events_show_register_by_node($node, $date);
+  }
+
+  // Checking if the event date is in future or not. else signup link will not be shown.
+  if (isset($node->field_date[LANGUAGE_NONE][0]['value']) && REQUEST_TIME > strtotime($node->field_date[LANGUAGE_NONE][0]['value'])) {
+    // Checking repeating event date and non-repeating event dates.
+    if (isset($result['repeating_event_date']) && REQUEST_TIME > strtotime($result['repeating_event_date'] . ' UTC')) {
+      return FALSE;
+    } elseif (isset($result['repeating_event_date']) && $result['repeating_event_date'] == '') {
+      return FALSE;
+    }
+  }
+
+  if (!empty($result['close'])) {
+    return REQUEST_TIME >= strtotime($result['open']) && REQUEST_TIME <= strtotime($result['close']);
+  }
+
+  return REQUEST_TIME >= strtotime($result['open']);
+}
+
+/**
+ * In case the event registration don't have open or close range, the fallback
+ * will be to check the registration availability by the date field.
+ *
+ * @param $node
+ *   The event node.
+ *
+ * @return bool
+ */
+function os_events_show_register_by_node($node, $date = FALSE) {
+
+  if (!$date) {
+    $wrapper = entity_metadata_wrapper('node', $node);
+
+    if ($wrapper->getBundle() != 'event') {
+      return;
+    }
+
+    $value = $wrapper->field_date->get(0)->value();
+    $date = $value['value'];
+  }
+
+  $date = new DateTime($date, new DateTimeZone('UTC'));
+  // We only need to verify the event didn't started yet.
+  return time() <= $date->getTimestamp();
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function os_events_theme_registry_alter(&$theme_registry) {
+  $theme_registry['registration_link']['function'] = 'os_events_registration_link';
+  $theme_registry['date_display_range']['function'] = 'os_events_date_display_range';
+}
+
+/**
+ * Returns HTML for a date element formatted as a range.
+ */
+function os_events_date_display_range($variables) {
+  $date1 = $variables['date1'];
+  $date2 = $variables['date2'];
+  $timezone = $variables['timezone'];
+  $attributes_start = $variables['attributes_start'];
+  $attributes_end = $variables['attributes_end'];
+
+  $start_date = '<span class="date-display-start"' . drupal_attributes($attributes_start) . '>' . $date1 . '</span>';
+  $end_date = '<span class="date-display-end"' . drupal_attributes($attributes_end) . '>' . $date2 . $timezone . '</span>';
+
+  // Prepend the days of the week for a multi-day event, and append the start and end time
+  // (this amounts to a sort of short-hand for a recurring event)
+  $multi_day_prefix = "";
+  if (strtotime($date2) - strtotime($date1) > (24 * 60 * 60)) {
+
+    // e.g., Mon - Fri
+    $day_of_the_week1 = '<span class="date-display-start"' . drupal_attributes($attributes_start) . '>' . date('D', strtotime($variables['date1'])) . '</span>';
+    $day_of_the_week2 = '<span class="date-display-end"' . drupal_attributes($attributes_start) . '>' . date('D', strtotime($variables['date2'])) . '</span>';
+
+    $multi_day_prefix = t('!start-date-day - !end-date-day, ', array(
+      '!start-date-day' => $day_of_the_week1,
+      '!end-date-day' => $day_of_the_week2,
+    ));
+
+    // e.g., Aug 18 to Aug 22
+    $date1 = format_date(strtotime($variables['dates']['value']['formatted_iso']), 'custom', 'M j');
+    $date2 = format_date(strtotime($variables['dates']['value2']['formatted_iso']), 'custom', 'M j');
+    $start_date = '<span class="date-display-start"' . drupal_attributes($attributes_start) . '>' . $date1 . '</span>';
+    $end_date = '<span class="date-display-end"' . drupal_attributes($attributes_end) . '>' . $date2 . $timezone . '</span>, ';
+
+    // e.g., 8:30am - 4:30pm
+    $start_time = '<span class="date-display-start"' . drupal_attributes($attributes_start) . '>' . date('g:ia', strtotime($variables['date1'])) . '</span>';
+    $end_time = '<span class="date-display-end"' . drupal_attributes($attributes_start) . '>' . date('g:ia', strtotime($variables['date2'])) . '</span>';
+
+    $multi_day_suffix = t('!start-time - !end-time', array(
+      '!start-time' => $start_time,
+      '!end-time' => $end_time,
+    ));
+  }
+
+  // If microdata attributes for the start date property have been passed in,
+  // add the microdata in meta tags.
+  if (!empty($variables['add_microdata'])) {
+    $start_date .= '<meta' . drupal_attributes($variables['microdata']['value']['#attributes']) . '/>';
+    $end_date .= '<meta' . drupal_attributes($variables['microdata']['value2']['#attributes']) . '/>';
+  }
+
+  return t('!multi-day-prefix !start-date to !end-date !multi-day-suffix', array(
+      '!multi-day-prefix' => $multi_day_prefix,
+      '!start-date' => $start_date,
+      '!end-date' => $end_date,
+      '!multi-day-suffix' => $multi_day_suffix,
+  ));
+}
+
+/**
+ * Changing the theme callback for the registration link theme.
+ */
+function os_events_registration_link($variables) {
+
+  if (!empty($variables['entity'])) {
+    $node = $variables['entity'];
+    if (isset($node->date_id)) {
+      list(,,$field,$delta) = explode('.', $node->date_id);
+    }
+  } else {
+    list(,$nid,) = explode('/', $variables['path']);
+    $node = node_load($nid);
+  }
+
+  if (!isset($delta)) {
+    $delta = isset($_GET['delta']) ? $_GET['delta'] : FALSE;
+  }
+
+  $repeating = $node->field_date['und'][0]['rrule'];
+  $date = '';
+  if ($repeating && $delta) {
+    $date = $node->field_date['und'][$delta]['value'];
+  }
+
+  if (!os_events_event_registration_reach_capacity($node, $date)) {
+    return '<span class="register-event-full">' . t('Sorry, the event is full') . '</span>';
+  }
+
+  if (!os_events_register_show_register_link($node, $date)) {
+    return;
+  }
+
+  return os_events_generate_modal_register_link($node->nid, $delta, array(), !empty($node->sv_list));
+}
+
+/**
+ * Alter the local tasks to include the delta.
+ */
+function os_events_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  $alter_urls = array('node/%','node/%/registrations','node/%/registrations/settings','node/%/registrations/broadcast','node/%/registrations/list');
+  // Add action link to 'node/add' on 'admin/content' page.
+  if (in_array($root_path,$alter_urls) && $router_item['map'][1]->type == 'event' && (isset($router_item['map'][1]->date_id) || isset($_GET['delta']))) {
+    //Get the Delta
+    if (isset($router_item['map'][1]->date_id)) {
+      list(,,$field,$delta) = explode('.', $router_item['map'][1]->date_id);
+    } else {
+      $delta = $_GET['delta'];
+    }
+
+    //Loop through the primary tabs.
+    foreach ($data['tabs'] as $index => $tabs) {
+      foreach ($tabs['output'] as $n => $tab) {
+        if (in_array($tab['#link']['path'],$alter_urls)) {
+          $data['tabs'][$index]['output'][$n]['#link']['localized_options']['query'] = array('delta' => $delta);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Page callback for repeating events registration settings.
+ *
+ * @param $entity_type
+ * @param $entity
+ *
+ * @return array
+ *   Registration entity settings form.
+ */
+function os_events_entity_settings_page($entity_type, $entity) {
+
+  list($entity_id) = entity_extract_ids($entity_type, $entity);
+  $repeating = $entity->field_date['und'][0]['rrule'];
+
+  $date = '';
+  if ($repeating && isset($_GET['delta'])) {
+    $delta = intval($_GET['delta']);
+    $date = field_get_items('node', $entity, 'field_date');
+    $date = $date[$delta]['value'];
+  } else if($repeating) {
+    $date = '';
+  }
+
+  $settings = os_events_registration_repeating_entity_settings($entity_type, $entity_id, $date);
+
+  if (!$repeating) {
+    unset($settings['repeating_event_date']);
+  }
+  return drupal_get_form('registration_entity_settings_form', $settings, $entity_type, $entity_id);
+}
+
+/**
+ * Get registration settings for a repeating event.
+ *
+ * @param string $entity_type
+ *   The host entity type.
+ * @param int $entity_id
+ *   The host entity ID.
+ *
+ * @param $date_string
+ * @param bool $reset
+ *
+ * @return array|bool A row from {registration_entity}, or FALSE if no settings exist.
+ * A row from {registration_entity}, or FALSE if no settings exist.
+ */
+function os_events_registration_repeating_entity_settings($entity_type, $entity_id, $date_string, $reset = FALSE) {
+  $result = &drupal_static(__FUNCTION__ . $entity_type . $entity_id . $date_string);
+
+  if (!$result || $reset) {
+    $result = db_select('registration_entity', 're')
+      ->fields('re')
+      ->condition('entity_id', $entity_id, '=')
+      ->condition('entity_type', $entity_type, '=')
+      ->condition('repeating_event_date', array($date_string,''), 'IN')
+      ->orderBy('repeating_event_date', 'DESC') //Get custom settings first
+      ->range(0,1)
+      ->execute()
+      ->fetchAssoc();
+
+    if ($result) {
+      $result['settings'] = unserialize($result['settings']);
+      $result['repeating_event_date'] = $date_string;
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * Submit handler for registration_entity_settings_form().
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function os_events_registration_entity_settings_form_submit($form, &$form_state) {
+  $entity = $form_state['entity'];
+
+  $fields = registration_convert_form_settings($form_state['values']);
+
+  if (empty($form_state['values']['field_repeating_event_date'])) {
+    $form_state['values']['field_repeating_event_date'] = '';
+  }
+
+  db_merge('registration_entity')
+    ->key(array(
+    'entity_id' => $entity['entity_id'],
+    'entity_type' => $entity['entity_type'],
+    'repeating_event_date' => $form_state['values']['field_repeating_event_date'],
+  ))
+    ->fields($fields)
+    ->execute();
+
+  drupal_set_message(t('Registration settings have been saved.'));
+
+  $uri = entity_uri($entity['entity_type'], entity_load_single($entity['entity_type'], $entity['entity_id']));
+
+  $query = array();
+  if (!empty($form_state['values']['field_repeating_event_date'])) {
+    $query['delta'] = $_GET['delta'];
+  }
+
+  $form_state['redirect'] = array($uri['path'],array('query' => $query));
+}
+
+/**
+ * Update the registration status to acomidate sharing one node for multiple dates
+ *
+ * $status 0 / 1
+ * $context = array(
+ *  'entity_type' => $entity_type,
+ *  'entity_id' => $entity_id,
+ *  'errors' => &$errors
+ * );
+ */
+function os_events_registration_status_alter(&$status, &$context) {
+
+  $menu = menu_get_item();
+  if ($menu['path'] != 'os_events/%/registration/%' || !isset($menu['page_arguments'][2])) {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper($context['entity_type'], $context['entity_id']);
+  $event_date = $wrapper->field_date->get($menu['page_arguments'][2])->value();
+  if (!$event_date) {
+    return;
+  }
+
+  $settings = os_events_registration_repeating_entity_settings($context['entity_type'], $context['entity_id'], $event_date['value'], TRUE);
+  $status = $settings['status'];
+  if (!$status) {
+    //Nothing more to do.
+    return;
+  }
+
+  $errors = array();
+  $open = isset($settings['open']) ? strtotime($settings['open']) : NULL;
+  $close = isset($settings['close']) ? strtotime($settings['close']) : NULL;
+  $capacity = $settings['capacity'];
+  $now = REQUEST_TIME;
+
+  // check max allowed spaces per registration
+  if ((isset($settings['settings']['maximum_spaces']) && $settings['settings']['maximum_spaces']) && $spaces > $settings['settings']['maximum_spaces']) {
+    $status = FALSE;
+    $errors[] = t('You may not register for more than @count spaces.', array('@count' => $settings['settings']['maximum_spaces']));
+  }
+  // check capacity
+
+  if ($capacity) {
+    $count = registration_event_count($entity_type, $entity_id, $registration_id, $reset) + $spaces;
+    if (($capacity - $count) < 0) {
+      $status = FALSE;
+      $errors[] = t('Insufficient spaces remaining.');
+    }
+  }
+
+  // check open date range
+  if (isset($open) && ($now < $open)) {
+    $status = FALSE;
+    $errors[] = t('Registration is not yet open.');
+  }
+  // check close date range
+  if (isset($close) && ($now >= $close)) {
+    $status = FALSE;
+    $errors[] = t('Registration is closed.');
+  }
+}
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function os_events_entity_property_info_alter(&$info) {
+  $info['node']['bundles']['event']['properties']['field_event_registration'] = array(
+    'type' => 'unknown',
+    'setter callback' => 'entity_metadata_field_verbatim_set',
+    'getter callback' => 'entity_metadata_field_verbatim_get',
+    'label' => t('Registration'),
+  );
+}
+
+/**
+ * Implements hook_preprocess_calendar_item().
+ */
+function os_events_preprocess_calendar_item(&$vars) {
+  $item = $vars['item'];
+  if (in_array($item->granularity, array('day', 'week'))) {
+    $item->item_height = os_events_get_event_duration($item);
+  }
+
+  // Prepare popover fields.
+  if (in_array($item->granularity, array('day', 'week', 'month'))) {
+    $item->popover_fields['event_title'] = $item->rendered_fields['title'];
+    $item->popover_fields['event_delta'] = $item->rendered_fields['delta'];
+
+    // @TODO: Is this format OK?
+    $item->popover_fields['event_date'] = $item->rendered_fields['field_date'];
+    $item->popover_fields['event_location'] = $item->rendered_fields['field_event_location'];
+  }
+}
+
+/**
+ * Get the duration of an event in hours.
+ *
+ * @param $item
+ *   The event item.
+ * @return mixed
+ *   The event duration in hours or NULL if end time equals start time.
+ */
+function os_events_get_event_duration($item) {
+  $event_start = strtotime($item->calendar_start);
+  $event_end = strtotime($item->calendar_end);
+
+  if ($event_start == $event_end) {
+    return NULL;
+  }
+
+  $hours = round(($event_end - $event_start) / 3600, 1);
+
+  return 80 * $hours . 'px';
+}
+
+/**
+ * Constructs a human-readable description of the repeat rule.
+ * @param string $rrule
+ * repeat rules string
+ * @param string $format
+ * date format for displaying the day, month and year.
+ * @return string
+ * human-readable description as output
+ */
+function os_date_repeat_rrule_description($rrule, $format = 'D M d Y') {
+  // Empty or invalid value.
+  if (empty($rrule) || !strstr($rrule, 'RRULE')) {
+    return;
+  }
+
+  module_load_include('inc', 'date_api', 'date_api_ical');
+  module_load_include('inc', 'date_repeat', 'date_repeat_calc');
+
+  $parts = date_repeat_split_rrule($rrule);
+
+  $additions = $parts[2];
+  $exceptions = $parts[1];
+  $rrule = $parts[0];
+  if ($rrule['FREQ'] == 'NONE') {
+    return;
+  }
+
+  // Make sure there will be an empty description for any unused parts.
+  $description = array(
+    '!interval' => '',
+    '!byday' => '',
+    '!bymonth' => '',
+    '!count' => '',
+    '!until' => '',
+    '!except' => '',
+    '!additional' => '',
+    '!week_starts_on' => '',
+    );
+  $interval = date_repeat_interval_options();
+  switch ($rrule['FREQ']) {
+    case 'WEEKLY':
+      $description['!interval'] = format_plural($rrule['INTERVAL'], 'every week', 'every @count weeks');
+      $freq_type = 'weekly';
+      break;
+    case 'MONTHLY':
+      $description['!interval'] = format_plural($rrule['INTERVAL'], 'every month', 'every @count months');
+      $freq_type = 'monthly';
+      break;
+    case 'YEARLY':
+      $description['!interval'] = format_plural($rrule['INTERVAL'], 'every year', 'every @count years');
+      $freq_type = 'yearly';
+      break;
+    default:
+      $description['!interval'] = format_plural($rrule['INTERVAL'], 'every day', 'every @count days');
+      $freq_type = 'daily';
+      break;
+  }
+
+  if (!empty($rrule['BYDAY'])) {
+    $days = date_repeat_dow_day_options();
+    $counts = date_repeat_dow_count_options();
+    $days_results = array();
+    $day_count = 0;
+    foreach ($rrule['BYDAY'] as $byday) {
+      // Get the numeric part of the BYDAY option, i.e. +3 from +3MO.
+      $day = substr($byday, -2);
+      $count = str_replace($day, '', $byday);
+      $day_count++;
+
+      if (!empty($count)) {
+        // See if there is a 'pretty' option for this count, i.e. +1 => First.
+        $order = array_key_exists($count, $counts) ? strtolower($counts[$count]) : $count;
+        $days_results[] = trim(t(' on the !date_order !day_of_week', array('!date_order' => $order, '!day_of_week' => $days[$day])));
+      }
+      else {
+        $days_results[] = trim(t('!day_of_week', array('!day_of_week' => $days[$day])));
+      }
+    }
+  }
+
+  if (!empty($rrule['BYMONTH'])) {
+    if (sizeof($rrule['BYMONTH']) < 12) {
+      $results = array();
+      $months = date_month_names();
+      foreach ($rrule['BYMONTH'] as $month) {
+        $results[] = $months[$month];
+      }
+      if (!empty($rrule['BYMONTHDAY'])) {
+        $description['!bymonth'] = trim(t(' on the !month_days of !month_names', array('!month_days' => implode(', ', $rrule['BYMONTHDAY']), '!month_names' => implode(', ', $results))));
+      }
+      else {
+        $description['!bymonth'] = trim(t(' of !month_names', array('!month_names' => implode(', ', $results))));
+      }
+    }
+  }
+
+  if ($freq_type == 'daily') {
+    // Omitting 'every day' string for daily events
+    if (isset($days_results)) {
+      $description['!interval'] = '';
+      $description['!byday'] = t('every ') . implode(', ', $days_results);
+    }
+    // It will be displayed as every weekday
+    if (isset($rrule['BYDAY']) && count($rrule['BYDAY']) == 5) {
+      $description['!byday'] = 'every weekday';
+    }
+  } elseif ($freq_type == 'weekly') {
+      if (isset($days_results) && count($days_results) > 1 && empty($rrule['COUNT'])) {
+        $prefix_day_weekly = ' on ';
+      } else {
+        $prefix_day_weekly = count($days_results) > 0 ? ' every ' : '';
+      }
+    $description['!byday'] = t($prefix_day_weekly) . implode(', ', $days_results);
+  } elseif ($freq_type == 'monthly') {
+      if(isset($days_results)) {
+        $description['!interval'] = '';
+        $description['!byday'] = implode(', ', $days_results) . (!empty($description['!bymonth']) ? ' ' . $description['!bymonth'] : '' );
+        $description['!bymonth'] = '';
+      }
+      $description['!interval'] .= (!empty($description['!bymonth']) ? ' ' : '' );
+  } elseif ($freq_type == 'yearly') {
+      if(isset($days_results)) {
+        $description['!byday'] = implode(', ', $days_results) . (!empty($description['!bymonth']) ? ' ' . $description['!bymonth'] : '' );
+        $description['!bymonth'] = '';
+      }
+      $description['!interval'] .= (!empty($description['!bymonth']) ? ' ' : '' );
+  }
+  if ($rrule['INTERVAL'] < 1) {
+    $rrule['INTERVAL'] = 1;
+  }
+  if (!empty($rrule['COUNT'])) {
+    $description['!count'] = trim(t(', !count times', array('!count' => $rrule['COUNT'])));
+  }
+  if (!empty($rrule['UNTIL'])) {
+    $until = date_ical_date($rrule['UNTIL'], 'UTC');
+    date_timezone_set($until, date_default_timezone_object());
+    $description['!until'] = trim(t(' until !until_date', array('!until_date' => date_format_date($until, 'custom', $format))));
+  }
+  if ($exceptions) {
+    $values = array();
+    foreach ($exceptions as $exception) {
+      $except = date_ical_date($exception, 'UTC');
+      date_timezone_set($except, date_default_timezone_object());
+      $values[] = date_format_date($except, 'custom', $format);
+    }
+    $description['!except'] = trim(t('!repeats_every_interval except !except_dates', array('!repeats_every_interval ' => '', '!except_dates' => implode(', ', $values))));
+  }
+  if (!empty($rrule['WKST'])) {
+    $day_names = date_repeat_dow_day_options();
+    $description['!week_starts_on'] = trim(t('!repeats_every_interval where the week start on !day_of_week', array('!repeats_every_interval ' => '', '!day_of_week' => $day_names[trim($rrule['WKST'])])));
+  }
+  if ($additions) {
+    $values = array();
+    foreach ($additions as $addition) {
+      $add = date_ical_date($addition, 'UTC');
+      date_timezone_set($add, date_default_timezone_object());
+      $values[] = date_format_date($add, 'custom', $format);
+    }
+    $description['!additional'] = trim(t('Also includes !additional_dates.', array('!additional_dates' => implode(', ', $values))));
+  }
+  return t('Repeats !interval!bymonth!byday!count !until !except. !additional', $description);
+}
+
+/**
+ * Implements hook_form_{form_id}_alter
+ *
+ * Fix destination for event deletion
+ */
+function os_events_form_node_delete_confirm_alter($form) {
+  if ($form['#node']->type == "event") {
+        if ((strpos($_GET['destination'], "calendar/past_events") === FALSE) &&
+            (strpos($_GET['destination'], "calendar/upcoming") === FALSE)) {
+        $paths = os_get_app_path();
+        $_GET['destination'] = $paths[$form['#node']->type];
+    }
+  }
+}
+
+/**
+ * Implements hook_field_create_field().
+ */
+function os_events_field_create_field($field) {
+  if ($field['field_name'] != 'field_date') {
+    return;
+  }
+
+  db_add_index('field_data_field_date', 'date_start', array('field_date_value'));
+  db_add_index('field_data_field_date', 'date_end', array('field_date_value2'));
+}
+
+/**
+* Implements hook_cp_settings().
+*/
+function os_events_cp_settings() {
+
+  $spaces_features = variable_get('spaces_features');
+  // Event settings link won't appear in CP menu if event app is not enabled.
+  if (empty($spaces_features['os_events'])) {
+    return array();
+  }
+
+  $settings['os_exporter_disable_event_export'] = array(
+    'group' => array(
+      '#id' => 'feature_os_events',
+      '#title' => t('Events'),
+      '#weight' => 4,
+      '#menu_parent' => 'app_settings',
+      '#help_link' => l(t('Learn more about Events'), 'https://help.theopenscholar.com/events-app#events-app-settings', array('attributes' => array('target' => '_blank'))),
+    ),
+    'form' => array(
+      '#title' => t('Disable export option on Event pages; don\'t allow site Events to be shared to iCal, RSS or subscription.'),
+      '#type' => 'checkbox',
+      '#default_value' => variable_get('os_exporter_disable_event_export', 0),
+      '#weight' => -1,
+      '#prefix' => '<label></label>',
+    ),
+  );
+  return $settings;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ */
+function os_events_form_system_site_information_settings_alter(&$form, &$form_state, $form_id){
+  //get user 1 email address as default from address
+  $admin = user_load(1);
+  $defaultMail = $admin->mail;
+
+  //Configurable default physical address to be displayed in email footer
+  $form['site_information']['site_physical_address'] = array(
+    '#type' => 'textfield',
+    '#title' => t("Physical Address"),
+    '#default_value' => variable_get('site_physical_address'),
+    '#description' => t("The physical address to be displayed in the footer of all emails triggered from this site."),
+    '#required' => TRUE,
+  );
+
+  //Configurable default from email address to be displayed in 'from' for all emails
+  $form['site_information']['site_from_email'] = array(
+    '#type' => 'textfield',
+    '#default_value' => variable_get('site_from_email',$defaultMail),
+    '#title' => t("Sender email address"),
+    '#description' => t("The email address to be displayed in the 'from' field of all emails triggered from this site."),
+    '#required' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function os_events_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'mail_alter') {
+    //alter implementations array in order to call os_events_mail_alter at the end
+    $group = $implementations['os_events'];
+    unset($implementations['os_events']);
+    $implementations['os_events'] = $group;
+
+    //just for logging purpose is mail_logger module exists
+    if(module_exists('mail_logger')){
+      $group = $implementations['mail_logger'];
+      unset($implementations['mail_logger']);
+      $implementations['mail_logger'] = $group;
+    }
+  }
+}
+
+/**
+ * Implements hook_apachesolr_index_document_build_node().
+ * Add event date for search indexing
+ */
+function os_events_apachesolr_index_document_build_node(ApacheSolrDocument $document, $entity, $entity_type) {
+  if ($entity->type == 'event') {
+    $event_date = field_get_items('node', $entity, 'field_date');
+    if (!empty($event_date)) {
+      $document->addField('ds_field_event_date', apachesolr_date_iso(strtotime($event_date[0]['value'])));
+    }
+  }
+}
+
+/**
+ * Implements hook_apachesolr_query_prepare().
+ * Sort by event date for browse/events
+ */
+function os_events_apachesolr_query_prepare($query) {
+  // Add Event start Date sort to the search
+  if (arg(1) == 'events') {
+    // Add the new field as a sort option
+    $query->setAvailableSort('ds_field_event_date', array(
+      'title' => t('Event Date'),
+      'default' => 'desc',
+    ));
+
+    // Sort on the new field
+    $query->setSolrSort('ds_field_event_date', 'desc');
+  }
+}
+
+/**
+ * Implements template_preprocess_field().
+ */
+function os_events_preprocess_field(&$variables) {
+  if ($variables['element']['#bundle'] === 'event' && $variables['element']['#view_mode'] === 'rss') {
+    $variables['theme_hook_suggestions'][] = 'field__event__rss';
+  }
+}
+
+/**
+ * Implements theme_HOOK() for 'field__event_rss'.
+ *
+ * Returns a plainer HTML for a field, mainly for rss feed items.
+ *
+ * @see theme_field()
+ *
+ * @ingroup themeable
+ */
+function theme_field__event__rss(&$variables) {
+  $output = '';
+
+  // Render the label, if it's not hidden.
+  if (!$variables['label_hidden']) {
+    $inline_label = !empty($variables['classes_array']) && in_array('field-label-inline', $variables['classes_array']);
+    $tag = $inline_label ? 'strong' : 'div';
+    $output .= '<' . $tag . ' class="field-label"' . $variables['title_attributes'] . '>' . $variables['label'] . ($inline_label ? ':&nbsp;' : '') . '</' . $tag . '>';
+  }
+
+  // Render the items.
+  foreach ($variables['items'] as $delta => $item) {
+    if ($delta > 0) {
+      $output .= '<br />';
+    }
+    $classes = 'field-item ' . ($delta % 2 ? 'odd' : 'even');
+    $output .= '<span class="' . $classes . '"' . $variables['item_attributes'][$delta] . '>' . drupal_render($item) . '</span>';
+  }
+
+  // Render the top-level DIV.
+  $output = '<div class="' . $variables['classes'] . '"' . $variables['attributes'] . '>' . $output . '</div>';
+
+  return $output;
+}

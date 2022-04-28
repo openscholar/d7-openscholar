@@ -1,0 +1,43 @@
+name = "OS Migrate Demo"
+description = "Os Migrate demo content."
+package = "OpenScholar"
+core = 7.x
+dependencies[] = migrate
+dependencies[] = migrate_extras
+
+files[] = includes/os_migrate_demo.migrate.entity.inc
+
+; Nodes.
+files[] = handlers/node/biography.inc
+files[] = handlers/node/blog.inc
+files[] = handlers/node/book.inc
+files[] = handlers/node/classes.inc
+files[] = handlers/node/classes_material.inc
+files[] = handlers/node/curriculum_vitae.inc
+files[] = handlers/node/department.inc
+files[] = handlers/node/events.inc
+files[] = handlers/node/faq.inc
+files[] = handlers/node/feeds.inc
+files[] = handlers/node/gallery.inc
+files[] = handlers/node/link.inc
+files[] = handlers/node/news.php
+files[] = handlers/node/page.inc
+files[] = handlers/node/people.inc
+files[] = handlers/node/personal.inc
+files[] = handlers/node/presentation.inc
+files[] = handlers/node/project.inc
+files[] = handlers/node/publication.inc
+files[] = handlers/node/software.inc
+
+; OG vocabulary.
+files[] = handlers/og_vocab/og_vocab.inc
+
+; Users.
+files[] = handlers/user/users.inc
+
+; Taxonomy terms.
+files[] = handlers/taxonomy_terms/authors.inc
+files[] = handlers/taxonomy_terms/bilogy.inc
+files[] = handlers/taxonomy_terms/family.inc
+files[] = handlers/taxonomy_terms/math.inc
+files[] = handlers/taxonomy_terms/science.inc

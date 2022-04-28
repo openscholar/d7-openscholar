@@ -1,0 +1,14 @@
+@media (max-width: 1008px) {
+
+.region-header-third ul.nice-menu a {
+    color: #222 !important;
+}
+
+ #menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu a.active {
+    background-color: #FFF;
+ 
+}
+
+
+}

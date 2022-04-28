@@ -1,0 +1,9 @@
+name = Kirkland
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = kirkland.layout.css
+css[] = kirkland.css
+css[] = responsive.kirkland.css
+
+scripts[] = kirkland.js

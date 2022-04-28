@@ -1,0 +1,260 @@
+<?php
+include_once('iqss_projects_front.features.inc');
+
+/**
+ * Implements hook_block_info.
+ */
+function iqss_projects_front_block_info() {
+  $info = array();
+  $info['iqss_projects_front_info'] = array(
+    'info' => 'Projects Front Page Info Block',
+    'cache' => DRUPAL_CACHE_PER_USER
+  );
+  $info['iqss_projects_front_nav'] = array(
+    'info' => 'Projects Front Page Nav Block',
+    'cache' => DRUPAL_CACHE_PER_USER
+  );
+
+  return $info;
+}
+
+/**
+ * Implements hook_block_view.
+ */
+function iqss_projects_front_block_view($delta) {
+  $block = array(
+    'subject' => '',
+    'content' => array(),
+  );
+  switch ($delta) {
+    case 'iqss_projects_front_info':
+      $block['content'] = iqss_projects_front_infoblock_content();
+    break;
+    case 'iqss_projects_front_nav':
+      $block['content'] = iqss_projects_front_navblock_content();
+    break;
+  }
+
+  return $block;
+}
+
+/**
+ * Implements of hook_context_default_contexts_alter().
+ */
+function iqss_projects_front_context_default_contexts_alter(&$contexts){
+  // add some extra blocks/boxes to the 'sitewide_front'
+  if (isset($contexts['os_sitewide_front'])) {
+    $fp_blocks = &$contexts['os_sitewide_front']->reactions['block']['blocks'];
+
+    $fp_blocks['iqss_projects_front-iqss_projects_front_info'] = array(
+      'module' => 'iqss_projects_front',
+      'delta' => 'iqss_projects_front_info',
+      'weight' => -100,
+      'region' => 'content_top',
+    );
+
+    $fp_blocks['boxes-iqss_projects_fp_logoblock'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_projects_fp_logoblock',
+      'weight' => -100,
+      'region' => 'header_first',
+    );
+
+    $fp_blocks['boxes-iqss_projects_fp_features'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_projects_fp_features',
+      'weight' => 10,
+      'region' => 'content_first',
+    );
+
+    $fp_blocks['boxes-iqss_projects_fp_stats'] = array(
+      'module' => 'os_stats',
+      'delta' => 'os_stats',
+      'weight' => 10,
+      'region' => 'footer',
+    );
+
+    $fp_blocks['boxes-iqss_projects_fp_copyright'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_projects_fp_copyright',
+      'weight' => 100,
+      'region' => 'branding_footer',
+    );
+
+    $fp_blocks['iqss_projects_front-iqss_projects_front_nav'] = array(
+      'module' => 'iqss_projects_front',
+      'delta' => 'iqss_projects_front_nav',
+      'weight' => -100,
+      'region' => 'header_second',
+    );
+
+    if(isset($fp_blocks['vsite_register-get_your_site_block'])){
+      // Unset this block reaction as we're not using it on the projects site.
+      // We are using the logic of this box in another box (infoblock).
+      unset($fp_blocks['vsite_register-get_your_site_block']);
+    }
+
+    $fp_blocks['views-os_websites-block'] = array(
+      'module' => 'views',
+      'delta' => 'os_websites-block',
+      'region' => 'content_bottom',
+      'weight' => '-9',
+    );
+  }
+
+  // Add extra boxes to the os_sitewide context.
+  if (isset($contexts['os_sitewide'])) {
+    $fp_blocks = &$contexts['os_sitewide']->reactions['block']['blocks'];
+
+    // Add the projects logo.
+    $fp_blocks['boxes-iqss_projects_fp_logoblock'] = array(
+      'module' => 'boxes',
+      'delta' => 'iqss_projects_fp_logoblock',
+      'region' => 'header_first',
+      'weight' => '-10',
+    );
+
+    // Add the projects nav links.
+    $fp_blocks['iqss_projects_front-iqss_projects_front_nav'] = array(
+      'module' => 'iqss_projects_front',
+      'delta' => 'iqss_projects_front_nav',
+      'region' => 'header_second',
+      'weight' => '-10',
+    );
+  }
+}
+
+/**
+ * Implements hook_os_widget_alter().
+ */
+function iqss_projects_front_os_widget_alter(&$widget) {
+  //Keep the default box instances that this module provides from getting used sitewide
+  if($widget['module'] == 'boxes' && function_exists('iqss_projects_front_default_box')){
+    static $fp_boxes;
+    //Front Page Boxes
+    if(!isset($fp_boxes)) $fp_boxes =  iqss_projects_front_default_box();
+
+    if(isset($fp_boxes[$widget['delta']])){
+      $widget['hidden'] = true;
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ * Add the jcarousel call into the preprocess page for the projects front page
+ */
+function iqss_projects_front_preprocess_page(&$variables){
+  // Add in the jcarousel call.
+  // Make sure we're on the front page only and the jcarousel module exists.
+  if(module_exists('jcarousel')) {
+    if(drupal_is_front_page() == TRUE) {
+      jcarousel_add('os-jcarousel-skin-os_front ul',array('skin'=>'os_front'),TRUE);
+    }
+  }
+}
+
+/**
+ * Implements hook_jcarousel_skin_info().
+ * Allows us to use our own custom CSS file for the carousel skin.
+ */
+function iqss_projects_front_jcarousel_skin_info() {
+  $skins = array();
+  $skins['os_front'] = array(
+    'title' => t('OpenScholar Projects Front Page'),
+    'file' => 'carousel.css',
+  );
+  return $skins;
+}
+
+/**
+ * Function to return the contents for iqss_projects_fp_infoblock
+ */
+function iqss_projects_front_infoblock_content() {
+  global $user;
+  $vsites = vsite_get_vsite_by_owner($user->uid);
+  if (!vsite_vsite_exists_access($vsites)) {
+    if($vsites){
+      $items[] = array(
+        '#title' => ((count($vsites) > 1) ? t('Go to your sites') : t('Go to your site')),
+        '#href' => ((count($vsites) > 1) ? 'user' : $vsites[0]->get_absolute_url()),
+        '#type' => 'link',
+      );
+    } //No sites or ablility to create one
+  }else{
+    //Create a site
+    $items[] = array(
+      '#title' => ((count($vsites) >= 1) ? t('Create a site') : t('Get your website!')),
+      '#href' => 'site/register',
+      '#type' => 'link',
+    );
+  }
+
+  $image = theme('image', array('path' => drupal_get_path('theme', 'projects_harvard') . '/images/top_image.png'));
+  // Create the link.
+  $text = t('<strong>Projects at Harvard</strong> is a free web site building tool available to groups at Harvard wishing to create a site for their project. It is one of two main Harvard installations of <strong>OpenScholar</strong> and a creation of Harvard’s <em>Institute for Quantitative Social Science.</em><br><br><strong>Projects at Harvard</strong> (and the personal site-oriented <strong>Scholars at Harvard</strong>) provide simple web site creation and management with a suite of features tailored to the particular needs of academics.');
+  $block_button = drupal_render($items);
+
+  // Setup the content.
+  $block_content = '<div class="os-fp-imageholder">' . $image .'</div><div class="os-more-info">' . $text . '<div class="os-big-button">' . $block_button . '</div><div class="os-terms-of-use" target="_blank"><a href="https://hwp.harvard.edu/terms-use">OpenScholar Terms of Use</a></div></div>';
+
+  return $block_content;
+}
+
+/**
+ * Function to return the contents for iqss_pojects_fp_navblock_view
+ */
+function iqss_projects_front_navblock_content() {
+  $items = array();
+
+  global $user;
+  $items[] = array(
+    '#title' => $user -> uid ? 'Log out' : 'Log in',
+    '#href' =>  $user -> uid ? 'user/logout' : 'user',
+    '#type' => 'link',
+  );
+
+  $vsites = vsite_get_vsite_by_owner($user->uid);
+  if (!vsite_vsite_exists_access($vsites)) {
+    if ($vsites) {
+      $items[] = array(
+        '#title' => ((count($vsites) > 1) ? 'Go to your sites' : "Go to your site"),
+        '#href' => ((count($vsites) > 1) ? 'user' : $vsites[0]->get_absolute_url()),
+        '#type' => 'link',
+      );
+    } //No sites or ablility to create one
+  }
+  else {
+    //Create a site
+    $items[] = array(
+      '#title' => ((count($vsites) >= 1) ? 'Create a site' : 'Get your website!'),
+      '#href' => 'site/register',
+      '#type' => 'link',
+    );
+  }
+
+  $items[] = array(
+    '#title' => t('Need a Personal Site?'),
+    '#href' => 'http://scholar.harvard.edu',
+    '#type' => 'link',
+  );
+
+  $links = array();
+  foreach ($items as $i) {
+    $links[] = array(
+      'data' => l($i['#title'], $i['#href']),
+    );
+  }
+
+  $vars = array(
+    'items' => $links,
+    'title' => '',
+    'type' => 'ul',
+    'attributes' => array(
+      'id' => 'top-front',
+      'class' => array(),
+    )
+  );
+
+  return theme('item_list', $vars);
+}

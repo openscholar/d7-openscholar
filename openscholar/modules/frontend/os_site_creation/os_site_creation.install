@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * Revert features for site creation label update.
+ */
+function os_site_creation_update_7001() {
+  features_revert(array('os' => array('spaces')));
+}

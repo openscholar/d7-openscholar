@@ -1,0 +1,50 @@
+@import url('../../css/sidebars_outside.css');
+
+body {
+background: #91997c;
+}
+
+#header-container h1 {
+  color: #FFF;
+  }
+
+#header-container a,
+#header-container a:visited,
+#header-container h2,
+#header-container p {
+    color: #FFF;
+    }
+
+#header-container a:hover {
+    color:#FFF;
+    }
+    
+#menu-bar a, 
+#menu-bar a:visited {
+    color: #FFF;
+}
+
+#menu-bar a:hover {
+    color: #FFF;
+}
+
+.sidebar a {
+    color: #FFF;
+}
+
+.sidebar #block-os-custom-menu ul li a,
+.sidebar #block-os-primary-menu ul li a, 
+.sidebar #block-os-secondary-menu ul li a {
+color:#FFF;
+}
+
+.sidebar #block-os-custom-menu ul li a:hover,
+.sidebar #block-os-primary-menu ul li a:hover,
+.sidebar #block-os-secondary-menu ul li a:hover {
+  background-color: #FFF;
+  color:#444;
+}
+
+.sidebar h2.block-title {
+    color: #FFF;
+}

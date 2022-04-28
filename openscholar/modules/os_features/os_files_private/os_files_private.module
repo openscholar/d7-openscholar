@@ -1,0 +1,439 @@
+<?php
+
+/**
+ * @files
+ * OpenScholar files private module file.
+ */
+
+include_once('os_files_private.features.inc');
+
+define('OS_FILES_PRIVATE_PATH', "cp/content/files-private");
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_files_private_os_app_info() {
+  $apps = array();
+
+  $apps['os_files_private'] = array(
+    'path' => OS_FILES_PRIVATE_PATH,
+    'has_settings' => FALSE,
+  );
+
+  return $apps;
+}
+
+function os_files_private_menu_alter(&$items) {
+  $items['file/add/private'] = $items['file/add'];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for file_entity_add_upload.
+ *
+ * Set the URI schema to private when adding a new file via file/add.
+ *
+ * @see file_entity_add_upload()
+ */
+function os_files_private_form_file_entity_add_upload_alter(&$form, $form_state) {
+
+  $item = menu_get_item();
+  if (!($item['path'] == 'file/add/private' || $item['path'] == 'file/ajax') || !spaces_get_space()) {
+    return;
+  }
+
+  drupal_set_title('Add Private File');
+
+  // Alerts user if private file path has not been set.
+  if (!variable_get('file_private_path')) {
+    drupal_set_message(t('Unable to add private files at this time. Please contact the site administrator.'), 'warning');
+    return;
+  }
+
+  $private_upload_location = "private://" . vsite_get_purl();
+
+  if ($item['path'] == 'file/ajax'){
+    // File Ajax is used in multiple locations not all of them are used in private file uploads
+    // Check the previous form state and make sure the file location was set to private
+    if(!isset($form_state['complete form']) || $form_state['complete form']['upload']['#upload_location'] != $private_upload_location){
+      return;
+    }
+  }
+
+  $form['upload']['#upload_location'] = $private_upload_location;
+  $form['#submit'][] = 'os_files_private_form_file_entity_add_upload_submit';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for file_entity_edit.
+ *
+ * Set the default group to the current user in file/%fid/edit.
+ * @todo Use the correct field function to set the default
+ */
+function os_files_private_form_file_entity_edit_alter(&$form, &$form_state) {
+  if(module_exists('vsite')){
+    $vsite = spaces_get_space();
+    if($vsite){
+      $form['og_group_ref']['und']['0']['default']['#default_value'] = $vsite->id;
+    }
+  }
+}
+
+/**
+ * Submit handler; Redirect to Private Files listing after file upload.
+ *
+ * @see file_entity_add_upload_submit()
+ */
+function os_files_private_form_file_entity_add_upload_submit($form, &$form_state) {
+  $file = file_load($form_state['values']['upload']);
+
+  // Redirect to the file edit page after submission.
+  if (file_entity_access('update', $file)) {
+    $destination = array('destination' => OS_FILES_PRIVATE_PATH);
+    if (isset($_GET['destination'])) {
+      $destination = drupal_get_destination();
+      unset($_GET['destination']);
+    }
+    $form_state['redirect'] = array('file/' . $file->fid . '/edit', array('query' => $destination));
+  }
+  elseif (overlay_get_mode() == 'child') {
+    overlay_close_dialog();
+  }
+  else {
+    $form_state['redirect'] = 'admin/content/file';
+  }
+}
+
+/**
+ * Control access to a file.
+ *
+ * @param $op
+ *   The operation to be performed. Possible values:
+ *   - "create"
+ *   - "delete"
+ *   - "update"
+ *   - "view"
+ * @param $file
+ *   The file on which the operation is to be performed, or, if it does
+ *   not yet exist, the type of file to be created.
+ * @param $account
+ *   A user object representing the user for whom the operation is to be
+ *   performed.
+ *
+ * @return
+ *   FILE_ENTITY_ACCESS_ALLOW if the operation is to be allowed;
+ *   FILE_ENTITY_ACCESS_DENY if the operation is to be denied;
+ *   FILE_ENTITY_ACCESS_IGNORE to not affect this operation at all;
+ */
+function os_files_private_file_entity_access($op, $file, $account) {
+    $type = is_string($file) ? $file : $file->type;
+
+    if (is_object($file)) {
+      $vsite = vsite_get_vsite();
+      $sid = ($vsite) ? $vsite->group->nid : false;
+      $groups = og_get_entity_groups('file',$file);
+      if($vsite && (empty($groups['node']) || !in_array($sid, $groups['node']))) {
+        // If the file is accessed in another group, or no group deny access.
+        return FILE_ENTITY_ACCESS_DENY;
+      }
+    }
+}
+
+/**
+ * Implements hook_file_download().
+ *
+ * Checks for access rules and serves file if all rules pass.
+ */
+function os_files_private_file_download($uri) {
+  // Does nothing if the download URI is not private--
+  // Default Drupal 7 private URIs start with "/system/...".
+  // This prevents os_files_private from interfering with other modules'
+  // download hooks; like media's "Download original image" link in media
+  // gallery.
+  if (arg(0) !== 'system') {
+    return;
+  }
+
+  // Restricts all access if Private Files app is disabled.
+  if ($vsite = vsite_get_vsite()) {
+    $apps = variable_get('spaces_features');
+
+    $wrapper = entity_metadata_wrapper('node', $vsite->group);
+    // Retrieve the site privacy. We don't want to check the feature settings if this is an intranet site.
+    $site_privacy = (module_exists('vsite_access') && !empty($wrapper->{VSITE_ACCESS_FIELD}))? $wrapper->{VSITE_ACCESS_FIELD}->value():0;
+
+    if ((module_exists('vsite_access') && $site_privacy < VSITE_ACCESS_INTRANET_PRIVATE) && isset($apps['os_files_private']) && (int) $apps['os_files_private'] !== 1) {
+      return -1;
+    }
+  }
+
+  // Returns nothing if file cannot be found.
+  $fid = _os_files_private_fid_from_uri($uri);
+  if (!$fid || !($file = file_load($fid))) {
+    return;
+  }
+
+  // Getting this far means the app is enabled and the file exists.
+  // First: serves the file to site members.
+  if (_os_files_private_site_member($file)) {
+    return file_get_content_headers($file);
+  }
+
+  // If we are not in a vsite get site privacy from the file.
+  if(!$vsite){
+    $wrapper = entity_metadata_wrapper('file', $file);
+    // Restricts access if no OG audience is set.
+    if (isset($wrapper->{OG_AUDIENCE_FIELD}) && ($gid = $wrapper->{OG_AUDIENCE_FIELD}->value(array('identifier' => TRUE)))) {
+      // Load Group.
+      $group = node_load($gid[0]);
+      // Get the group privacy.
+      if($group && ($wrapper = entity_metadata_wrapper('node', $group)) && !empty($wrapper->{VSITE_ACCESS_FIELD})){
+        $site_privacy = $wrapper->{VSITE_ACCESS_FIELD}->value();
+      }
+    }
+  }
+
+  // This site is private, this is not a site member, and private file access is controlled by another module.
+  if (isset($site_privacy) && (module_exists('vsite_access') && $site_privacy > VSITE_ACCESS_INTRANET_PRIVATE)) {
+    return;
+  }
+
+  // Getting this far means the user is authenticated, but is both not a site
+  // member and is unable to login via pinserver. User is not allowed to access.
+  // Restricts access.
+  return -1;
+}
+
+/**
+ * Returns TRUE if the logged in user is a site member of the given file.
+ */
+function _os_files_private_site_member($file) {
+  if (user_access('administer group')) {
+    return TRUE;
+  }
+
+  // Default: restricts to site members only.
+  $wrapper = entity_metadata_wrapper('file', $file);
+  // Set $gid[0] to something so og_is_member() below can't complain.
+  $gid = array(NULL);
+
+  // Restricts access if no OG audience is set.
+  if (!isset($wrapper->{OG_AUDIENCE_FIELD}) || !($gid = $wrapper->{OG_AUDIENCE_FIELD}->value(array('identifier' => TRUE)))) {
+    return FALSE;
+  }
+  // Otherwise, returns TRUE if user is site member.
+  return og_is_member('node', $gid[0]);
+}
+
+/**
+ * Looks up a file's URI, returns the file ID (fid) or '' if none found.
+ */
+function _os_files_private_fid_from_uri($uri) {
+  $file = array();
+  $restrict_mode = variable_get('os_files_private_restrict_mode', 'site_members');
+  $query = new EntityFieldQuery;
+
+  $result = $query
+    ->entityCondition('entity_type', 'file')
+    ->propertyCondition('uri', $uri, '=')
+    ->addMetaData('account', user_load(1))
+    ->execute();
+
+  return isset($result['file']) ? reset(array_keys($result['file'])) : '';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for spaces_features_form.
+ *
+ * Alters the features form in the cp to remove un-needed componentes
+ */
+function os_files_private_form_spaces_features_form_alter(&$form, &$form_state, $form_id) {
+  // Only alters form if we are in the OpenScholar Control Panel context and this is an intranet install.
+  if (!context_isset('context', 'os_cp') || variable_get('file_default_scheme') != 'private') {
+    return;
+  }
+
+  //Remove this app from the features form, this is not optional for Intranet's
+  if(isset($form['spaces_features']['os_files_private'])){
+    unset($form['spaces_features']['os_files_private']);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_files_private_form_file_entity_delete_form_alter(&$form, $form_state) {
+  if (strpos($form_state['file']->uri, 'private') === 0) {
+    $form['description']['#markup'] = t('This action cannot be undone. If this file is currently in use, it may cause problems if deleted.');
+    $form['#submit'][] = 'os_files_private_redirect_after_delete_file';
+  }
+}
+
+/**
+ * When deleting a private file the user need to stay files CP.
+ */
+function os_files_private_redirect_after_delete_file($form, &$form_state) {
+  $form_state['redirect'] = 'cp/content/files-private';
+}
+
+/**
+ * Removes tabs that we don't want when we're uploading a private file
+ */
+function os_files_private_menu_local_tasks_alter(&$tasks, $router, $root) {
+  if ($root == 'file/add' || $root == 'cp/content') {
+    $tasks['tabs'][0]['count'] = 0;
+    $tasks['tabs'][0]['output'] = array();
+  }
+}
+
+/**
+ * Implements hook_stream_wrappers_alter().
+ *
+ * Used to extend the private stream wrapper.
+ *
+ * @param array $wrappers
+ */
+function os_files_private_stream_wrappers_alter(&$wrappers){
+  if (isset($wrappers['private']) && $wrappers['private']['class'] != 'OSPinserverPrivateStreamWrapper') {
+    $wrappers['private']['class'] = 'OSFilesPrivateStreamWrapper';
+  }
+}
+
+/**
+ * Implements hook_preprocess_view_view().
+ */
+function os_files_private_preprocess_views_view(&$vars) {
+  if ($vars['view']->name == 'os_files_private') {
+    os_common_angular_apps('os-files-private');
+    drupal_add_library('media', 'media_browser');
+    drupal_add_library('os_common', 'FileEditorModal');
+    drupal_add_js(drupal_get_path('module', 'os_files_private').'/apps/os_files_private.js');
+    // $vars['attributes_array']['ng-controller'] = 'CpFilesController'; Reminder to myself that this doesn't work cause Views doesn't print attributes
+  }
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ *
+ * Private files should have the direct URL and the inside router item path due
+ * to private files handling i.e Harvard PIN.
+ */
+function os_files_private_entity_view_alter(&$build, $type) {
+  if ($type != 'file') {
+    return;
+  }
+
+  $file = $build['#file'];
+
+  if (strpos($file->uri, 'private://') !== 0) {
+    // Not a private file. Return.
+    return;
+  }
+
+  $build['file']['file-info']['title']['#path'] = file_create_url($file->uri);
+}
+
+/**
+ * Implements hook_cp_settings().
+ */
+function os_files_private_cp_settings() {
+
+  $settings = array();
+  $spaces_features = variable_get('spaces_features');
+
+  // The app won't appear in CP menu if not enabled.
+  if (empty($spaces_features['os_files_private'])) {
+    return $settings;
+  }
+
+  // Checks that the current vsite has a value for the pinserver app name
+  // variable.
+  $pinserver_app_name = variable_get('pinserver_app_name', NULL);
+
+  // Private Files settings link won't appear in CP menu if Private files app is
+  // not enabled and pinserver app name is not setup.
+  if (!$pinserver_app_name) {
+    return $settings;
+  }
+
+  $settings['os_files_private_pinserver'] = array(
+    'group' => array(
+      '#id' => 'feature_os_files_private',
+      '#title' => t('Private Files'),
+      '#weight' => 3,
+      '#menu_parent' => 'app_settings',
+      '#help_link' => l(t('Learn more about private files'), 'https://help.theopenscholar.com/private-files#setting-options', array('attributes' => array('target' => '_blank'))),
+    ),
+    'form' => array(
+      '#title' => t('Extend access to the Harvard Community'),
+      '#description' => t('This will enable anyone with a valid Harvard ID to log in using the Harvard Pinserver to access your private files. You must have a custom domain and pin application to choose this setting.'),
+      '#type' => 'checkbox',
+      '#default_value' => variable_get('os_files_private_pinserver', 0),
+      '#weight' => -1,
+      '#prefix' => '<label class="margin-bottom settings-form-heading">Private files are only accessible to your site members.</label>',
+      '#disabled' => !(user_access('administer pinserver') && variable_get('vsite_domain_name', FALSE)),
+      '#access' => module_exists('spaces') ? spaces_access_admin() : user_access('administer site configuration'),
+    ),
+    'rest_after_submit' => 'os_pinserver_auth_vsite_private_file_settings_submit',
+  );
+
+  // Allows administrators only to edit pinserver app name in spaces_overrides if they have a custom domain.
+  $pinserver_app_name_access = FALSE;
+  if (user_access('administer pinserver') && variable_get('vsite_domain_name', FALSE)) {
+    $pinserver_app_name_access = module_exists('spaces') ? spaces_access_admin() : user_access('administer site configuration');
+  }
+    $settings['pinserver_app_name'] = array(
+      'group' => array(
+        '#id' => 'feature_os_files_private',
+        '#title' => t('Private Files'),
+        '#weight' => 3,
+        '#menu_parent' => 'app_settings',
+        '#help_link' => l(t('Learn more about private files'), 'https://help.theopenscholar.com/private-files#setting-options', array('attributes' => array('target' => '_blank'))),
+      ),
+      'form' => array(
+        '#title' => t('Harvard PIN server application name'),
+        '#description' => t('Enter the application name given to you by Harvard Directory Services.'),
+        '#type' => 'textfield',
+        '#default_value' => variable_get('pinserver_app_name', ''),
+        '#weight' => -1,
+        '#access' => $pinserver_app_name_access,
+      ),
+      'rest_after_submit' => 'os_pinserver_auth_vsite_private_file_settings_submit',
+    );
+  return $settings;
+}
+
+/**
+ * Process private file settings for a vsite.
+ */
+function os_pinserver_auth_vsite_private_file_settings_submit($value, $var) {
+  $vsite = spaces_get_space();
+  if(!$vsite) {
+    return;
+  }
+
+  $domain_pin_apps = variable_get('os_fastpath_domain_pinapps', array());
+
+  $vsite_domain = FALSE;
+  if (variable_get('vsite_domain_name', FALSE)) {
+    $vsite_domain = 'http://' . variable_get('vsite_domain_name', FALSE);
+  }
+
+  // Set or Unset a custom pinserver app.
+  if($var == 'pinserver_app_name' && $value && $value != $vsite->controllers->variable->get('pinserver_app_name', 'original')) {
+    // The pinserver domain should match the site's custom domain.
+    $vsite->controllers->variable->set('os_pinserver_custom_domain', $vsite_domain);
+    //Store pin settings for this domain for use on the os_fast callback outside a space.
+    $domain_pin_apps[$vsite_domain]['pinserver_app_name'] = $value;
+    $domain_pin_apps[$vsite_domain]['os_pinserver_custom_domain'] = $vsite_domain;
+  } elseif ($var == 'os_files_private_pinserver') {
+    $domain_pin_apps[$vsite_domain]['os_files_private_pinserver'] = $value;
+  } else {
+    // Remove the custom pinserver domain if they do not have their own app.
+    $vsite->controllers->variable->del('os_pinserver_custom_domain');
+    if (isset($domain_pin_apps[$vsite_domain])) {
+      unset($domain_pin_apps[$vsite_domain]);
+    }
+  }
+
+  variable_set('os_fastpath_domain_pinapps', $domain_pin_apps);
+}

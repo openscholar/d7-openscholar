@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<rss version="2.0">
+  <channel>
+    <title>Barack Hussein Obama II news</title>
+    <link>http://en.wikipedia.org/wiki/Barack_Obama</link>
+    <description>News about Barack Obama</description>
+
+    <item>
+      <category>General</category>
+      <title>Four more years is the most re-tweeted tweet</title>
+      <description>With more then 700,000 re-tweets this is the most re-tweeted tweet.</description>
+      <link>http://mashable.com/2012/11/07/obama-four-more-years-tweet/</link>
+      <pubDate>07 Nov 2012</pubDate>
+      <guid>http://mashable.com/2012/11/07/obama-four-more-years-tweet/</guid>
+    </item>
+  </channel>
+</rss>

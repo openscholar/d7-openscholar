@@ -1,0 +1,94 @@
+body {
+color:#37352B;
+background: url('images/bodyBg.png') repeat-x scroll 0px -1px #EFEFEF;
+ }    
+ 
+ body.logged-in {
+color:#37352B;
+background: url('images/bodyBg.png') repeat-x scroll 0px 45px #EFEFEF;
+ }   
+
+/* TYPOGRAPHY*/
+.biblio-title a, .biblio-title-chicago a,
+#content a, #content a:visited {
+    color:#8D3129;
+  }
+
+#content a:hover {
+color:#2a547e;
+     }
+    
+.sidebar .content h1 a {color:#2a548d;}
+.sidebar .content h1 a:hover {color:#2a548d;}
+
+.sidebar h3.title {
+border-bottom: 2px solid #8D3129;
+ }
+
+.sidebar li a:hover {
+  color: #2a548d;
+}
+  
+.biblio-title a, .biblio-title-chicago a {
+    color:#2a548d;
+   }
+
+.more-link a {
+	color:#2a548d;
+ }
+
+/**
+ * body.node-inner added to apply this to wysiwyg as well
+ */ 
+.node-inner .content ul li,
+body.node-inner ul li {
+   list-style-image:url('images/arrowBullet.gif');color:#2a548d;
+}
+
+body.front #content-top h3.title, body.front #content-bottom h3.title, body.front #content-right h3.title, body.front #content-left h3.title {
+border-top: 2px solid #8D3129;
+	}
+	
+body.front #content-left ul li.views-row,
+body.front #content-right ul li.views-row,
+body.front #content-top ul li.views-row,
+body.front #content-bottom ul li.views-row
+ {background:url('images/frontPgBulletsBlue.png') no-repeat;padding-left:12px;}	
+
+/* LAYOUT ELEMENTS */
+
+#header-container {
+	 background: url('images/headerBg.png') repeat-x;
+	 background-color: #013E73;
+ }
+ 
+/**** NAVIGATION ELEMENTS ****/
+#menu-bar li a:hover,
+#menu-bar li.active-trail a {
+  background: #78A0D7;
+}
+
+#menu-bar li a.active,
+#menu-bar li.active-trail a {
+  background: #78A0D7;
+}
+
+  #sidebar-first #block-vsite_menus-features  .content ul.menu li  a
+   {
+    color: #8D3129; }
+  
+#sidebar-second #block-vsite_menus-features  .content ul.menu li  a
+ {
+   color: #8D3129; }
+  
+   /**** CALENDAR ELEMENTS ****/
+#content .view-scholar-events div.litecal .litecal-title ul.links li, #content .view-scholar-events div.litecal .litecal-title ul.links li a {
+ background:#8D3129;
+}
+ 
+ 
+ 
+ 
+ 
+ 
+

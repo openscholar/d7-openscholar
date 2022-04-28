@@ -1,0 +1,14 @@
+name = OS restful
+description = Managing integration between OpenScholar and Restful
+core = 7.x
+
+dependencies[] = restful
+dependencies[] = restful_token_auth
+
+files[] = plugins/restful/OsRestfulEntityCacheableBase.php
+files[] = includes/OsNodeRestfulBase.php
+files[] = includes/OsObjectValidate.php
+files[] = includes/OsRestfulDataProvider.php
+files[] = includes/OsRestfulReports.php
+files[] = includes/OsRestfulSpaces.php
+files[] = includes/OSRestfulCPMenu.php

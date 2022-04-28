@@ -1,0 +1,447 @@
+<?php
+
+/**
+ * Define group access
+ */
+// Publicly avalible and Indexed
+define('VSITE_ACCESS_PUBLIC', 0);
+// Temporarially Private, access restricted to logged in users. Files Public.
+define('VSITE_ACCESS_PRIVATE', 1);
+// Public and accesible but in ulisted/indexed.
+define('VSITE_ACCESS_UNINDEXED', 2);
+// Perminantly Private, access restricted to logged in users. All files Private.
+define('VSITE_ACCESS_INTRANET_PRIVATE', 3);
+
+/**
+ * Implements hook_views_api().
+ */
+function vsite_access_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'vsite_access'),
+  );
+}
+
+
+/**
+ * Implements hook_views_pre_view().
+ *
+ * After we have determined that we are not in an OG space lets make
+ * sure we add our filters.
+ */
+function vsite_access_views_pre_view(&$view, &$display_id, &$args){
+  if (arg(0) === 'admin' || $space = spaces_get_space()) {
+    //If we are not in a vsite, add our filter, inside a vsite we can restrict
+    // access without filters overhead
+    return;
+  }
+
+  if ($group_filter = $view->get_item($display_id, 'filter', VSITE_ACCESS_FIELD.'_value')) {
+    //If the group filter is already present there is no need to do anything
+    return;
+  }
+
+  $table = $view->base_table;
+  if (!in_array($table, array('node'))) {
+    return;
+  }
+
+  if (!$view->get_item($display_id, 'relationship', 'og_membership_rel')) {
+    // Add the Relationship to the node table.
+    $view->add_item($display_id, 'relationship', $table, 'og_membership_rel');
+  }
+
+  if (!$view->get_item($display_id, 'relationship', 'og_membership_related_node_group')) {
+    // Add the Relationship from the OG-membership to the group node.
+    $view->add_item($display_id, 'relationship', 'og_membership', 'og_membership_related_node_group', array('relationship' => 'og_membership_rel'));
+  }
+
+  $group_filter = array(
+    'id' => 'group_access_value',
+    'table' => 'field_data_group_access',
+    'field' => 'group_access_value',
+    'group_type' => 'group',
+    'operator' => 'in',
+    'group' => '1',
+    'exposed' => false,
+    'relationship' => 'og_membership_related_node_group',
+    'value' => array(VSITE_ACCESS_PUBLIC => VSITE_ACCESS_PUBLIC),
+  );
+
+  // Add the filter for group access field.
+  $view->set_item($display_id, 'filter', VSITE_ACCESS_FIELD.'_value', $group_filter);
+}
+
+/**
+ * Add additional lines to a site's robots.txt file.
+ *
+ * @return
+ *   An array of strings to add to the robots.txt.
+ */
+function vsite_access_robotstxt() {
+  global $base_url;
+
+  $robots_settings = variable_get('vsite_access_robotstxt_directives', array());
+  $host = parse_url($base_url, PHP_URL_HOST);
+  if (isset($robots_settings[$host])) {
+    return $robots_settings[$host];
+  }
+}
+
+/**
+ * Implements hook_node_access().
+ */
+function vsite_access_node_access($node, $op, $account) {
+  $type = is_string($node) ? $node : (is_array($node) ? $node['type'] : $node->type);
+  $vsite = vsite_get_vsite();
+
+  // Handle access to Group Content
+  if (og_is_group_content_type('node', $type) && $op == 'view') {
+     // When trying to view group content, check the privacy of the site.
+     if ($vsite && is_object($vsite->group) && !og_is_group_content_type('node', $vsite->group->type) && !node_access('view', $vsite->group, $account)) {
+       return NODE_ACCESS_DENY;
+    }
+    return NODE_ACCESS_IGNORE;
+  }
+
+  // Handle access to groups if this is a existing group node.
+  if (!is_string($node) && og_is_group_type('node', $type) && isset($node->nid)) {
+    $wrapper = entity_metadata_wrapper('node', $node);
+
+    if (!empty($wrapper->{VSITE_ACCESS_FIELD})) {
+      switch ($wrapper->{VSITE_ACCESS_FIELD}->value()) {
+        case VSITE_ACCESS_INTRANET_PRIVATE:
+        case VSITE_ACCESS_PRIVATE:
+          // Private group.
+          if (!user_access('administer group') && !og_is_member('node', $node->nid, 'user', $account)) {
+            // They are not a member, deny access
+            return NODE_ACCESS_DENY;
+          }
+          break;
+
+        case VSITE_ACCESS_PUBLIC:
+        case VSITE_ACCESS_UNINDEXED:
+        default:
+          return NODE_ACCESS_IGNORE;
+      }
+    }
+  }
+}
+
+/**
+ * Return available privacy types.
+ *
+ * @return array $options
+ *   An indexed array with constant values as keys, and string descriptions.
+ */
+function vsite_access_privacy_available_values() {
+
+  // Provides short human-friendly labels for the different options.
+  if(variable_get('file_default_scheme', 'public') == 'private'){
+    $options = array(
+	    VSITE_ACCESS_INTRANET_PRIVATE => t('Private by Invite'),
+	  );
+  }else{
+	  $options = array(
+	    VSITE_ACCESS_PUBLIC => t('Public on the web'),
+	    VSITE_ACCESS_UNINDEXED => t('Anyone with the link'),
+	    VSITE_ACCESS_PRIVATE => t('Site members only'),
+	  );
+  }
+
+  // Otherwise, formats a second row of descriptive text if verbose is TRUE.
+  // Note: This text is to be displayed on the site register form.
+  // @fixme Labels shouldn't contain a period at the end.
+  // Once this function has the option to return just labels, vs. labels AND
+  // descriptions, the period should be removed from the label-only return vals.
+  $prefix = '. <br><span class="description">';
+  $suffix = '</span>';
+  $descriptions = array(
+    VSITE_ACCESS_PUBLIC => t('Anyone on the Internet can view your site. Your site will show in search results. No sign-in required.'),
+    VSITE_ACCESS_UNINDEXED => t('Anyone who has the URL to your site can view your site. Your site will not be indexed by search engines.'),
+    VSITE_ACCESS_PRIVATE => t('This setting can be useful during site creation. Your site will not be indexed by search engines.'),
+    VSITE_ACCESS_INTRANET_PRIVATE => t('Perminantly private, only people explicitly granted permission can access. Sign-in required.'),
+  );
+
+  // Adds the description and markup to each of the option labels.
+  foreach ($descriptions as $option => $description) {
+    if (isset($options[$option])) {
+      $options[$option] .= $prefix . $description . $suffix;
+    }
+  }
+
+  drupal_alter('vsite_access_privacy_values', $options);
+
+  return $options;
+}
+
+/**
+ * Implements hook_og_fields_info().
+ */
+function vsite_access_og_fields_info() {
+
+  $items[VSITE_ACCESS_FIELD] = array(
+    'type' => array('group'),
+    'description' => t('Determine site privacy.'),
+    // Private access can be done only on node entity.
+    'entity' => array('node'),
+    'field' => array(
+      'field_name' => VSITE_ACCESS_FIELD,
+      'no_ui' => TRUE,
+      'type' => 'list_integer',
+      'cardinality' => 1,
+      'settings' => array('allowed_values' => array(), 'allowed_values_function' => 'vsite_access_privacy_available_values'),
+    ),
+    'instance' => array(
+      'label' => t('Site visibility'),
+      'required' => TRUE,
+      // Default to public.
+      'default_value' => array(0 => array('value' => VSITE_ACCESS_PUBLIC)),
+      'widget_type' => 'options_buttons',
+      'view modes' => array(
+        'full' => array(
+          'label' => 'above',
+          'type' => 'list_default',
+        ),
+        'teaser' => array(
+          'label' => 'above',
+          'type' => 'list_default',
+        ),
+      ),
+    ),
+  );
+
+  return $items;
+}
+
+/**
+ * Act on the save of the privacy setting
+ */
+function vsite_access_update_privacy_settings($group) {
+
+  $wrapper = entity_metadata_wrapper('node', $group);
+  $privacy = $wrapper->{VSITE_ACCESS_FIELD}->value();
+
+  // Updates Robots.txt
+  vsite_access_update_robots($group, $privacy);
+}
+
+/**
+ * Updates robots.txt settings variable 'vsite_access_robotstxt_directives'.
+ *
+ * @see vsite_access_robotstxt()
+ */
+function vsite_access_update_robots($group, $privacy) {
+  global $base_url;
+
+  // Loads space and vsite variables.
+  $gid = $group->nid;
+  $vsite = vsite_get_vsite($gid);
+  $purl = $vsite->group->purl;
+
+  // The variable $directives is an array keyed by domain name,
+  // with one array key for the purl base domain,
+  // and an additional key for each vsite custom domain.
+  // The array holds a sorted (ksort) list of robots.txt directives
+  // which are added to that domain's robots.txt file.
+  $directives = variable_get('vsite_access_robotstxt_directives', array());
+  $base_domain = parse_url(variable_get('purl_base_domain', $base_url), PHP_URL_HOST);
+  $vsite_domain = $vsite->controllers->variable->get('vsite_domain_name');
+
+  // Checks if this site has a group domain.
+  $has_custom_domain = FALSE;
+  if ($vsite_domain) {
+    // Ensures that we're working with a host, not a host + path.
+    $host = parse_url($vsite_domain, PHP_URL_HOST);
+    $path = parse_url($vsite_domain, PHP_URL_PATH);
+    $shared_domain = (bool) (!empty($host) && !empty($path));
+    if ($shared_domain) {
+      $vsite_domain = $host;
+    }
+    if ($vsite_domain != $base_domain) {
+      $has_custom_domain = TRUE;
+    }
+  }
+
+  // Disallows robots in sites with privacy settings greater than public.
+  $disallow_purl = (bool) $privacy > VSITE_ACCESS_PUBLIC;
+  if ($disallow_purl) {
+    // Undoes any previous Allow directives (see below).
+    if ($has_custom_domain && isset($directives[$vsite_domain]["Allow $gid"])) {
+      unset($directives[$vsite_domain]["Allow $gid"]);
+    }
+    // Does not index if the site is not public.
+    // Adds dissallow for base_domain.
+    $directives[$base_domain][$gid] = "Disallow: /$purl/";
+
+    // Adds Disallow for group domain indexing.
+    if ($has_custom_domain) {
+      $directives[$vsite_domain][$gid] = "Disallow: /$purl/";
+    }
+
+    // Disallows custom domain indexing.
+    $vsite->controllers->variable->set('robotstxt', "User-agent: *\nDisallow: /");
+  }
+  // Otherwise, this vsite is publicly indexed.
+  // Only excludes other vsite's files directories from robotstxt.
+  else {
+    // Undoes any previous private vsite settings (see above).
+    // Unsets any Disallow directives for this vsite.
+    if (isset($directives[$base_domain][$gid])) {
+      unset($directives[$base_domain][$gid]);
+    }
+    if ($has_custom_domain && isset($directives[$vsite_domain][$gid])) {
+      unset($directives[$vsite_domain][$gid]);
+    }
+    // Deletes any custom domain indexing stored in variable 'robotstxt'.
+    $vsite->controllers->variable->del('robotstxt');
+
+    // Also hides other vsites from any custom domain for this vsite.
+    if ($has_custom_domain) {
+      // Ensures that the array for this domain's directives exists.
+      if (!isset($directives[$vsite_domain])) {
+        $directives[$vsite_domain] = array();
+      }
+      // Uses Allow and Disallow directive to hide only other vsite's files.
+      // First, makes an exception to override the Disallow and include this site.
+      // Then, excludes all individual sites' files directories based on pattern.
+      // The major search engines support this ability to override Allow.
+      // @see http://en.wikipedia.org/wiki/Robots_exclusion_standard#Allow_directive
+      $allow_this_site = "Allow: /files/$purl/files";
+      $disallow_others = "Disallow: /files/*/files";
+      $directives[$vsite_domain]["Allow $gid"] = $allow_this_site;
+      $directives[$vsite_domain]["Disallow others"] = $disallow_others;
+    }
+  }
+
+  // Sorts the the custom domain directives by key, so that the precedence is:
+  // 1. Disallow /$purl/ (for any private sites on this domain, keyed by ID)
+  // 2. Allow /files/$purl/files (for each public site, keyed by "Allow ID")
+  // 3. Disallow /files/*/files (only one entry, keyed by "Disallow others")
+  if ($has_custom_domain) {
+    ksort($directives[$vsite_domain]);
+  }
+  // Saves robots changes.
+  variable_set('vsite_access_robotstxt_directives', $directives);
+}
+
+/**
+ * Implements hook_field_attach_insert().
+ */
+function vsite_access_field_attach_insert($entity_type, $entity) {
+  if ($entity_type == 'node' && vsite_get_type_from_bundle($entity->type) == 'group') {
+    vsite_access_update_privacy_settings($entity);
+  }
+}
+
+/**
+ * Implements hook_field_attach_update().
+ */
+function vsite_access_field_attach_update($entity_type, $entity) {
+  if ($entity_type == 'node' && vsite_get_type_from_bundle($entity->type) == 'group') {
+    vsite_access_update_privacy_settings($entity);
+  }
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function vsite_access_node_delete($node) {
+  global $base_url;
+
+  // Only continues to modify robotstxt settings for group type nodes.
+  if (!og_is_group_type('node', $node->type)) {
+    return;
+  }
+
+  // Loads the existing directives and assumes no changes will be made.
+  $directives = variable_get('vsite_access_robotstxt_directives', array());
+  $modified = FALSE;
+
+  // Deletes any reference to this site in the base domain array.
+  $base_domain = parse_url(variable_get('purl_base_domain', $base_url), PHP_URL_HOST);
+  if ($base_domain) {
+    if (isset($directives[$base_domain][$node->nid])) {
+      unset($directives[$base_domain][$node->nid]);
+      $modified = TRUE;
+    }
+  }
+
+  // Additional checks if there is a custom domain on this vsite.
+  $vsite = vsite_get_vsite($node->nid);
+  $vsite_domain = $vsite->controllers->variable->get('vsite_domain_name');
+  if (!empty($vsite_domain)) {
+    // Deletes any reference to this site in the custom vsite domain array.
+    if (isset($directives[$vsite_domain]["Allow $node->nid"])) {
+      unset($directives[$vsite_domain]["Allow $node->nid"]);
+      $modified = TRUE;
+    }
+    // Additionally, if there is only one more directive left, and it is
+    // "Disallow others", then we can delete this entire sub-array.
+    $single_directive = sizeof($directives[$vsite_domain] === 1);
+    $disallow_others = isset($directives[$vsite_domain]['Disallow others']);
+    if ($single_directive && $disallow_others) {
+      unset($directives[$vsite_domain]);
+      $modified = TRUE;
+    }
+  }
+
+  // Saves any changes that were made to the variable table.
+  if ($modified) {
+    variable_set('vsite_access_robotstxt_directives', $directives);
+  }
+}
+
+/**
+ * Stores flag
+ */
+function _vsite_access_denied($is_it = false) {
+  $denied = &drupal_static(__FUNCTION__, false);
+
+  return $denied = $denied || $is_it;
+}
+
+/**
+ * Implements hook_vsite_access_denied().
+ *
+ * Sets flag that the vsite is denying access
+ */
+function vsite_access_vsite_access_denied($vsite) {
+  _vsite_access_denied(true);
+}
+
+/**
+ * Implements hook_page_alter().
+ *
+ * Changes the Access Denied message when attempting to access a private vsite
+ */
+function vsite_access_page_alter(&$page) {
+  if (_vsite_access_denied()) {
+    drupal_set_title('Private Site');
+    $msg = array(
+      '#markup' => t('This is a private site. You must be a member of this site to view it. <br />If you are a member, you can ').
+        l('login here', 'user').'.',
+    );
+    drupal_set_page_content($msg);
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Sets $is_front to false when access is denied.
+ * A bunch of things don't get rendered when $is_front is true, so we force it to be false here
+ */
+function vsite_access_preprocess_page(&$vars) {
+  if (_vsite_access_denied()) {
+    $vars['is_front'] = false;
+  }
+}
+
+/**
+ * Implements hook_cp_settings_alter().
+ */
+function vsite_access_cp_settings_alter(&$settings, &$form_state) {
+  // Notify Drupal where the validate and submit handlers are located.
+  $form_state['build_info']['files'][] = drupal_get_path('module', 'vsite_access') . '/vsite_access.cp.inc';
+}

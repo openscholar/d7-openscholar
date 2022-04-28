@@ -1,0 +1,86 @@
+<?php
+
+/**
+ * @file
+ * os_restful.install
+ */
+
+/**
+ * Implements hook_install().
+ */
+function os_restful_install() {
+  variable_set('restful_enable_users_resource', FALSE);
+
+  if (!db_field_exists('file_managed', 'changed')) {
+    db_add_field('file_managed', 'changed', array(
+      'description' => 'UNIX timestamp for when the file was added.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ));
+  }
+}
+
+function os_restful_schema() {
+  $tables = array();
+  $tables['entities_deleted'] = array(
+    'description' => t('Keeps track of all entities of note that have been deleted in the past 30 days'),
+    'fields' => array(
+      'entity_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'deleted' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'extra' => array(
+        'description' => 'Serialized array of any additional information we should know about',
+        'type' => 'text',
+        'not null' => TRUE,
+      )
+    )
+  );
+
+  return $tables;
+}
+
+function os_restful_schema_alter(&$schema) {
+  $schema['file_managed']['fields']['changed'] = array(
+    'description' => 'UNIX timestamp for when the file was added.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+
+  $schema['file_managed']['indexes']['changed'] = array('changed');
+}
+
+/**
+ * Adds 'changed' row to file_managed table, and new table to track entity deletions
+ */
+function os_restful_update_7001() {
+  drupal_install_schema('os_restful');
+
+  db_add_field('file_managed', 'changed', array(
+    'description' => 'UNIX timestamp for when the file was added.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_add_index('file_managed', 'changed', array('changed'));
+}

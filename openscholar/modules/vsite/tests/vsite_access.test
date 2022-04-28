@@ -1,0 +1,133 @@
+<?php
+/**
+ * Basic tests for OS Pages.
+ */
+class VsiteAccessTest extends OSProfileTestCase {
+
+  // The profile to install as a basis for testing.
+  protected $profile = 'openscholar';
+
+  //Load all of the profile modules, needed since one may effect access
+  protected $load_all_modules = true;
+
+  //A user that is a member of group2
+  protected $user1;
+
+	//A Vsite with purl group1
+  protected $group_1;
+
+  //A Vsite with purl group2
+  protected $group_2;
+
+  //A Link that is group content for group1
+  protected $group_1_link;
+
+  /**
+   * Test info.
+   */
+  public static function getInfo(){
+    return array(
+        'name' => t('Vsite: Access'),
+        'description' => t('Test Access senarios for multi-tenant sites.'),
+        'group' => t('vsite')
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp(){
+  	parent::setUp('purl', 'spaces', 'og', 'spaces_og', 'os_links','vsite','vsite_domain');
+
+    // Create a user with access to add a link
+    $this->user1 = $this->drupalCreateUser(array('create link content'));
+
+    //Create A Group Node
+    $group1 = array(
+        'title' => 'My Test Site',
+        'type' => 'personal',
+        'purl' => 'group1',
+    );
+    $this->group_1 = $this->drupalCreateNode($group1);
+
+    //Create A Group Node
+    $group2 = array(
+        'title' => 'Group 2',
+        'type' => 'personal',
+        'purl' => 'group2',
+        'uid' => $this->user1->uid,
+    );
+    $group2[OG_GROUP_FIELD][LANGUAGE_NONE][0]['value'] = 1;
+    $this->group_2 = $this->drupalCreateNode($group2);
+
+    //Create Group1 Link Node
+    $link_node = array(
+        'title' => 'Group 1 Link',
+        'type' => 'link',
+        OG_GROUP_FIELD => $this->group_1->nid
+    );
+    $this->group_1_link = $this->drupalCreateNode($link_node);
+  }
+
+  /**
+   * Run Node Access Tests
+   */
+  public function testAccessNode(){
+
+  	/**
+  	 * As an Anon User
+  	 */
+
+    $url = url('node/'.$this->group_1_link->nid);
+    // Test that page returns 301 Redirect
+    $this->drupalGet($url);
+    $this->assertResponse(301, "A link node is viewed from outside a space, Redirect into space expected.");
+
+    //Deeplink
+    $url = url('group1/node/'.$this->group_1_link->nid);
+    // Test that page returns 200
+    $this->drupalGet($url);
+    $this->assertResponse(200, "A link node is viewed within a space, Valid Response expected.");
+
+    //Add A Link
+    $url = url('node/add/link');
+    // Test that page returns 403 Access Denied
+    $this->drupalGet($url);
+    $this->assertResponse(403, "Adding a link when not in a space, Expect to be denided since this is space content, and the user does not have access.");
+
+    //Add A Link
+    $url = url('group1/node/add/link');
+    // Test that page returns 403 Access Denied
+    $this->drupalGet($url);
+    $this->assertResponse(403, "Adding a link when in a space and logged out, Expect to be denied access since you are not logged in.");
+
+    /**
+     * Logged in as 'user1' with membership to group2 but not group1
+     */
+
+    // Login as user with access to add a link
+		$this->drupalLogin($this->user1);
+
+		//Add A Link
+    $url = url('node/add/link');
+    // Test that page returns 403 Access Denied
+    $this->drupalGet($url);
+    $this->assertResponse(403, "Adding a link when not in a space and logged in, Expect to be denided since this is space content.");
+
+    //Add A Link
+    $url = url('group1/node/add/link');
+    // Test that page returns 403 Access Denied
+    $this->drupalGet($url);
+    $this->assertResponse(403, "Adding a link when in a space, logged in, but not a site member, Expect to be denied access since you are not a member.");
+
+    // Assert the user is a group member.
+    $this->assertTrue(og_is_member('node', $this->group2->nid, 'user', $this->user1), t('Sanity check to make sure web_user was added as a group member.'));
+
+    //Add A Link
+    $url = url('group2/node/add/link');
+    // Test that page returns 200 OK
+    $this->drupalGet($url);
+    $this->assertResponse(403, "Adding a link when in a space, logged in, and a site member, Expect to be granted access since this is space content.");
+
+  }
+}

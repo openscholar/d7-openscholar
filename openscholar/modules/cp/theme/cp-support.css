@@ -1,0 +1,31 @@
+/* CSS for cp/support page */
+
+/* GetSatisfaction appends its iframe to a div rather than replacing.  To hide a loading
+ * gif, set display: none on all items in the div.  Then show the last item in the div.
+ * At first that will be the loading span, then it will be the iframe.
+ */ 
+ 
+.getsat-widget > * {
+	display: none;
+}
+
+/* always show the last item, which is either the throbber or the iframe */
+.getsat-widget > *:last-child {
+	display: block;
+}
+
+/* always show the description */
+.getsat-widget > *:first-child {
+  display: block;
+}
+
+.getsat-widget {
+	width: 800px;
+  margin: 0 auto;
+}
+
+.getsat-widget > span.gsfn-loading {
+	font-size: 16pt;
+	text-align: center;
+  margin: 0 auto;
+}

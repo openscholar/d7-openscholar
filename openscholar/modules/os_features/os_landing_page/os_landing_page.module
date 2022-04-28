@@ -1,0 +1,45 @@
+<?php
+ 
+/**
+ * Implements hook_menu()
+ */
+function os_landing_page_menu() {
+  $items = array();
+  $items['os/frontpage'] = array(
+    'page callback' => 'os_landing_page',
+    'access callback' => TRUE,
+    'file' => 'frontpage.inc',
+    'file path' => drupal_get_path('module', 'os_landing_page').'/includes',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function os_landing_page_theme($existing, $type, $theme, $path) {
+  $path = drupal_get_path( 'module', 'os_landing_page');
+  return array(
+    'os_landing_page_template' => array(
+      'template' => 'os_landing_page',
+      'variables' => array(),
+      'path' => $path . '/templates',
+    ),
+  );
+}
+
+/**
+ * Implements hook_css_alter().
+ */
+function os_landing_page_css_alter(&$css) {
+  global $user;
+  $args = arg();
+  if($user->uid == 0 && $args[0] == 'os' && $args[1] == 'frontpage'){
+    $path = path_to_theme();
+    foreach($css as $key => $file){
+      if (strpos($key, $path) !== false) {
+        unset($css[$key]);
+      }
+    }
+  }
+}

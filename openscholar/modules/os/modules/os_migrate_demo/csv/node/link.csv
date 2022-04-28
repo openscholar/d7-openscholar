@@ -1,0 +1,7 @@
+ID,Title,Body,Link,Site,Terms,UID
+link1,JFK wikipedia page,John F. kennedy wikipedia page.,http://en.wikipedia.org/wiki/John_F._Kennedy,personal1,ScienceTerm1|ScienceTerm2|ScienceTerm3,user2
+link2,Lou gehrig,Lou gehrig wikipedia page.,http://en.wikipedia.org/wiki/Lou_Gehrig,project1,,user2
+link3,A.L.S wikipedia page,A.L.S wikipedia page,http://en.wikipedia.org/wiki/Amyotrophic_lateral_sclerosis,project1,,user2
+link4,The white hose,The white house home page,http://www.whitehouse.gov/,personal2,,user2
+link5,Barak obama,Barak obama wikipedia page,http://en.wikipedia.org/wiki/Barak_obama,personal2,,user2
+link6,Marilyn Monroe,Marilyn Monroe wikipedia page,http://en.wikipedia.org/wiki/Marilyn_Monroe,personal1,ScienceTerm2,user2

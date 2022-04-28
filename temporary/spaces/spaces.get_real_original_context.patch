@@ -1,0 +1,23 @@
+diff --git a/modules/contrib/spaces/spaces.overrides.inc b/modules/contrib/spaces/spaces.overrides.inc
+index aad54c0..5448ef9 100644
+--- a/modules/contrib/spaces/spaces.overrides.inc
++++ b/modules/contrib/spaces/spaces.overrides.inc
+@@ -6,12 +6,18 @@
+ function spaces_context_load_alter(&$context) {
+   $space = spaces_get_space();
+   if ($space) {
++    // some values we need to set to prevent later overwrites are protected
++    $space->controllers->context->get(null, 'original');
+     foreach (array_keys(context_reactions()) as $plugin) {
++      // overwrite with true original values
++      $space->controllers->context->values['original']["{$context->name}:reaction:{$plugin}"] = $context->reactions[$plugin];
++      // now get from space
+       $override = $space->controllers->context->get("{$context->name}:reaction:{$plugin}");
+       if (!is_null($override)) {
+         $context->reactions[$plugin] = $override;
+       }
+     }
++
+   }
+ }
+ 

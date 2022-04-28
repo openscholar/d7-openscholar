@@ -1,0 +1,22 @@
+diff --git a/twitter_pull.class.inc b/twitter_pull.class.inc
+index bfb1c17..d646e45 100644
+--- a/twitter_pull.class.inc
++++ b/twitter_pull.class.inc
+@@ -57,7 +57,7 @@ class twitter_puller {
+     elseif ($prefix == "@") {
+       $key = drupal_substr($this->twitkey, 1);
+       $url = 'https://api.twitter.com/1.1/statuses/user_timeline.json';
+-      $query = "?screen_name=${key}&count=${num}&include_rts=1";
++      $query = "?screen_name=${key}&count=${num}&include_rts=false";
+     }
+     // if the first character is ~, then consider the key a favorites feed
+     elseif ($prefix == "~") {
+@@ -71,7 +71,7 @@ class twitter_puller {
+         $num = 100;
+       }
+       $url = 'https://api.twitter.com/1.1/search/tweets.json';
+-      $query = '?q=' . urlencode($this->twitkey) ."&include_entities=true&count=${num}";
++      $query = '?q=-filter:retweets+' . urlencode($this->twitkey) ."&include_entities=true&count=${num}";
+     }
+     
+ 

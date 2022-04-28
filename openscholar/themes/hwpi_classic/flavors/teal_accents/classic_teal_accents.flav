@@ -1,0 +1,6 @@
+name = Teal Accents
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = teal_accents.css
+css[] = responsive.teal_accents.css

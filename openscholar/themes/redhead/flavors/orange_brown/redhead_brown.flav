@@ -1,0 +1,5 @@
+name = Orange and Brown
+description = A Orange and Brown Version of the scholor-theme-02 theme
+screenshot = screenshot.png
+
+css[] = orange_brown.css

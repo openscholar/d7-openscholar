@@ -1,0 +1,91 @@
+<?php
+
+/**
+ * @file
+ * Instll file for OS Bookes module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function os_books_schema() {
+  $schema['cache_book_pages'] = drupal_get_schema_unprocessed('system', 'cache');
+  $schema['cache_book_pages']['description'] = 'Cache table for the os_books module.';
+  return $schema;
+}
+
+/**
+ * Fix book pages that are associated with the wrong vsite.
+ */
+function os_books_update_7001(&$sandbox) {
+  // if the query hasn't been run yet, get all book menus
+  if (!isset($sandbox['data'])) {
+    // get all top-level book menus that have child items associated with them
+    $q = db_select('menu_links', 'ml');
+    $q_and = db_and();
+    $q->innerJoin('book', 'book', 'ml.mlid = book.mlid');
+    $q->innerJoin('og_membership', 'ogm', "book.nid = ogm.etid AND entity_type = 'node'");
+    $q = $q->fields('ml', array('menu_name'))
+           ->fields('ogm', array('etid','gid'));
+    $q_and->condition('ml.menu_name', 'book-toc-%', 'like');
+    $q_and->condition('ml.module', 'book', '=');
+    $q_and->condition('ml.plid', '0', '=');
+    $q_and->condition('ml.has_children', '1', '=');
+    $q->condition($q_and);
+    $q = $q->execute();
+    foreach ($q as $row) {
+      $sandbox['data'][] = $row;
+    }
+    $sandbox['progress'] = 0;
+    $sandbox['count'] = count($sandbox['data']);
+    $sandbox['changed'] = 0;
+    $sandbox['output'] = "";
+
+    // if there are no book menus to check, no need to continue
+    if (!$sandbox['count']) {
+        return t('All book pages are in the correct group');
+    }
+  }
+
+  // go through each menu ($limit number of menus at a time) and check that each menu item
+  // associated with it belongs to the same vsite as the parent menu
+  $limit = 10;
+  $set = array_slice($sandbox['data'], $sandbox['progress'], $limit);
+  foreach ($set as $parent_menu) {
+    // get parent menu object
+    $menu = node_load($parent_menu->etid);
+
+    // find all child items associated with that book menu
+    $subq = db_select('menu_links', 'ml');
+    $subq_and = db_and();
+    $subq->innerJoin('book', 'book', 'ml.mlid = book.mlid');
+    $subq->leftJoin('og_membership', 'ogm', "book.nid = ogm.etid AND entity_type = 'node'");
+    $subq = $subq->fields('ml', array('menu_name','link_path'))
+                 ->fields('ogm', array('gid'));
+    $subq_and->condition('ml.menu_name', $parent_menu->menu_name, '=');
+    $subq_and->condition('ml.module', 'book', '=');
+    $subq_and->condition('ml.plid', '0', '<>');
+    $subq->condition($subq_and);
+    $subq = $subq->execute();
+
+    foreach ($subq as $sub_menu) {
+      // check to see if vsite IDs match up
+       if ($parent_menu->gid != $sub_menu->gid) {
+        // get child item object and assign it the right og_group_ref
+        $item = node_load(substr($sub_menu->link_path, 5));
+        $item->{OG_AUDIENCE_FIELD} = $menu->{OG_AUDIENCE_FIELD};
+        node_save($item);
+
+        $sandbox['output'] .= "Re-assigned <strong>" . $item->title . "</strong> from the <strong>" . $menu->title . "</strong> book menu.<br>";
+        $sandbox['changed']++;
+       }
+     }
+    $sandbox['progress']++;
+  }
+
+  // if we're done going through all the book menus, return success message
+  $sandbox['#finished'] = $sandbox['progress']/$sandbox['count'];
+  if ($sandbox['#finished'] >= 1) {
+    return $sandbox['changed'] . " total menu items re-assigned.<br>" . $sandbox['output'];
+  }
+}

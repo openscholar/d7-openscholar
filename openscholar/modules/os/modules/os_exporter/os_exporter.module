@@ -1,0 +1,74 @@
+<?php
+/**
+ * @file
+ * os_exporter.module
+ */
+
+/**
+ * Implements hook_ctools_plugin_type().
+ */
+function os_exporter_ctools_plugin_type() {
+  $plugins['exporter'] = array(
+    'classes' => array('class'),
+    'process' => 'os_exporter_plugin_process',
+  );
+  $plugins['exporter']['child plugins'] = TRUE;
+
+  return $plugins;
+}
+
+/**
+ * Include CTools plugins and get all exporter plugins.
+ *
+ * @return array
+ *   All plugins relate to exporter.
+ */
+function os_exporter_get_exporter_plugins() {
+  ctools_include('plugins');
+  return ctools_get_plugins('os_exporter', 'exporter');
+}
+
+/**
+ * Include CTools plugins and get the specified exporter plugin.
+ *
+ * @param string $plugin_name
+ *   If provided this function only returns the selected plugin.
+ *
+ * @return array
+ *   The selected plugin for exporter.
+ */
+function os_exporter_get_exporter_plugin($plugin_name) {
+  ctools_include('plugins');
+  return ctools_get_plugins('os_exporter', 'exporter', $plugin_name);
+}
+
+/**
+ * Return the exporter class.
+ *
+ * @param $entity_type
+ *   The entity type.
+ * @param $bundle
+ *   The bundle name.
+ *
+ * @return ExportBase | NULL
+ *  The handler object if found, or NULL.
+ */
+function os_exporter_get_exporter_handler($type) {
+  $plugin = os_exporter_get_exporter_plugin($type);
+
+  if (!$class = ctools_plugin_load_class('os_exporter', 'exporter', $type, 'class')) {
+    return NULL;
+  }
+
+  $handler = new $class($plugin);
+  return $handler;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function os_exporter_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'os_exporter') {
+    return 'plugins/' . $plugin;
+  }
+}

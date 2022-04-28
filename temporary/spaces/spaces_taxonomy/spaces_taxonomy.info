@@ -1,0 +1,19 @@
+name = "Spaces Taxonomy"
+description = "Provides integration between Spaces and Taxonomy."
+package = "Spaces"
+core = 7.x
+dependencies[] = purl
+dependencies[] = spaces
+dependencies[] = taxonomy
+
+files[] = spaces_taxonomy.module
+files[] = plugins/space_taxonomy.inc
+
+configure = admin/structure/spaces/taxonomy
+
+; Information added by drupal.org packaging script on 2012-08-12
+version = "7.x-3.0-alpha1+9-dev"
+core = "7.x"
+project = "spaces"
+datestamp = "1344775576"
+

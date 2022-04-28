@@ -1,0 +1,66 @@
+/* Khaki version */
+
+@media only screen and (min-width:1025px) {
+body.navbar-off {
+  background-image: url('images/body-bg-khaki.png');
+  }
+}
+
+body.navbar-on #wrapper {
+  background-image: url('images/body-bg-horiz-khaki.png');
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color: #7F6910;
+  }
+
+a:hover {
+  color: #000;
+  text-decoration: underline;
+  }
+
+/*Navbar & sidebar shared */
+
+#menu-bar a,
+#menu-bar a:visited,
+.region-sidebar-first a,
+.region-sidebar-first a:visited,
+.region-sidebar-first #block-vsite_menus-features li a,
+.region-sidebar-first #block-vsite_menus-features li a:visited {
+  color: #282828 !important;
+  }
+
+  #menu-bar {
+    background: none repeat scroll 0 0 #E3D393;
+    border-bottom: 1px solid #E6EAED;
+    border-top: 1px solid #E6EAED;
+}
+
+#menu-bar a:hover,
+.region-sidebar-first ul.menu li a:hover,
+#menu-bar a.active,
+.region-sidebar-first  ul.menu li a.active,
+#menu-bar li.active-trail,
+.region-sidebar-first  ul.menu li.active-trail {
+  background:#E3D393;
+  color: #222;
+  }
+
+.region-sidebar-first #block-vsite_menus-features li a {
+  border-color: #A08723;
+  }
+  
+  
+  #menu-bar ul.nice-menu li a, #menu-bar ul.nice-menu li a:visited {
+    color: #282828;
+  
+}
+
+/*Navbar Specific */
+
+#menu-bar li,
+#menu-bar li.first,
+.region-sidebar-first li a {
+ border-color: #C4B371;
+  }

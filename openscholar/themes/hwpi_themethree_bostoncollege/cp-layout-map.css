@@ -1,0 +1,15 @@
+.os_front .cp-region-content-first,
+.os_front .cp-region-content-second,
+.os_front .cp-region-content-bottom {
+    width: 32%;
+    min-height: 25em;
+}
+
+.os_front .cp-region-content-bottom {
+    margin-top: 0;
+     margin-left: 2%;
+}
+
+.os_front .cp-region-content-top {
+    min-height: 10em;
+}

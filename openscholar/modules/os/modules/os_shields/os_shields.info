@@ -1,0 +1,12 @@
+name = OS Shields
+package = OpenScholar
+core = 7.x
+description = "Allows site admins to configure what shields users can pick from for their sites."
+dependencies[] = ctools
+dependencies[] = boxes
+dependencies[] = features
+dependencies[] = context
+
+features[box][] = shield
+features[ctools][] = boxes:box:1
+features[ctools][] = context:context:3

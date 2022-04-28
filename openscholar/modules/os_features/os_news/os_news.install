@@ -1,0 +1,133 @@
+<?php 
+
+/**
+ * Populate the os_news's new date field with node's created date.  Fix field upload.
+ */
+function os_news_update_7001(&$sandbox) {
+  features_revert(array('os_news' => array('variable'))); //two new strongarm settings
+  
+  $instances = field_info_instances('node', 'news');
+  if (!isset($instances['field_news_date'])) {
+    //throw new DrupalUpdateException(t('os_news needs to be reverted before this update can be applied'));
+    features_revert(array('os_news' => array('field')));
+  }
+      
+  $format = $instances['field_news_date']['widget']['settings']['input_format'];
+
+  $query = db_select('node', 'n')
+    ->condition('type', 'news')
+    ->fields('n', array('nid', 'created', 'language', 'vid'));
+  $query->leftJoin('field_data_field_news_date', 'f', 'n.nid = f.entity_id');
+  $query->isNull('f.field_news_date_value');
+  $result = $query->execute();
+   
+  $count = $result->rowCount();
+  while ($row = $result->fetchObject()) {
+    //add created date as news date
+    $node = node_load($row->nid);
+    $lang = (isset($node->language)) ? $node->language : 'und';
+    $node->field_news_date[$lang][] = array('value' => $row->created);
+    
+    //also fix field_upload while we're in there
+    foreach ($node->field_upload as $lang => $uploads) {
+      $node->field_upload[$lang] = array_filter($node->field_upload[$lang]);
+    }
+    
+    node_save($node);
+
+  }
+
+  return t('Update %count news nodes', array('%count'=>$count));
+}
+
+/**
+ * Set news image style os_square_100_100.
+ */
+function os_news_update_7002() {
+  features_revert(array('os_news' => array('field')));
+}
+
+/**
+ * Add description to image fields
+ */
+function os_news_update_7003() {
+  features_revert(array('os_news' => array('field_instance')));
+}
+
+/**
+ * Refreshes exported variables of the News app.
+ */
+function os_news_update_7004() {
+  $revert = array(
+    'os_news' => array(
+      'variable',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Refreshes exported field and image for News app.
+ */
+function os_news_update_7005() {
+  $revert = array(
+    'os_news' => array(
+      'image',
+      'field_instance',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Reverts field instance, variables and views.
+ */
+function os_news_update_7006() {
+  $revert = array(
+    'os_news' => array(
+      'field_instance',
+      'variable',
+      'views_view',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Reverts settings and exports field instance
+ */
+function os_news_update_7007() {
+  $revert = array(
+    'os_news' => array(
+      'variable',
+      'field_instance',
+    )
+  );
+
+  features_revert($revert);
+}
+
+/**
+ * Change the formatter for news teaser..
+ */
+function os_news_update_7008() {
+  features_revert(array('os_news' => array('field_instance')));
+}
+
+
+/**
+ * Reverts views for showing archive for since year of 1900 to 2100 (it was 3 years previously).
+ */
+function os_news_update_7009() {
+  features_revert(array('os_news' => array('views_view')));
+}
+
+/**
+ * Showing terms in teaser view.
+ */
+function os_news_update_7010() {
+  features_revert(array('os_news' => array('field_instance')));
+}

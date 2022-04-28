@@ -1,0 +1,15 @@
+<button class="close-menu-panel close-menu-button" aria-label="Close control panel" tabindex="0">Close Menu</button>
+<button class="close-menu-panel close-menu-button-oslogo" aria-label="Close control panel" tabindex="0">Close Menu</button>
+<a href="{{ paths.vsite_home }}?admin_panel=1" class="admin-menu-homeicon" aria-label="Back to home" tabindex="0">Back to home</a>
+<span class="close-menu-panel top-close" role="button" aria-label="Close control panel" tabindex="0">Close Menu</span>
+<div id="cssmenu" class="simplebar">
+	<ul>
+		<li>
+			&nbsp;
+		</li>
+		<li ng-repeat="(key, parent) in admin_panel" class="heading parent" ng-class="{'has-sub': parent.children}" admin-panel-menu-row menu-row="parent" key="{{key}}" ng-if="parent.access"></li>
+		<!--REMOVE THIS LI WHEN BETA TESTING IS COMPLETE-->
+
+	</ul>
+</div>
+

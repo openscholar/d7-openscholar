@@ -1,0 +1,5 @@
+name = Sage
+description = A Sage Version of the scholor-theme-03 theme
+screenshot = screenshot.png
+
+css[] = sage.css

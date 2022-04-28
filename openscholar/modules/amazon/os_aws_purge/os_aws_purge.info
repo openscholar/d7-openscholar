@@ -1,0 +1,8 @@
+name = OpenScholar AWS Purge
+description = "Varnish purging on AWS"
+package = OS
+dependencies[] = expire
+
+version = "7.x-1.0"
+core = "7.x"
+project = "os"

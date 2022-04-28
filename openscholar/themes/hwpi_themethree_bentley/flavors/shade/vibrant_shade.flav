@@ -1,0 +1,6 @@
+name = Shade
+description = A clean shade version of the Vibrant theme
+screenshot = screenshot.png
+
+css[] = shade.css
+css[] = responsive.shade.css

@@ -1,0 +1,143 @@
+<?php
+/**
+ * tests for OS Layout API
+ */
+class VsiteLayoutLayout extends OSProfileTestCase {
+
+  // The profile to install as a basis for testing.
+  protected $profile = 'openscholar';
+
+  //A user that is a member of group1
+  protected $user1;
+
+  //A vsite to load
+  protected $group_1;
+
+  /**
+   * Test info.
+   */
+  public static function getInfo(){
+    return array(
+        'name' => t('Vsite Layout'),
+        'description' => t('Test Layout API functions, adding moving, loading.'),
+        'group' => t('vsite')
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp(){
+    parent::setUp('spaces', 'og', 'spaces_og', 'vsite', 'ctools', 'vsite_layout');
+
+    // Create a user with access to add a link
+    $this->user1 = $this->drupalCreateUser();
+
+    //Create A Group Node
+    $group1 = array(
+        'title' => 'My Test Site',
+        'type' => 'personal',
+        'purl' => 'group1',
+        'uid' => $this->user1->uid
+    );
+    $this->group_1 = $this->drupalCreateNode($group1);
+
+    //Create the test contexts
+    $this->createTestContexts();
+
+    $vsite = spaces_load('og', $this->group_1->nid);
+    //Set the Group
+    spaces_set_space($vsite);
+
+    //Include layout.inc
+    ctools_include('layout', 'os');
+  }
+
+  /**
+   * Run Layout Altering
+   */
+  public function testLayoutget(){
+    $contexts = context_context_list();
+    $this->verbose(var_export($contexts, TRUE));
+
+    $layout1 = os_layout_get('os_test');
+    $this->assertEqual($layout1, array(
+        'node-recent' => array(
+            'module' => 'node',
+            'delta' => 'recent',
+            'region' => 'sidebar_second',
+            'weight' => '-10'
+        )
+    ));
+
+    $layout_combined = os_layout_get_multiple(array(
+        'os_test',
+        'os_test2'
+    ));
+    $this->assertEqual($layout_combined, array(
+        'search-form' => array(
+            'module' => 'search',
+            'delta' => 'form',
+            'region' => 'sidebar_first',
+            'weight' => '10'
+        ),
+        'node-recent' => array(
+            'module' => 'node',
+            'delta' => 'recent',
+            'region' => 'sidebar_second',
+            'weight' => '-10'
+        )
+    ));
+
+  }
+
+  private function createTestContexts(){
+
+    $context = new stdClass();
+    $context->disabled = FALSE; /* Edit this to true to make a default context disabled initially */
+    $context->api_version = 3;
+    $context->name = 'os_test';
+    $context->description = 'Test Context 1';
+    $context->tag = 'OS Test';
+    $context->conditions = array();
+    $context->reactions = array(
+        'block' => array(
+            'blocks' => array(
+                'node-recent' => array(
+                    'module' => 'node',
+                    'delta' => 'recent',
+                    'region' => 'sidebar_second',
+                    'weight' => '-10'
+                )
+            )
+        )
+    );
+    $context->condition_mode = 0;
+
+    context_save($context);
+
+    $context = new stdClass();
+    $context->disabled = FALSE; /* Edit this to true to make a default context disabled initially */
+    $context->api_version = 3;
+    $context->name = 'os_test2';
+    $context->description = 'Test Context 2';
+    $context->tag = 'OS Test';
+    $context->conditions = array();
+    $context->reactions = array(
+        'block' => array(
+            'blocks' => array(
+                'search-form' => array(
+                    'module' => 'search',
+                    'delta' => 'form',
+                    'region' => 'sidebar_first',
+                    'weight' => '10'
+                )
+            )
+        )
+    );
+    $context->condition_mode = 0;
+
+    context_save($context);
+
+  }
+}

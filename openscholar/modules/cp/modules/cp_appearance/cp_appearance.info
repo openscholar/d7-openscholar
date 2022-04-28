@@ -1,0 +1,9 @@
+name = "Control Panel Appearance"
+description = "Control Panel section for selection themes and flavors"
+core = 7.x
+package = "Control Panel"
+dependencies[] = "ctools"
+dependencies[] = "os"
+dependencies[] = "cp"
+
+files[] = includes/subtheme.inc

@@ -1,0 +1,165 @@
+@import url(https://fonts.googleapis.com/css?family=Cabin);
+
+body,
+.not-front .field-name-body, 
+#content-column p,
+.cke_editable *,
+#content-column li{
+font-family: 'Cabin', helvetica;
+}
+
+body.front #columns,
+#columns {
+background: #FFF;
+background-image: url('standard-body-gradient.png');
+background-repeat: repeat-x;
+background-position: center top;
+}
+
+
+#columns {
+background-image: none;
+
+}
+
+.front #content-panels .block-title, 
+.sidebar .block-title {
+background: #fff;
+color: #C4961A;
+}
+
+h1#page-title {
+color: #C4961A;
+}
+
+#boxes-box-site_info, 
+#boxes-box-site_info a {
+color: #fff;
+font-family: 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+}
+
+.front #content-panels .block, 
+.sidebar .block,
+.page-node #content-column .content-inner, 
+.not-front .content-inner {
+border: 1px solid #dededc;
+background: #fff;
+box-shadow: none;
+-webkit-border-radius: 0;
+border-radius: 0;
+-moz-box-sizing: none;
+-webkit-box-sizing: none;
+box-sizing: none;
+}
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit,
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+  background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat 2px -441px #C4961A;
+
+}
+
+#footer a,
+#footer,
+.region-header-third ul.nice-menu a {
+color: #fff;
+
+}
+
+#menu-bar {
+padding: 0;
+}
+
+#menu-bar nav {
+-webkit-border-radius: 0;
+border-radius: 0;
+-webkit-box-shadow: none;
+box-shadow: none;
+}
+
+#menu-bar nav,
+#header,
+#menu-bar,
+#footer {
+background: #262829;
+filter: none;
+color:#FFF;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+  background-position: 0 -566px; /* White Arrow */
+}
+
+#menu-bar ul > li > a:hover,
+#menu-bar ul > li > a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu li.menuparent:hover a,
+#menu-bar ul.nice-menu .menuparent a.active {
+  background: #C4961A; /* Old browsers */
+
+}
+
+#menu-bar ul a, 
+#menu-bar ul.nice-menu a, 
+#menu-bar ul.nice-menu .menuparent a {
+color: #fff;
+font-family: helvetica;
+}
+
+#menu-bar ul.nice-menu ul {
+background: #C4961A;
+
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a.active,
+#menu-bar ul.nice-menu .menuparent ul li a,
+#menu-bar ul.nice-menu .menuparent ul li a:hover,
+#menu-bar ul.nice-menu a.active,
+.section-nav .menu-depth-1 > a {
+background: #C4961A !important;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a {
+color: #FFF !important;
+
+}
+
+#menu-bar ul.nice-menu .menuparent a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+  background-position: 0px -566px;
+}
+
+.front.no-sidebars .region-content-top .block-boxes-os_slideshow_box:after {
+  background: #f4f4f4;
+}
+#header-container .search-block-form .form-item label,
+#header-container #search-block-form .form-item label {
+color: #BAC5C6;
+}
+
+.breadcrumb a, 
+.breadcrumb {
+color: #215990;
+}
+
+.block-boxes-os_slideshow_box .add_new {
+  top: 0;
+  z-index: 5;
+  background-color: #215990;
+  color: #fff;
+  padding: 0 5px;
+  font-size: .9em;
+}
+
+.block-boxes-os_slideshow_box .slide {
+background: #C39936 !important;
+}
+
+a.rslides_nav {
+background-color: #444;
+}
+

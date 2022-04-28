@@ -1,0 +1,7 @@
+.cke_editable_inline {
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  padding-left: 8px;
+  height: 250px;
+  overflow-y: scroll;
+}

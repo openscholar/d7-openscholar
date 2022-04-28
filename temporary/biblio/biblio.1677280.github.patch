@@ -1,0 +1,2112 @@
+From 17e6beb435c291650a78f7067e7cb41f1752032e Mon Sep 17 00:00:00 2001
+From: Ron Jerome <ronjero@gmail.com>
+Date: Sun, 5 Aug 2012 13:33:01 -0400
+Subject: [PATCH] removed obsolete "version 2" github-api code.
+ http://drupal.org/node/1677280
+
+---
+ modules/CiteProc/Github/Api.php                  |  49 ---
+ modules/CiteProc/Github/Api/Commit.php           |  60 ----
+ modules/CiteProc/Github/Api/Issue.php            | 230 -------------
+ modules/CiteProc/Github/Api/Object.php           |  79 -----
+ modules/CiteProc/Github/Api/Organization.php     | 119 -------
+ modules/CiteProc/Github/Api/Repo.php             | 400 -----------------------
+ modules/CiteProc/Github/Api/User.php             | 198 -----------
+ modules/CiteProc/Github/ApiInterface.php         |   5 -
+ modules/CiteProc/Github/Autoloader.php           |  34 --
+ modules/CiteProc/Github/Client.php               | 252 --------------
+ modules/CiteProc/Github/HttpClient.php           | 162 ---------
+ modules/CiteProc/Github/HttpClient/Curl.php      | 163 ---------
+ modules/CiteProc/Github/HttpClient/Exception.php |  73 -----
+ modules/CiteProc/Github/HttpClientInterface.php  |  44 ---
+ modules/CiteProc/biblio_citeproc.admin.inc       |  71 ++--
+ 15 files changed, 33 insertions(+), 1906 deletions(-)
+ delete mode 100644 modules/CiteProc/Github/Api.php
+ delete mode 100644 modules/CiteProc/Github/Api/Commit.php
+ delete mode 100644 modules/CiteProc/Github/Api/Issue.php
+ delete mode 100644 modules/CiteProc/Github/Api/Object.php
+ delete mode 100644 modules/CiteProc/Github/Api/Organization.php
+ delete mode 100644 modules/CiteProc/Github/Api/Repo.php
+ delete mode 100644 modules/CiteProc/Github/Api/User.php
+ delete mode 100644 modules/CiteProc/Github/ApiInterface.php
+ delete mode 100644 modules/CiteProc/Github/Autoloader.php
+ delete mode 100644 modules/CiteProc/Github/Client.php
+ delete mode 100644 modules/CiteProc/Github/HttpClient.php
+ delete mode 100644 modules/CiteProc/Github/HttpClient/Curl.php
+ delete mode 100644 modules/CiteProc/Github/HttpClient/Exception.php
+ delete mode 100644 modules/CiteProc/Github/HttpClientInterface.php
+
+diff --git a/modules/CiteProc/Github/Api.php b/modules/CiteProc/Github/Api.php
+deleted file mode 100644
+index 4636c5c..0000000
+--- a/modules/CiteProc/Github/Api.php
++++ /dev/null
+@@ -1,49 +0,0 @@
+-<?php
+-
+-/**
+- * Abstract class for Github_Api classes
+- *
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-abstract class Github_Api implements Github_ApiInterface
+-{
+-    /**
+-     * The client
+-     * @var Github_Client
+-     */
+-    private $client;
+-
+-    public function __construct(Github_Client $client)
+-    {
+-        $this->client = $client;
+-    }
+-
+-    /**
+-     * Call any path, GET method
+-     * Ex: $api->get('repos/show/my-username/my-repo')
+-     *
+-     * @param   string  $path            the GitHub path
+-     * @param   array   $parameters       GET parameters
+-     * @param   array   $requestOptions   reconfigure the request
+-     * @return  array                     data returned
+-     */
+-    protected function get($path, array $parameters = array(), $requestOptions = array())
+-    {
+-        return $this->client->get($path, $parameters, $requestOptions);
+-    }
+-
+-    /**
+-     * Call any path, POST method
+-     * Ex: $api->post('repos/show/my-username', array('email' => 'my-new-email@provider.org'))
+-     *
+-     * @param   string  $path            the GitHub path
+-     * @param   array   $parameters       POST parameters
+-     * @param   array   $requestOptions   reconfigure the request
+-     * @return  array                     data returned
+-     */
+-    protected function post($path, array $parameters = array(), $requestOptions = array())
+-    {
+-        return $this->client->post($path, $parameters, $requestOptions);
+-    }
+-}
+diff --git a/modules/CiteProc/Github/Api/Commit.php b/modules/CiteProc/Github/Api/Commit.php
+deleted file mode 100644
+index ec2bf09..0000000
+--- a/modules/CiteProc/Github/Api/Commit.php
++++ /dev/null
+@@ -1,60 +0,0 @@
+-<?php
+-
+-/**
+- * Getting information on specific commits,
+- * the diffs they introduce, the files they've changed.
+- *
+- * @link      http://develop.github.com/p/commits.html
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_Api_Commit extends Github_Api
+-{
+-    /**
+-     * List commits by username, repo and branch
+-     * http://develop.github.com/p/commits.html#listing_commits_on_a_branch
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $branch           the branch
+-     * @return  array                     list of users found
+-     */
+-    public function getBranchCommits($username, $repo, $branch)
+-    {
+-        $response = $this->get('commits/list/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($branch));
+-
+-        return $response['commits'];
+-    }
+-
+-    /**
+-     * List commits by username, repo, branch and path
+-     * http://develop.github.com/p/commits.html#listing_commits_for_a_file
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $branch           the branch
+-     * @param   string  $path             the path
+-     * @return  array                     list of users found
+-     */
+-    public function getFileCommits($username, $repo, $branch, $path)
+-    {
+-        $response = $this->get('commits/list/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($branch).'/'.urlencode($path));
+-
+-        return $response['commits'];
+-    }
+-
+-    /**
+-     * Show a specific commit
+-     * http://develop.github.com/p/commits.html#showing_a_specific_commit
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $sha              the commit sha
+-     */
+-    public function getCommit($username, $repo, $sha)
+-    {
+-        $response = $this->get('commits/show/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($sha));
+-
+-        return $response['commit'];
+-    }
+-}
+diff --git a/modules/CiteProc/Github/Api/Issue.php b/modules/CiteProc/Github/Api/Issue.php
+deleted file mode 100644
+index 667952e..0000000
+--- a/modules/CiteProc/Github/Api/Issue.php
++++ /dev/null
+@@ -1,230 +0,0 @@
+-<?php
+-
+-/**
+- * Listing issues, searching, editing and closing your projects issues.
+- *
+- * @link      http://develop.github.com/p/issues.html
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_Api_Issue extends Github_Api
+-{
+-    /**
+-     * List issues by username, repo and state
+-     * http://develop.github.com/p/issues.html#list_a_projects_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $state            the issue state, can be open or closed
+-     * @return  array                     list of issues found
+-     */
+-    public function getList($username, $repo, $state = 'open')
+-    {
+-        $response = $this->get('issues/list/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($state));
+-
+-        return $response['issues'];
+-    }
+-
+-    /**
+-     * Search issues by username, repo, state and search term
+-     * http://develop.github.com/p/issues.html#list_a_projects_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $state            the issue state, can be open or closed
+-     * @param   string  $searchTerm       the search term to filter issues by
+-     * @return  array                     list of issues found
+-     */
+-    public function search($username, $repo, $state, $searchTerm)
+-    {
+-        $response = $this->get('issues/search/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($state).'/'.urlencode($searchTerm));
+-
+-        return $response['issues'];
+-    }
+-
+-    /**
+-     * Search issues by label
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $label            the label to filter issues by
+-     * @return  array                     list of issues found
+-     */
+-    public function searchLabel($username, $repo, $label)
+-    {
+-        $response = $this->get('issues/list/'.urlencode($username).'/'.urlencode($repo).'/label/'.urlencode($label));
+-
+-        return $response['issues'];
+-    }
+-
+-    /**
+-     * Get extended information about an issue by its username, repo and number
+-     * http://develop.github.com/p/issues.html#view_an_issue
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @return  array                     information about the issue
+-     */
+-    public function show($username, $repo, $issueNumber)
+-    {
+-        $response = $this->get('issues/show/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($issueNumber));
+-
+-        return $response['issue'];
+-    }
+-
+-    /**
+-     * Create a new issue for the given username and repo.
+-     * The issue is assigned to the authenticated user. Requires authentication.
+-     * http://develop.github.com/p/issues.html#open_and_close_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueTitle       the new issue title
+-     * @param   string   $issueBody       the new issue body
+-     * @return  array                     information about the issue
+-     */
+-    public function open($username, $repo, $issueTitle, $issueBody)
+-    {
+-        $response = $this->post('issues/open/'.urlencode($username).'/'.urlencode($repo), array(
+-            'title' => $issueTitle,
+-            'body' => $issueBody
+-        ));
+-
+-        return $response['issue'];
+-    }
+-
+-    /**
+-     * Close an existing issue by username, repo and issue number. Requires authentication.
+-     * http://develop.github.com/p/issues.html#open_and_close_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @return  array                     information about the issue
+-     */
+-    public function close($username, $repo, $issueNumber)
+-    {
+-        $response = $this->post('issues/close/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($issueNumber));
+-
+-        return $response['issue'];
+-    }
+-
+-    /**
+-     * Update issue informations by username, repo and issue number. Requires authentication.
+-     * http://develop.github.com/p/issues.html#edit_existing_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @param   array   $data             key=>value user attributes to update.
+-     *                                    key can be title or body
+-     * @return  array                     information about the issue
+-     */
+-    public function update($username, $repo, $issueNumber, array $data)
+-    {
+-        $response = $this->post('issues/edit/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($issueNumber), $data);
+-
+-        return $response['issue'];
+-    }
+-
+-    /**
+-     * Repoen an existing issue by username, repo and issue number. Requires authentication.
+-     * http://develop.github.com/p/issues.html#open_and_close_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @return  array                     informations about the issue
+-     */
+-    public function reOpen($username, $repo, $issueNumber)
+-    {
+-        $response = $this->post('issues/reopen/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($issueNumber));
+-
+-        return $response['issue'];
+-    }
+-
+-    /**
+-     * List an issue comments by username, repo and issue number
+-     * http://develop.github.com/p/issues.html#list_an_issues_comments
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @return  array                     list of issue comments
+-     */
+-    public function getComments($username, $repo, $issueNumber)
+-    {
+-        $response = $this->get('issues/comments/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($issueNumber));
+-
+-        return $response['comments'];
+-    }
+-
+-    /**
+-     * Add a comment to the issue by username, repo and issue number
+-     * http://develop.github.com/p/issues.html#comment_on_issues
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @param   string  $comment          the comment body
+-     * @return  array                     the created comment
+-     */
+-    public function addComment($username, $repo, $issueNumber, $commentBody)
+-    {
+-        $response = $this->post('issues/comment/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($issueNumber), array(
+-            'comment' => $commentBody
+-        ));
+-
+-        return $response['comment'];
+-    }
+-
+-    /**
+-     * List all project labels by username and repo
+-     * http://develop.github.com/p/issues.html#listing_labels
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @return  array                     list of project labels
+-     */
+-    public function getLabels($username, $repo)
+-    {
+-        $response = $this->get('issues/labels/'.urlencode($username).'/'.urlencode($repo));
+-
+-        return $response['labels'];
+-    }
+-
+-    /**
+-     * Add a label to the issue by username, repo and issue number. Requires authentication.
+-     * http://develop.github.com/p/issues.html#add_and_remove_labels
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @param   string  $labelName        the label name
+-     * @return  array                     list of issue labels
+-     */
+-    public function addLabel($username, $repo, $labelName, $issueNumber)
+-    {
+-        $response = $this->post('issues/label/add/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($labelName).'/'.urlencode($issueNumber));
+-
+-        return $response['labels'];
+-    }
+-
+-    /**
+-     * Remove a label from the issue by username, repo, issue number and label name. Requires authentication.
+-     * http://develop.github.com/p/issues.html#add_and_remove_labels
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the repo
+-     * @param   string  $issueNumber      the issue number
+-     * @param   string  $labelName        the label name
+-     * @return  array                     list of issue labels
+-     */
+-    public function removeLabel($username, $repo, $labelName, $issueNumber)
+-    {
+-        $response = $this->post('issues/label/remove/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($labelName).'/'.urlencode($issueNumber));
+-
+-        return $response['labels'];
+-    }
+-}
+diff --git a/modules/CiteProc/Github/Api/Object.php b/modules/CiteProc/Github/Api/Object.php
+deleted file mode 100644
+index 373550b..0000000
+--- a/modules/CiteProc/Github/Api/Object.php
++++ /dev/null
+@@ -1,79 +0,0 @@
+-<?php
+-
+-/**
+- * Getting full versions of specific files and trees in your Git repositories.
+- *
+- * @link      http://develop.github.com/p/object.html
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_Api_Object extends Github_Api
+-{
+-    /**
+-     * Get a listing of the root tree of a project by the username, repo, and tree SHA
+-     * http://develop.github.com/p/object.html#trees
+-     *
+-     * @param   string $username          the username
+-     * @param   string $repo              the repo
+-     * @param   string $treeSHA           the tree sha
+-     * @return  array                     root tree of the project
+-     */
+-    public function showTree($username, $repo, $treeSHA)
+-    {
+-        $response = $this->get('tree/show/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($treeSHA));
+-
+-        return $response['tree'];
+-    }
+-
+-    /**
+-     * Lists the data blobs of a tree by tree SHA
+-     * http://develop.github.com/p/object.html#blobs
+-     *
+-     * @param   string $username          the username
+-     * @param   string $repo              the repo
+-     * @param   string $treeSHA           the tree sha
+-     * @param   string $path              the path
+-     * @return  array                     data blobs of tree
+-     */
+-    public function listBlobs($username, $repo, $treeSHA)
+-    {
+-        $response = $this->get('blob/all/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($treeSHA));
+-
+-        return $response['blobs'];
+-    }
+-
+-    /**
+-     * Get the data about a blob by tree SHA and file path.
+-     * http://develop.github.com/p/object.html#blobs
+-     *
+-     * @param   string $username          the username
+-     * @param   string $repo              the repo
+-     * @param   string $treeSHA           the tree sha
+-     * @param   string $path              the path
+-     * @return  array                     data blob of tree and path
+-     */
+-    public function showBlob($username, $repo, $treeSHA, $path)
+-    {
+-        $response = $this->get('blob/show/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($treeSHA).'/'.urlencode($path));
+-
+-        return $response['blob'];
+-    }
+-
+-    /**
+-     * Returns the raw text content of the object.
+-     * http://develop.github.com/p/object.html#raw_git_data
+-     *
+-     * @param   string $username          the username
+-     * @param   string $repo              the repo
+-     * @param   string $objectSHA         the object sha can be either a blob SHA1, a tree SHA1 or a commit SHA1
+-     * @return  string                    raw text content of the blob, tree or commit object
+-     */
+-    public function getRawData($username, $repo, $objectSHA)
+-    {
+-        $response = $this->get('blob/show/'.urlencode($username).'/'.urlencode($repo).'/'.urlencode($objectSHA), array(), array(
+-            'format' => 'text'
+-        ));
+-
+-        return $response;
+-    }
+-}
+diff --git a/modules/CiteProc/Github/Api/Organization.php b/modules/CiteProc/Github/Api/Organization.php
+deleted file mode 100644
+index bd7298a..0000000
+--- a/modules/CiteProc/Github/Api/Organization.php
++++ /dev/null
+@@ -1,119 +0,0 @@
+-<?php
+-
+-/**
+- * Searching organizations, getting organization information
+- * and managing authenticated organization account information.
+- *
+- * @link      http://develop.github.com/p/orgs.html
+- * @author    Antoine Berranger <antoine at ihqs dot net>
+- * @license   MIT License
+- */
+-class Github_Api_Organization extends Github_Api
+-{
+-    const ADMIN = "admin";
+-    const PUSH = "push";
+-    const PULL = "pull";
+-
+-    static $PERMISSIONS = array(
+-        self::ADMIN,
+-        self::PUSH,
+-        self::PULL
+-    );
+-
+-    /**
+-     * Get extended information about an organization by its name
+-     * http://develop.github.com/p/orgs.html
+-     *
+-     * @param   string  $name             the organization to show
+-     * @return  array                     informations about the organization
+-     */
+-    public function show($name)
+-    {
+-        $response = $this->get('organizations/'.urlencode($name));
+-
+-        return $response['organization'];
+-    }
+-
+-    /**
+-     * List all repositories across all the organizations that you can access
+-     * http://develop.github.com/p/orgs.html
+-     *
+-     * @param   string  $name             the user name
+-     * @return  array                     the repositories
+-     */
+-    public function getAllRepos($name)
+-    {
+-        $response = $this->get('organizations/repositories');
+-
+-        return $response['repositories'];
+-    }
+-
+-    /**
+-     * List all public repositories of any other organization
+-     * http://develop.github.com/p/orgs.html
+-     *
+-     * @param   string  $name             the organization name
+-     * @return  array                     the repositories
+-     */
+-    public function getPublicRepos($name)
+-    {
+-        $response = $this->get('organizations/'.urlencode($name).'/public_repositories');
+-
+-        return $response['repositories'];
+-    }
+-
+-    /**
+-     * List all public members of that organization
+-     * http://develop.github.com/p/orgs.html
+-     *
+-     * @param   string  $name             the organization name
+-     * @return  array                     the members
+-     */
+-    public function getPublicMembers($name)
+-    {
+-        $response = $this->get('organizations/'.urlencode($name).'/public_members');
+-
+-        return $response['users'];
+-    }
+-
+-    /**
+-     * List all teams of that organization
+-     * http://develop.github.com/p/orgs.html
+-     *
+-     * @param   string  $name             the organization name
+-     * @return  array                     the teams
+-     */
+-    public function getTeams($name)
+-    {
+-        $response = $this->get('organizations/'.urlencode($name).'/teams');
+-
+-        return $response['teams'];
+-    }
+-
+-    /**
+-     * Add a team to that organization
+-     * http://develop.github.com/p/orgs.html
+-     *
+-     * @param   string  $name             the organization name
+-     * @param   string  $team             name of the new team
+-     * @param   string  $permission       its permission [PULL|PUSH|ADMIN]
+-     * @param   array   $name             (optionnal) its repositories names
+-     *
+-     * @return  array                     the teams
+-     */
+-    public function addTeam($organization, $team, $permission, array $repositories = array())
+-    {
+-        if (!in_array($permission, self::$PERMISSIONS)) {
+-            throw new InvalidArgumentException("Invalid value for the permission variable");
+-        }
+-
+-        $response = $this->post('organizations/'.urlencode($organization).'/teams', array(
+-            'team' => $team,
+-            'permission' => $permission,
+-            'repo_names' => $repositories
+-        ));
+-
+-        return $response['teams'];
+-    }
+-
+-}
+diff --git a/modules/CiteProc/Github/Api/Repo.php b/modules/CiteProc/Github/Api/Repo.php
+deleted file mode 100644
+index f309f7b..0000000
+--- a/modules/CiteProc/Github/Api/Repo.php
++++ /dev/null
+@@ -1,400 +0,0 @@
+-<?php
+-
+-/**
+- * Searching repositories, getting repository information
+- * and managing repository information for authenticated users.
+- *
+- * @link      http://develop.github.com/p/repos.html
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_Api_Repo extends Github_Api
+-{
+-    /**
+-     * Search repos by keyword
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $query            the search query
+-     * @param   string  $language         takes the same values as the language drop down on http://github.com/search
+-     * @param   int     $startPage        the page number
+-     * @return  array                     list of repos found
+-     */
+-    public function search($query, $language = '', $startPage = 1)
+-    {
+-        $response = $this->get('repos/search/'.urlencode($query), array(
+-            'language' => strtolower($language),
+-            'start_page' => $startPage
+-        ));
+-
+-        return $response['repositories'];
+-    }
+-
+-    /**
+-     * Get the repositories of a user
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the username
+-     * @return  array                     list of the user repos
+-     */
+-    public function getUserRepos($username)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username));
+-
+-        return $response['repositories'];
+-    }
+-
+-    /**
+-     * Get a list of the repositories that the authenticated user can push to
+-     *
+-     * @return  array                     list of repositories
+-     */
+-    public function getPushableRepos()
+-    {
+-        $response = $this->get('repos/pushable');
+-
+-        return $response['repositories'];
+-    }
+-
+-    /**
+-     * Get extended information about a repository by its username and repo name
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     informations about the repo
+-     */
+-    public function show($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * create repo
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $name             name of the repository
+-     * @param   string  $description      repo description
+-     * @param   string  $homepage         homepage url
+-     * @param   bool    $public           1 for public, 0 for private
+-     * @return  array                     returns repo data
+-     */
+-    public function create($name, $description = '', $homepage = '', $public = true)
+-    {
+-        $response = $this->post('repos/create', array(
+-            'name' => $name,
+-            'description' => $description,
+-            'homepage' => $homepage,
+-            'public' => $public
+-        ));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * delete repo
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $name             name of the repository
+-     * @param   string  $token            delete token
+-     * @param   string  $force            force repository deletion
+-     *
+-     * @return  string|array              returns delete_token or repo status
+-     */
+-    public function delete($name, $token = null, $force = false)
+-    {
+-        if ($token === null) {
+-            $response = $this->post('repos/delete/'.urlencode($name));
+-
+-            $token = $response['delete_token'];
+-
+-            if (!$force) {
+-                return $token;
+-            }
+-        }
+-
+-        $response = $this->post('repos/delete/'.urlencode($name), array(
+-            'delete_token' => $token,
+-        ));
+-
+-        return $response;
+-    }
+-
+-    /**
+-     * Set information of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @param   array   $values           the key => value pairs to post
+-     * @return  array                     informations about the repo
+-     */
+-    public function setRepoInfo($username, $repo, $values)
+-    {
+-        $response = $this->post('repos/show/'.urlencode($username).'/'.urlencode($repo), array('values' => $values));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * Set the visibility of a repostory to public
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     informations about the repo
+-     */
+-    public function setPublic($repo)
+-    {
+-        $response = $this->get('repos/set/public/'.urlencode($repo));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * Set the visibility of a repostory to private
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     informations about the repo
+-     */
+-    public function setPrivate($repo)
+-    {
+-        $response = $this->get('repos/set/private/'.urlencode($repo));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * Get the list of deploy keys for a repository
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     the list of deploy keys
+-     */
+-    public function getDeployKeys($repo)
+-    {
+-        $response = $this->get('repos/keys/'.urlencode($repo));
+-
+-        return $response['public_keys'];
+-    }
+-
+-    /**
+-     * Add a deploy key for a repository
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @param   string  $title            the title of the key
+-     * @param   string  $key              the public key data
+-     * @return  array                     the list of deploy keys
+-     */
+-    public function addDeployKey($repo, $title, $key)
+-    {
+-        $response = $this->post('repos/key/'.urlencode($repo).'/add', array(
+-            'title' => $title,
+-            'key' => $key
+-        ));
+-
+-        return $response['public_keys'];
+-    }
+-
+-    /**
+-     * Delete a deploy key from a repository
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @param   string  $id               the the id of the key to remove
+-     * @return  array                     the list of deploy keys
+-     */
+-    public function removeDeployKey($repo, $id)
+-    {
+-        $response = $this->post('repos/key/'.urlencode($repo).'/remove', array(
+-            'id' => $id,
+-        ));
+-
+-        return $response['public_keys'];
+-    }
+-
+-    /**
+-     * Get the collaborators of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     list of the repo collaborators
+-     */
+-    public function getRepoCollaborators($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo).'/collaborators');
+-
+-        return $response['collaborators'];
+-    }
+-
+-    /**
+-     * Add a collaborator to a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @param   string  $username         the user who should be added as a collaborator
+-     * @return  array                     list of the repo collaborators
+-     */
+-    public function addRepoCollaborator($repo, $username)
+-    {
+-        $response = $this->post('repos/collaborators/'.urlencode($repo).'/add/'.urlencode($username));
+-
+-        return $response['collaborators'];
+-    }
+-
+-    /**
+-     * Delete a collaborator from a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $repo             the name of the repo
+-     * @param   string  $username         the user who should be removed as a collaborator
+-     * @return  array                     list of the repo collaborators
+-     */
+-    public function removeRepoCollaborator($repo, $username)
+-    {
+-        $response = $this->post('repos/collaborators/'.urlencode($repo).'/remove/'.urlencode($username));
+-
+-        return $response['collaborators'];
+-    }
+-
+-    /**
+-     * Make the authenticated user watch a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     informations about the repo
+-     */
+-    public function watch($username, $repo)
+-    {
+-        $response = $this->get('repos/watch/'.urlencode($username).'/'.urlencode($repo));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * Make the authenticated user unwatch a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     informations about the repo
+-     */
+-    public function unwatch($username, $repo)
+-    {
+-        $response = $this->get('repos/unwatch/'.urlencode($username).'/'.urlencode($repo));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * Make the authenticated user fork a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     informations about the newly forked repo
+-     */
+-    public function fork($username, $repo)
+-    {
+-        $response = $this->get('repos/fork/'.urlencode($username).'/'.urlencode($repo));
+-
+-        return $response['repository'];
+-    }
+-
+-    /**
+-     * Get the tags of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     list of the repo tags
+-     */
+-    public function getRepoTags($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo).'/tags');
+-
+-        return $response['tags'];
+-    }
+-
+-    /**
+-     * Get the branches of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the username
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     list of the repo branches
+-     */
+-    public function getRepoBranches($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo).'/branches');
+-
+-        return $response['branches'];
+-    }
+-
+-    /**
+-     * Get the watchers of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     list of the repo watchers
+-     */
+-    public function getRepoWatchers($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo).'/watchers');
+-
+-        return $response['watchers'];
+-    }
+-
+-    /**
+-     * Get the network (a list of forks) of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     list of the repo forks
+-     */
+-    public function getRepoNetwork($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo).'/network');
+-
+-        return $response['network'];
+-    }
+-
+-    /**
+-     * Get the language breakdown of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @return  array                     list of the languages
+-     */
+-    public function getRepoLanguages($username, $repo)
+-    {
+-        $response = $this->get('repos/show/'.urlencode($username).'/'.urlencode($repo).'/languages');
+-
+-        return $response['languages'];
+-    }
+-
+-    /**
+-     * Get the contributors of a repository
+-     * http://develop.github.com/p/repo.html
+-     *
+-     * @param   string  $username         the user who owns the repo
+-     * @param   string  $repo             the name of the repo
+-     * @param   boolean $includingNonGithubUsers by default, the list only shows GitHub users. You can include non-users too by setting this to true
+-     * @return  array                     list of the repo contributors
+-     */
+-    public function getRepoContributors($username, $repo, $includingNonGithubUsers = false)
+-    {
+-        $url = 'repos/show/'.urlencode($username).'/'.urlencode($repo).'/contributors';
+-        if ($includingNonGithubUsers) {
+-            $url .= '/anon';
+-        }
+-        $response = $this->get($url);
+-
+-        return $response['contributors'];
+-    }
+-
+-}
+diff --git a/modules/CiteProc/Github/Api/User.php b/modules/CiteProc/Github/Api/User.php
+deleted file mode 100644
+index 452bd28..0000000
+--- a/modules/CiteProc/Github/Api/User.php
++++ /dev/null
+@@ -1,198 +0,0 @@
+-<?php
+-
+-/**
+- * Searching users, getting user information
+- * and managing authenticated user account information.
+- *
+- * @link      http://develop.github.com/p/users.html
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_Api_User extends Github_Api
+-{
+-    /**
+-     * Search users by username
+-     * http://develop.github.com/p/users.html#searching_for_users
+-     *
+-     * @param   string  $username         the username to search
+-     * @return  array                     list of users found
+-     */
+-    public function search($username)
+-    {
+-        $response = $this->get('user/search/'.urlencode($username));
+-
+-        return $response['users'];
+-    }
+-
+-    /**
+-     * Get extended information about a user by its username
+-     * http://develop.github.com/p/users.html#getting_user_information
+-     *
+-     * @param   string  $username         the username to show
+-     * @return  array                     informations about the user
+-     */
+-    public function show($username)
+-    {
+-        $response = $this->get('user/show/'.urlencode($username));
+-
+-        return $response['user'];
+-    }
+-
+-    /**
+-     * Update user informations. Requires authentication.
+-     * http://develop.github.com/p/users.html#authenticated_user_management
+-     *
+-     * @param   string  $username         the username to update
+-     * @param   array   $data             key=>value user attributes to update.
+-     *                                    key can be name, email, blog, company or location
+-     * @return  array                     informations about the user
+-     */
+-    public function update($username, array $data)
+-    {
+-        $response = $this->post('user/show/'.urlencode($username), array('values' => $data));
+-
+-        return $response['user'];
+-    }
+-
+-    /**
+-     * Request the users that a specific user is following
+-     * http://develop.github.com/p/users.html#following_network
+-     *
+-     * @param   string  $username         the username
+-     * @return  array                     list of followed users
+-     */
+-    public function getFollowing($username)
+-    {
+-        $response = $this->get('user/show/'.urlencode($username).'/following');
+-
+-        return $response['users'];
+-    }
+-
+-    /**
+-     * Request the users following a specific user
+-     * http://develop.github.com/p/users.html#following_network
+-     *
+-     * @param   string  $username         the username
+-     * @return  array                     list of following users
+-     */
+-    public function getFollowers($username)
+-    {
+-        $response = $this->get('user/show/'.urlencode($username).'/followers');
+-
+-        return $response['users'];
+-    }
+-
+-    /**
+-     * Make the authenticated user follow the specified user. Requires authentication.
+-     * http://develop.github.com/p/users.html#following_network
+-     *
+-     * @param   string  $username         the username to follow
+-     * @return  array                     list of followed users
+-     */
+-    public function follow($username)
+-    {
+-        $response = $this->post('user/follow/'.urlencode($username));
+-
+-        return $response['users'];
+-    }
+-
+-    /**
+-     * Make the authenticated user unfollow the specified user. Requires authentication.
+-     * http://develop.github.com/p/users.html#following_network
+-     *
+-     * @param   string  $username         the username to unfollow
+-     * @return  array                     list of followed users
+-     */
+-    public function unFollow($username)
+-    {
+-        $response = $this->post('user/unfollow/'.urlencode($username));
+-
+-        return $response['users'];
+-    }
+-
+-    /**
+-     * Request the repos that a specific user is watching
+-     * http://develop.github.com/p/users.html#watched_repos
+-     *
+-     * @param   string  $username         the username
+-     * @return  array                     list of watched repos
+-     */
+-    public function getWatchedRepos($username)
+-    {
+-        $response = $this->get('repos/watched/'.urlencode($username));
+-
+-        return $response['repositories'];
+-    }
+-
+-    /**
+-     * Get the authenticated user public keys. Requires authentication
+-     *
+-     * @return  array                     list of public keys of the user
+-     */
+-    public function getKeys()
+-    {
+-        $response = $this->get('user/keys');
+-
+-        return $response['public_keys'];
+-    }
+-
+-    /**
+-     * Add a public key to the authenticated user. Requires authentication.
+-     *
+-     * @return  array                    list of public keys of the user
+-     */
+-    public function addKey($title, $key)
+-    {
+-        $response = $this->post('user/key/add', array('title' => $title, 'key' => $key));
+-
+-        return $response['public_keys'];
+-    }
+-
+-    /**
+-     * Remove a public key from the authenticated user. Requires authentication.
+-     *
+-     * @return  array                    list of public keys of the user
+-     */
+-    public function removeKey($id)
+-    {
+-        $response = $this->post('user/key/remove', array('id' => $id));
+-
+-        return $response['public_keys'];
+-    }
+-
+-    /**
+-     * Get the authenticated user emails. Requires authentication.
+-     *
+-     * @return  array                     list of authenticated user emails
+-     */
+-    public function getEmails()
+-    {
+-        $response = $this->get('user/emails');
+-
+-        return $response['emails'];
+-    }
+-
+-    /**
+-     * Add an email to the authenticated user. Requires authentication.
+-     *
+-     * @return  array                     list of authenticated user emails
+-     */
+-    public function addEmail($email)
+-    {
+-        $response = $this->post('user/email/add', array('email' => $email));
+-
+-        return $response['emails'];
+-    }
+-
+-    /**
+-     * Remove an email from the authenticated user. Requires authentication.
+-     *
+-     * @return  array                     list of authenticated user emails
+-     */
+-    public function removeEmail($email)
+-    {
+-        $response = $this->post('user/email/remove', array('email' => $email));
+-
+-        return $response['emails'];
+-    }
+-}
+diff --git a/modules/CiteProc/Github/ApiInterface.php b/modules/CiteProc/Github/ApiInterface.php
+deleted file mode 100644
+index 0fbc5a3..0000000
+--- a/modules/CiteProc/Github/ApiInterface.php
++++ /dev/null
+@@ -1,5 +0,0 @@
+-<?php
+-
+-interface Github_ApiInterface
+-{
+-}
+diff --git a/modules/CiteProc/Github/Autoloader.php b/modules/CiteProc/Github/Autoloader.php
+deleted file mode 100644
+index 9c0f744..0000000
+--- a/modules/CiteProc/Github/Autoloader.php
++++ /dev/null
+@@ -1,34 +0,0 @@
+-<?php
+-
+-/**
+- * Autoloads Github classes
+- */
+-class Github_Autoloader
+-{
+-    /**
+-     * Registers Github_Autoloader as an SPL autoloader.
+-     */
+-    static public function register()
+-    {
+-        ini_set('unserialize_callback_func', 'spl_autoload_call');
+-        spl_autoload_register(array(new self, 'autoload'));
+-    }
+-
+-    /**
+-     * Handles autoloading of classes.
+-     *
+-     * @param  string  $class  A class name.
+-     *
+-     * @return boolean Returns true if the class has been loaded
+-     */
+-    static public function autoload($class)
+-    {
+-        if (0 !== strpos($class, 'Github')) {
+-            return;
+-        }
+-
+-        if (file_exists($file = dirname(__FILE__).'/../'.str_replace('_', '/', $class).'.php')) {
+-            require $file;
+-        }
+-    }
+-}
+diff --git a/modules/CiteProc/Github/Client.php b/modules/CiteProc/Github/Client.php
+deleted file mode 100644
+index 8cc5e0d..0000000
+--- a/modules/CiteProc/Github/Client.php
++++ /dev/null
+@@ -1,252 +0,0 @@
+-<?php
+-
+-/**
+- * Simple yet very cool PHP Github client
+- *
+- * @tutorial  http://github.com/ornicar/php-github-api/blob/master/README.markdown
+- * @version   3.1
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- *
+- * Website: http://github.com/ornicar/php-github-api
+- * Tickets: http://github.com/ornicar/php-github-api/issues
+- */
+-class Github_Client
+-{
+-    /**
+-     * Constant for authentication method. Indicates the default, but deprecated
+-     * login with username and token in URL.
+-     */
+-    const AUTH_URL_TOKEN = 'url_token';
+-
+-    /**
+-     * Constant for authentication method. Indicates the new favored login method
+-     * with username and password via HTTP Authentication.
+-     */
+-    const AUTH_HTTP_PASSWORD = 'http_password';
+-
+-    /**
+-     * Constant for authentication method. Indicates the new login method with
+-     * with username and token via HTTP Authentication.
+-     */
+-    const AUTH_HTTP_TOKEN = 'http_token';
+-
+-    /**
+-     * The httpClient instance used to communicate with GitHub
+-     *
+-     * @var Github_HttpClient_Interface
+-     */
+-    protected $httpClient = null;
+-
+-    /**
+-     * The list of loaded API instances
+-     *
+-     * @var array
+-     */
+-    protected $apis = array();
+-
+-    /**
+-     * Instanciate a new GitHub client
+-     *
+-     * @param  Github_HttpClient_Interface $httpClient custom http client
+-     */
+-    public function __construct(Github_HttpClientInterface $httpClient = null)
+-    {
+-        if (null === $httpClient) {
+-            $this->httpClient = new Github_HttpClient_Curl();
+-        } else {
+-            $this->httpClient = $httpClient;
+-        }
+-    }
+-
+-    /**
+-     * Authenticate a user for all next requests
+-     *
+-     * @param  string         $login      GitHub username
+-     * @param  string         $secret     GitHub private token or Github password if $method == AUTH_HTTP_PASSWORD
+-     * @param  string         $method     One of the AUTH_* class constants
+-     *
+-     * @return null
+-     */
+-    public function authenticate($login, $secret, $method = NULL)
+-    {
+-        if (!$method) {
+-            $method = self::AUTH_URL_TOKEN;
+-        }
+-
+-        $this->getHttpClient()
+-                ->setOption('auth_method', $method)
+-                ->setOption('login', $login)
+-                ->setOption('secret', $secret);
+-    }
+-
+-    /**
+-     * Deauthenticate a user for all next requests
+-     *
+-     * @return null
+-     */
+-    public function deAuthenticate()
+-    {
+-        $this->authenticate(null, null, null);
+-    }
+-
+-    /**
+-     * Call any path, GET method
+-     * Ex: $api->get('repos/show/my-username/my-repo')
+-     *
+-     * @param   string  $path            the GitHub path
+-     * @param   array   $parameters       GET parameters
+-     * @param   array   $requestOptions   reconfigure the request
+-     * @return  array                     data returned
+-     */
+-    public function get($path, array $parameters = array(), $requestOptions = array())
+-    {
+-        return $this->getHttpClient()->get($path, $parameters, $requestOptions);
+-    }
+-
+-    /**
+-     * Call any path, POST method
+-     * Ex: $api->post('repos/show/my-username', array('email' => 'my-new-email@provider.org'))
+-     *
+-     * @param   string  $path            the GitHub path
+-     * @param   array   $parameters       POST parameters
+-     * @param   array   $requestOptions   reconfigure the request
+-     * @return  array                     data returned
+-     */
+-    public function post($path, array $parameters = array(), $requestOptions = array())
+-    {
+-        return $this->getHttpClient()->post($path, $parameters, $requestOptions);
+-    }
+-
+-    /**
+-     * Get the http client. If none is available, instanciate a curl client.
+-     *
+-     * @return  Github_HttpClient_Interface   a request instance
+-     */
+-    public function getHttpClient()
+-    {
+-        return $this->httpClient;
+-    }
+-
+-    /**
+-     * Inject another http client
+-     *
+-     * @param   Github_HttpClient_Interface   a httpClient instance
+-     *
+-     * @return  null
+-     */
+-    public function setHttpClient(Github_HttpClient_Interface $httpClient)
+-    {
+-        $this->httpClient = $httpClient;
+-    }
+-
+-    /**
+-     * Get the user API
+-     *
+-     * @return  Github_Api_User    the user API
+-     */
+-    public function getUserApi()
+-    {
+-        if (!isset($this->apis['user'])) {
+-            $this->apis['user'] = new Github_Api_User($this);
+-        }
+-
+-        return $this->apis['user'];
+-    }
+-
+-    /**
+-     * Get the issue API
+-     *
+-     * @return  Github_Api_Issue   the issue API
+-     */
+-    public function getIssueApi()
+-    {
+-        if (!isset($this->apis['issue'])) {
+-            $this->apis['issue'] = new Github_Api_Issue($this);
+-        }
+-
+-        return $this->apis['issue'];
+-    }
+-
+-    /**
+-     * Get the commit API
+-     *
+-     * @return  Github_Api_Commit  the commit API
+-     */
+-    public function getCommitApi()
+-    {
+-        if (!isset($this->apis['commit'])) {
+-            $this->apis['commit'] = new Github_Api_Commit($this);
+-        }
+-
+-        return $this->apis['commit'];
+-    }
+-
+-    /**
+-     * Get the repo API
+-     *
+-     * @return  Github_Api_Repo  the repo API
+-     */
+-    public function getRepoApi()
+-    {
+-        if (!isset($this->apis['repo'])) {
+-            $this->apis['repo'] = new Github_Api_Repo($this);
+-        }
+-
+-        return $this->apis['repo'];
+-    }
+-
+-    /**
+-     * Get the organization API
+-     *
+-     * @return  Github_Api_Organization  the object API
+-     */
+-    public function getOrganizationApi()
+-    {
+-        if (!isset($this->apis['organization'])) {
+-            $this->apis['organization'] = new Github_Api_Organization($this);
+-        }
+-
+-        return $this->apis['organization'];
+-    }
+-
+-    /**
+-     * Get the object API
+-     *
+-     * @return  Github_Api_Object  the object API
+-     */
+-    public function getObjectApi()
+-    {
+-        if (!isset($this->apis['object'])) {
+-            $this->apis['object'] = new Github_Api_Object($this);
+-        }
+-
+-        return $this->apis['object'];
+-    }
+-
+-    /**
+-     * Inject an API instance
+-     *
+-     * @param   string                $name the API name
+-     * @param   Github_ApiInterface  $api  the API instance
+-     *
+-     * @return  null
+-     */
+-    public function setApi($name, Github_ApiInterface $instance)
+-    {
+-        $this->apis[$name] = $instance;
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Get any API
+-     *
+-     * @param   string                $name the API name
+-     * @return  Github_ApiInterface  the API instance
+-     */
+-    public function getApi($name)
+-    {
+-        return $this->apis[$name];
+-    }
+-}
+diff --git a/modules/CiteProc/Github/HttpClient.php b/modules/CiteProc/Github/HttpClient.php
+deleted file mode 100644
+index c61e145..0000000
+--- a/modules/CiteProc/Github/HttpClient.php
++++ /dev/null
+@@ -1,162 +0,0 @@
+-<?php
+-
+-/**
+- * Performs requests on GitHub API. API documentation should be self-explanatory.
+- *
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-abstract class Github_HttpClient implements Github_HttpClientInterface
+-{
+-    /**
+-     * The http client options
+-     * @var array
+-     */
+-    protected $options = array(
+-        'protocol'   => 'http',
+-        'url'        => ':protocol://github.com/api/v2/:format/:path',
+-        'format'     => 'json',
+-        'user_agent' => 'php-github-api (http://github.com/ornicar/php-github-api)',
+-        'http_port'  => 80,
+-        'timeout'    => 10,
+-        'login'      => null,
+-        'token'      => null
+-    );
+-
+-    protected static $history = array();
+-
+-    /**
+-     * Instanciate a new http client
+-     *
+-     * @param  array   $options  http client options
+-     */
+-    public function __construct(array $options = array())
+-    {
+-        $this->options = array_merge($this->options, $options);
+-    }
+-
+-    /**
+-     * Send a request to the server, receive a response
+-     *
+-     * @param  string   $url           Request url
+-     * @param  array    $parameters    Parameters
+-     * @param  string   $httpMethod    HTTP method to use
+-     * @param  array    $options        Request options
+-     *
+-     * @return string   HTTP response
+-     */
+-    abstract protected function doRequest($url, array $parameters = array(), $httpMethod = 'GET', array $options);
+-
+-    /**
+-     * Send a GET request
+-     *
+-     * @param  string   $path            Request path
+-     * @param  array    $parameters     GET Parameters
+-     * @param  string   $httpMethod     HTTP method to use
+-     * @param  array    $options        Request options
+-     *
+-     * @return array                    Data
+-     */
+-    public function get($path, array $parameters = array(), array $options = array())
+-    {
+-        return $this->request($path, $parameters, 'GET', $options);
+-    }
+-
+-    /**
+-     * Send a POST request
+-     *
+-     * @param  string   $path            Request path
+-     * @param  array    $parameters     POST Parameters
+-     * @param  string   $httpMethod     HTTP method to use
+-     * @param  array    $options        reconfigure the request for this call only
+-     *
+-     * @return array                    Data
+-     */
+-    public function post($path, array $parameters = array(), array $options = array())
+-    {
+-        return $this->request($path, $parameters, 'POST', $options);
+-    }
+-
+-    /**
+-     * Send a request to the server, receive a response,
+-     * decode the response and returns an associative array
+-     *
+-     * @param  string   $path            Request API path
+-     * @param  array    $parameters     Parameters
+-     * @param  string   $httpMethod     HTTP method to use
+-     * @param  array    $options        Request options
+-     *
+-     * @return array                    Data
+-     */
+-    public function request($path, array $parameters = array(), $httpMethod = 'GET', array $options = array())
+-    {
+-        $this->updateHistory();
+-
+-        $options = array_merge($this->options, $options);
+-
+-        // create full url
+-        $url = strtr($options['url'], array(
+-            ':protocol' => $options['protocol'],
+-            ':format'   => $options['format'],
+-            ':path'     => trim($path, '/')
+-        ));
+-
+-        // get encoded response
+-        $response = $this->doRequest($url, $parameters, $httpMethod, $options);
+-
+-        // decode response
+-        $response = $this->decodeResponse($response, $options);
+-
+-        return $response;
+-    }
+-
+-    /**
+-     * Get a JSON response and transform it to a PHP array
+-     *
+-     * @return  array   the response
+-     */
+-    protected function decodeResponse($response, array $options)
+-    {
+-        if ('text' === $options['format']) {
+-            return $response;
+-        } elseif ('json' === $options['format']) {
+-            return json_decode($response, true);
+-        }
+-
+-        throw new Exception(__CLASS__.' only supports json & text format, '.$options['format'].' given.');
+-    }
+-
+-    /**
+-     * Change an option value.
+-     *
+-     * @param string $name   The option name
+-     * @param mixed  $value  The value
+-     *
+-     * @return Github_HttpClientInterface The current object instance
+-     */
+-    public function setOption($name, $value)
+-    {
+-        $this->options[$name] = $value;
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Records the requests times
+-     * When 30 request have been sent in less than a minute,
+-     * sleeps for two second to prevent reaching GitHub API limitation.
+-     *
+-     * @access protected
+-     * @return void
+-     */
+-    protected function updateHistory()
+-    {
+-        self::$history[] = time();
+-        if (30 === count(self::$history)) {
+-            if (reset(self::$history) >= (time() - 35)) {
+-                sleep(2);
+-            }
+-            array_shift(self::$history);
+-        }
+-    }
+-}
+diff --git a/modules/CiteProc/Github/HttpClient/Curl.php b/modules/CiteProc/Github/HttpClient/Curl.php
+deleted file mode 100644
+index 43114d6..0000000
+--- a/modules/CiteProc/Github/HttpClient/Curl.php
++++ /dev/null
+@@ -1,163 +0,0 @@
+-<?php
+-
+-/**
+- * Performs requests on GitHub API. API documentation should be self-explanatory.
+- *
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_HttpClient_Curl extends Github_HttpClient
+-{
+-    /**
+-     * Send a request to the server, receive a response
+-     *
+-     * @param  string   $path          Request url
+-     * @param  array    $parameters    Parameters
+-     * @param  string   $httpMethod    HTTP method to use
+-     * @param  array    $options       Request options
+-     *
+-     * @return string   HTTP response
+-     */
+-    public function doRequest($url, array $parameters = array(), $httpMethod = 'GET', array $options)
+-    {
+-        $curlOptions = array();
+-
+-        if ($options['login']) {
+-            switch ($options['auth_method']) {
+-                case Github_Client::AUTH_HTTP_PASSWORD:
+-                    $curlOptions += array(
+-                        CURLOPT_USERPWD => $options['login'].':'.$options['secret'],
+-                    );
+-                    break;
+-                case Github_Client::AUTH_HTTP_TOKEN:
+-                    $curlOptions += array(
+-                        CURLOPT_USERPWD => $options['login'].'/token:'.$options['secret'],
+-                    );
+-                    break;
+-                case Github_Client::AUTH_URL_TOKEN:
+-                default:
+-                    $parameters = array_merge(array(
+-                        'login' => $options['login'],
+-                        'token' => $options['secret']
+-                            ), $parameters);
+-                    break;
+-            }
+-        }
+-
+-        if (!empty($parameters)) {
+-            $queryString = utf8_encode(http_build_query($parameters, '', '&'));
+-
+-            if ('GET' === $httpMethod) {
+-                $url .= '?'.$queryString;
+-            } else {
+-                $curlOptions += array(
+-                    CURLOPT_POST => true,
+-                    CURLOPT_POSTFIELDS => $queryString
+-                );
+-            }
+-        }
+-
+-        $curlOptions += array(
+-            CURLOPT_URL => $url,
+-            CURLOPT_PORT => $options['http_port'],
+-            CURLOPT_USERAGENT => $options['user_agent'],
+-            CURLOPT_FOLLOWLOCATION => true,
+-            CURLOPT_RETURNTRANSFER => true,
+-            CURLOPT_TIMEOUT => $options['timeout']
+-        );
+-
+-        $response = $this->doCurlCall($curlOptions);
+-
+-        if (!in_array($response['headers']['http_code'], array(0, 200, 201))) {
+-            throw new Github_HttpClient_Exception(null, (int) $response['headers']['http_code']);
+-        }
+-
+-        if ($response['errorNumber'] != '') {
+-            throw new Github_HttpClient_Exception('error '.$response['errorNumber']);
+-        }
+-
+-        return $response['response'];
+-    }
+-
+-    protected function doCurlCall(array $curlOptions){
+-      //follow on location problems
+-      $safe_mode = ini_get('safe_mode');
+-      $open_basedir = ini_get('open_basedir');
+-        $curl = curl_init();
+-      if (empty($open_basedir) && empty($safe_mode)) {
+-        return $this->doNormalCurlCall($curl, $curlOptions);
+-      }
+-      else{
+-        unset($curlOptions[CURLOPT_FOLLOWLOCATION]);
+-        $curlOptions[CURLOPT_HEADER] = TRUE;
+-        return $this->doSafeModeCurlCall($curl, $curlOptions);
+-      }
+-      curl_close($go);
+-      return $syn;
+-    }
+-    protected function doNormalCurlCall($curl, array $curlOptions)
+-    {
+-        curl_setopt_array($curl, $curlOptions);
+-
+-        $response = curl_exec($curl);
+-        $headers = curl_getinfo($curl);
+-        $errorNumber = curl_errno($curl);
+-        $errorMessage = curl_error($curl);
+-
+-        curl_close($curl);
+-
+-        return compact('response', 'headers', 'errorNumber', 'errorMessage');
+-    }
+-    //follow on location problems workaround
+-    protected function doSafeModeCurlCall($curl, array $curlOptions)
+-    {
+-      static $curl_loops = 0;
+-
+-      if ($curl_loops++ > 20)
+-      {
+-        $curl_loops = 0;
+-        return FALSE;
+-      }
+-      curl_setopt_array($curl, $curlOptions);
+-      $response = curl_exec($curl);
+-      list($header, $response) = explode("\n\r\n", $response, 2);
+-      $response = trim($response);
+-      $headers = curl_getinfo($curl);
+-      $errorNumber = curl_errno($curl);
+-      $errorMessage = curl_error($curl);
+-
+-
+-      $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+-      if ($http_code == 301 || $http_code == 302)
+-      {
+-        $matches = array();
+-        preg_match('/Location:(.*?)\n/', $header, $matches);
+-        $url = @parse_url(trim(array_pop($matches)));
+-        if (!$url)
+-        {
+-          //couldn't process the url to redirect to
+-          $curl_loops = 0;
+-          curl_close($curl);
+-          return compact('response', 'headers', 'errorNumber', 'errorMessage');
+-        }
+-        $last_url = parse_url(curl_getinfo($curl, CURLINFO_EFFECTIVE_URL));
+-        if (!$url['scheme']) {
+-          $url['scheme'] = $last_url['scheme'];
+-        }
+-        if (!$url['host']) {
+-          $url['host'] = $last_url['host'];
+-        }
+-        if (!$url['path']) {
+-          $url['path'] = $last_url['path'];
+-        }
+-        $new_url = $url['scheme'] . '://' . $url['host'] . $url['path'] . ($url['query']?'?'.$url['query']:'');
+-        $curlOptions['CURLOPT_URL'] = $new_url;
+-        return $this->doSafeModeCurlCall($curl, $curlOptions);
+-      }
+-      else {
+-        $curl_loops=0;
+-        curl_close($curl);
+-        return compact('response', 'headers', 'errorNumber', 'errorMessage');
+-      }
+-    }
+-}
+diff --git a/modules/CiteProc/Github/HttpClient/Exception.php b/modules/CiteProc/Github/HttpClient/Exception.php
+deleted file mode 100644
+index 50ca909..0000000
+--- a/modules/CiteProc/Github/HttpClient/Exception.php
++++ /dev/null
+@@ -1,73 +0,0 @@
+-<?php
+-
+-/**
+- * HttpClient communication error
+- *
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-class Github_HttpClient_Exception extends Exception
+-{
+-    /**
+-     * Http header-codes
+-     * @var  array
+-     */
+-    static protected $statusCodes = array(
+-        0 => 'OK',
+-        100 => 'Continue',
+-        101 => 'Switching Protocols',
+-        200 => 'OK',
+-        201 => 'Created',
+-        202 => 'Accepted',
+-        203 => 'Non-Authoritative Information',
+-        204 => 'No Content',
+-        205 => 'Reset Content',
+-        206 => 'Partial Content',
+-        300 => 'Multiple Choices',
+-        301 => 'Moved Permanently',
+-        302 => 'Found',
+-        303 => 'See Other',
+-        304 => 'Not Modified',
+-        305 => 'Use Proxy',
+-        306 => '(Unused)',
+-        307 => 'Temporary Redirect',
+-        400 => 'Bad Request',
+-        401 => 'Unauthorized',
+-        402 => 'Payment Required',
+-        403 => 'Forbidden',
+-        404 => 'Not Found',
+-        405 => 'Method Not Allowed',
+-        406 => 'Not Acceptable',
+-        407 => 'Proxy Authentication Required',
+-        408 => 'Request Timeout',
+-        409 => 'Conflict',
+-        411 => 'Length Required',
+-        412 => 'Precondition Failed',
+-        413 => 'Request Entity Too Large',
+-        414 => 'Request-URI Too Long',
+-        415 => 'Unsupported Media Type',
+-        416 => 'Requested Range Not Satisfiable',
+-        417 => 'Expectation Failed',
+-        500 => 'Internal Server Error',
+-        501 => 'Not Implemented',
+-        502 => 'Bad Gateway',
+-        503 => 'Service Unavailable',
+-        504 => 'Gateway Timeout',
+-        505 => 'HTTP Version Not Supported'
+-    );
+-
+-    /**
+-     * Default constructor
+-     *
+-     * @param  string $message
+-     * @param  int $code
+-     */
+-    public function __construct($message = null, $code = null)
+-    {
+-        if (null === $message && null !== $code && array_key_exists((int) $code, self::$statusCodes)) {
+-            $message = sprintf('HTTP %d: %s', $code, self::$statusCodes[(int) $code]);
+-        }
+-
+-        parent::__construct($message, $code);
+-    }
+-}
+diff --git a/modules/CiteProc/Github/HttpClientInterface.php b/modules/CiteProc/Github/HttpClientInterface.php
+deleted file mode 100644
+index 0c431bf..0000000
+--- a/modules/CiteProc/Github/HttpClientInterface.php
++++ /dev/null
+@@ -1,44 +0,0 @@
+-<?php
+-
+-/**
+- * Performs requests on GitHub API. API documentation should be self-explanatory.
+- *
+- * @author    Thibault Duplessis <thibault.duplessis at gmail dot com>
+- * @license   MIT License
+- */
+-interface Github_HttpClientInterface
+-{
+-    /**
+-     * Send a GET request
+-     *
+-     * @param  string   $path            Request path
+-     * @param  array    $parameters     GET Parameters
+-     * @param  string   $httpMethod     HTTP method to use
+-     * @param  array    $options        reconfigure the request for this call only
+-     *
+-     * @return array                    Data
+-     */
+-    public function get($path, array $parameters = array(), array $options = array());
+-
+-    /**
+-     * Send a POST request
+-     *
+-     * @param  string   $path            Request path
+-     * @param  array    $parameters     POST Parameters
+-     * @param  string   $httpMethod     HTTP method to use
+-     * @param  array    $options        reconfigure the request for this call only
+-     *
+-     * @return array                    Data
+-     */
+-    public function post($path, array $parameters = array(), array $options = array());
+-
+-    /**
+-     * Change an option value.
+-     *
+-     * @param string $name   The option name
+-     * @param mixed  $value  The value
+-     *
+-     * @return Github_HttpClientInterface The current object instance
+-     */
+-    public function setOption($name, $value);
+-}
+diff --git a/modules/CiteProc/biblio_citeproc.admin.inc b/modules/CiteProc/biblio_citeproc.admin.inc
+index 8962f4a..b3dac48 100644
+--- a/modules/CiteProc/biblio_citeproc.admin.inc
++++ b/modules/CiteProc/biblio_citeproc.admin.inc
+@@ -2,41 +2,33 @@
+ function biblio_citeproc_style_manager_form($form, &$form_state) {
+   $form = array();
+   $options = array();
++  $tree = array();
+ 
+-  if ($has_curl = function_exists('curl_init')) {
+-    $cache = cache_get('github_csl_repo');
+-    if (!$cache || $cache->expire < time()) {
+-      module_load_include('php', 'biblio_citeproc', '/Github/Autoloader');
+-      Github_Autoloader::register();
+-      $github = new Github_Client();
+-      $branches = $github->getRepoApi()->getRepoBranches('citation-style-language', 'styles');
+-      $tree = $github->getObjectApi()->listBlobs('citation-style-language', 'styles', $branches['master']);
+-
+-      $tree = array_flip($tree);
+-      $options = array();
+-      foreach ($tree as $sha => $file) {
+-        if (strstr($file, '.csl')) {
+-          $options[$sha] =  basename($file);
+-        }
+-      }
+-      if (!empty($options)) {
+-        $expire = time()+86400; //one day from now
+-        cache_set('github_csl_repo', $options, 'cache', $expire);
++  $cache = cache_get('github_csl_repo');
++  if (!$cache || $cache->expire < time()) {
++    $treeURL = 'https://api.github.com/repos/citation-style-language/styles/contents';
++    $result = drupal_http_request($treeURL);
++
++    if ($result->code == 200) {
++      $tree = json_decode($result->data);
++    }
++
++    foreach ($tree as $file) {
++      if (strstr($file->name, '.csl')) {
++        $options[$file->path] =  basename($file->name);
+       }
+     }
+-    else {
+-      $options = $cache->data;
++
++    if (!empty($options)) {
++      $expire = time()+86400; //one day from now
++      cache_set('github_csl_repo', $options, 'cache', $expire);
+     }
+   }
+-
+-  if (!$has_curl) {
+-    $message = t('Additional styles cannot be '
+-        . 'installed because the PHP <a href="@curl_url">cURL</a> library is '
+-        . 'not available.',
+-        array('@curl_url' => 'http://www.php.net/manual/en/book.curl.php'));
+-    drupal_set_message($message, 'warning');
++  else {
++    $options = $cache->data;
+   }
+ 
++
+   $form['remote_names'] = array(
+     '#type' => 'value',
+     '#value' => $options,
+@@ -48,19 +40,16 @@ function biblio_citeproc_style_manager_form($form, &$form_state) {
+     '#title' => t('Available styles'),
+     '#size' => 15,
+     '#multiple' => TRUE,
+-    '#disabled' => !$has_curl,
+     '#description' => t('Choose the styles you would like to download and install.'),
+   );
+ 
+   $form['install'] = array(
+     '#type'        => 'submit',
+-    '#disabled'    => !$has_curl,
+     '#value'       => '<--',
+     '#description' => t('Install the selected styles from GitHub'),
+   );
+   $form['remove'] = array(
+     '#type'        => 'submit',
+-    '#disabled'    => !$has_curl,
+     '#value'       => '-->',
+     '#description' => t('Un-install the selected styles'),
+   );
+@@ -74,7 +63,6 @@ function biblio_citeproc_style_manager_form($form, &$form_state) {
+   );
+   $form['install_all'] = array(
+     '#type'     => 'submit',
+-    '#disabled' => !$has_curl,
+     '#value'    => t('Install all')
+   );
+ 
+@@ -163,12 +151,19 @@ function biblio_citeproc_style_manager_form_validate($form, &$form_state) {
+ }
+ function biblio_citeproc_style_manager_form_submit($form, &$form_state) {
+   if ($form_state['clicked_button']['#value'] == '<--' && count( $form_state['values']['avialable_styles'])) {
+-    module_load_include('php', 'biblio_citeproc', '/Github/Autoloader');
+-    Github_Autoloader::register();
+-    $github = new Github_Client();
+-    foreach ( $form_state['values']['avialable_styles'] as $sha) {
+-      $csl = $github->getObjectApi()->getRawData('citation-style-language', 'styles', $sha);
+-      _install_csl($form_state['values']['remote_names'][$sha], $csl, $sha);
++    $github_URL = 'https://api.github.com/repos/citation-style-language/styles/contents/';
++    foreach ( $form_state['values']['avialable_styles'] as $path) {
++      $URL = $github_URL . $path;
++      $result = drupal_http_request($URL);
++      if ($result->code == 200) {
++        $file  = json_decode($result->data);
++        switch ($file->encoding) {
++          case 'base64':
++            $csl = base64_decode($file->content);
++            break;
++        }
++      _install_csl($file->name, $csl, $file->sha);
++      }
+     }
+   }
+ 
+-- 
+1.8.2.1

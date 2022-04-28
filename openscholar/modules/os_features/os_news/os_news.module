@@ -1,0 +1,231 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code for the OS news feature module.
+ */
+
+include_once ('os_news.features.inc');
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_news_os_app_info() {
+  $apps = array();
+
+  $apps['os_news'] = array(
+    'path' => 'news',
+    'nodetypes' => array(
+      'news',
+    ),
+    'views tabs' => array(
+      'os_news' => array('page'),
+    ),
+    'importers' => array(
+      'news' => array(
+        'csv' => 'os_news',
+        'rss' => 'feed_importer',
+      ),
+    ),
+    'browse_pages' => array(
+      'news' => array(
+        'url' => 'browse/news',
+        'title' => t('News'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'news',
+      ),
+    ),
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_os_widget().
+ */
+function os_news_os_widget() {
+  $items = array();
+
+  // Filter news by months.
+  $items['views-os_news-news_by_month_block'] = array(
+    'module' => 'views',
+    'delta' => 'os_news-news_by_month_block',
+    'region' => 'sidebar_second',
+    'weight' => '-10',
+    'info' => t('Filter News by Month'),
+  );
+
+  // Filter news by year.
+  $items['views-os_news-news_by_year_block'] = array(
+    'module' => 'views',
+    'delta' => 'os_news-news_by_year_block',
+    'region' => FALSE,
+    'weight' => '-10',
+    'info' => t('Filter News by Year'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_os_entity_view_modes()
+ */
+function os_news_os_entity_view_modes() {
+  return array('node' => array(
+    'news' => array('sidebar_teaser')
+  ));
+}
+
+/**
+ * Implements hook_process_hook() for node.
+ *
+ * Customizes $submitted for new nodes as just "M D, YYYY"
+ *
+ * Moves the photo field before the title for teaser display.
+ */
+function os_news_process_node(&$vars) {
+  if ($vars['type'] !== 'news') {
+    return;
+  }
+
+  // Helps poor theme developers find these changes to $variables
+  $vars['classes'] .= ' modified-in-os_news_process_node';
+
+  if ($vars['teaser'] || $vars['view_mode'] == 'sidebar_teaser') {
+    // Moves the profile photo thumbnail before teaser title (full name)
+    if (isset($vars['content']['field_photo'])) {
+      $vars['title_prefix'] = $vars['content']['field_photo'];
+      $vars['title_prefix'][0]['#item']['attributes'] = array('ng-non-bindable' => '');
+      unset($vars['content']['field_photo']);
+    }
+
+    // sidebar_teaser - moves title into content area
+    if ($vars['view_mode'] == 'sidebar_teaser') {
+      $vars['content']['node_title'] = array(
+        '#markup' => '<h1 ' . $vars['title_attributes'] . '><a href="' . $vars['node_url'] . '">' . $vars['title'] . '</a></h1>'
+      );
+      $vars['title'] = NULL;
+    }
+  }
+  else {
+    if (isset($vars['content']['field_photo']) && isset($vars['content']['body'])) {
+      $photo_markup = '';
+      if (isset($vars['content']['field_photo'][0]['#item']['os_file_description'][LANGUAGE_NONE][0]['value'])) {
+        $image_style = image_style_load($vars['content']['field_photo'][0]['#image_style']);
+        $width = "auto";
+        foreach ($image_style['effects'] as $delta => $effect) {
+          if (isset($effect['data']['width'])) {
+            $width = $effect['data']['width'] . "px";
+          }
+        }
+        $photo_markup .= '<div class="photo with-caption" style="width:' . $width . '">' . render($vars['content']['field_photo']) . '</div>';
+      }
+      else {
+        $photo_markup .= '<div class="photo no-caption clearfix">' . render($vars['content']['field_photo']) . '</div>';
+      }
+      $vars['content']['body'][0]['#markup'] = $photo_markup . $vars['content']['body'][0]['#markup'];
+      unset($vars['content']['field_photo']);
+    }
+  }
+
+  // Includes custom CSS
+  $vars['title_prefix']['#attached'] = array(
+    'css' => array(
+      'type' => 'file',
+      'data' => drupal_get_path('module', 'os_news') . '/os_news.css',
+    ),
+  );
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_news_vsite_og_node_type_info() {
+  return array(
+    'news' => 'group content',
+  );
+}
+
+/**
+ * Adds alt and title text where appropriate
+ */
+function os_news_field_attach_load($entity_type, $entities, $view_mode) {
+  if ($entity_type == 'node') {
+    foreach ($entities as $e_id => $e) {
+      if ($e->type != 'news') continue;
+
+      if (!empty($e->field_photo) && isset($e->title)) {
+        $e->field_photo[LANGUAGE_NONE][0]['alt'] = $e->title;
+        $e->field_photo[LANGUAGE_NONE][0]['title'] = $e->title;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_media_token_to_markup_alter()
+ */
+function os_news_media_token_to_markup_alter(&$element, &$tag_info, &$settings) {
+
+  $img_markup = isset($element['content']['file']) ? drupal_render($element['content']['file']) : '';
+  $output = '';
+  $output .= $img_markup;
+
+  // Adding extra span around embed media iframe.
+  if (isset($element['content']['file']['#file']->override['attributes']['style'])) {
+    $style = 'style="' . $element['content']['file']['#file']->override['attributes']['style'] . '"';
+  }
+  if (strpos($output, 'iframe') !== FALSE) {
+    $output = '<span ' . ($style!='' ? $style : '') . '>' . $output . '</span>';
+  }
+
+  // If image description is present, then figcaption tag will be displayed.
+  if (isset($element['content']['os_file_description'][0]['#markup'])) {
+    $output .= '<figcaption>';
+    $output .= strip_tags($element['content']['os_file_description'][0]['#markup']);
+    $output .= '</figcaption>';
+  }
+  // Overriding image description output with figure tags.
+  $element['content']['os_file_description'][0]['#markup'] = $output;
+}
+
+/*
+ * Implements hook_date_popup_process_alter().
+ */
+function os_news_date_popup_process_alter(&$element, &$form_state, $context) {
+  // Removing label for calendar popup in news add/edit form as the fieldset already contains the label 'Date'
+  if ($context['form']['form_id']['#value'] == 'news_node_form') {
+    unset($element['date']['#title']);
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ */
+function os_news_form_news_node_form_alter(&$form, &$form_state) {
+  $form['#validate'][] = 'os_news_node_form_photo_validate';
+}
+
+/**
+ * @function os_news_node_form_photo_validate
+ *
+ */
+function os_news_node_form_photo_validate($form, &$form_state) {
+  if (isset($form['field_photo']['und'][0]['#file']->uri)) {
+    $file_uri = $form['field_photo']['und'][0]['#file']->uri;
+    list($width, $height) = getimagesize(drupal_realpath($file_uri));
+    $min_width = 250;
+    $min_height = 250;
+    if ($width < $min_width || $height < $min_height) {
+    $params = array(
+        '@width' => $width,
+        '@height' => $height,
+        '@min_width' => $min_width,
+        '@min_height' => $min_height,
+      );
+    form_set_error('field_photo', t("The size of the image needs to be at least @min_widthX@min_height. The given image is @widthX@height", $params));
+      return false;
+    }
+  }
+}

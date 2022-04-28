@@ -1,0 +1,5 @@
+name = Olive
+description = A Olive Version of the scholor-theme-02 theme
+screenshot = screenshot.png
+
+css[] = olive.css

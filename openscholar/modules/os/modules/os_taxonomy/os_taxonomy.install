@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * @file
+ * Install file for the OS taxonomy module.
+ */
+
+/**
+ * Enable the Hierarchical taxonomy module.
+ */
+function os_taxonomy_update_7000() {
+  module_enable(array('hierarchical_taxonomy'));
+}
+
+/**
+ * Update the pattern for vocabularies.
+ */
+function os_taxonomy_update_7001() {
+  variable_set('pathauto_taxonomy_vocabulary_pattern', 'vocab/[vocabulary:name]');
+}
+
+/**
+ * Enable Term reference tree module.
+ */
+function os_taxonomy_update_7002() {
+  module_enable(array('term_reference_tree'));
+}
+
+/**
+ * Attach "Show description" field to all existing vocabularies.
+ */
+function os_taxonomy_update_7003(&$sandbox) {
+  if (!isset($sandbox['sandbox']['progress'])) {
+    $sandbox['sandbox']['progress'] = 0;
+    $sandbox['sandbox']['info'] = array_keys(taxonomy_vocabulary_get_names());
+    $sandbox['sandbox']['max'] = count($sandbox['sandbox']['info']);
+  }
+  $batch = 10;
+  $start_banch = $sandbox['sandbox']['progress'];
+  while (($sandbox['sandbox']['progress'] <= $start_banch + $batch) && ($sandbox['sandbox']['progress'] <= $sandbox['sandbox']['max'] - 1)) {
+    $machine_name = $sandbox['sandbox']['info'][$sandbox['sandbox']['progress']];
+    $sandbox['message'] = t('Adding required field to vocabulary @machine_name', array('@machine_name' => $machine_name));
+    if ($machine_name) {
+      og_create_field('show_description', 'taxonomy_term', $machine_name);
+    }
+    $sandbox['sandbox']['progress']++;
+  }
+
+  // Affect the progress bar.
+  $sandbox['#finished'] = $sandbox['sandbox']['progress'] / $sandbox['sandbox']['max'];
+}
+
+/**
+ * Fix Taxonomy term aliases that were created with the wrong path.
+ */
+function os_taxonomy_update_7004(&$sandbox) {
+  // Remove the feature paths from the begining of the term path's
+  db_update('url_alias')
+    ->expression('source', 'SUBSTRING(source, LOCATE(\'taxonomy/term\', source) )')
+    ->condition('source', "%/taxonomy/term/%", 'LIKE')
+    ->execute();
+}
+
+/**
+ * Turn on the og_vocabulary field display for teaser view
+ */
+function os_taxonomy_update_7005() {
+  // List all content types
+  $bundles = array_keys(os_get_bundles(TRUE));
+  foreach ($bundles as $bundle) {
+    $instance = field_info_instance('node', 'og_vocabulary', $bundle);
+    $profile_teasers = array('slide_teaser', 'no_image_teaser');
+    $instance['display']['teaser'] = Array ('label' => 'hidden',
+                                             'type' => 'og_vocab',
+                                             'weight' => 10,
+                                             'settings' => Array ('concatenate' => 1),
+                                             'module' => 'vsite_vocab',
+                                             );
+    // Display the teaser view of og_vocabulary like the default view
+    field_update_instance($instance);
+  }
+
+  // Added the same for profile slide_teaser and no_image_teaser
+  $profile_teasers = array('slide_teaser', 'no_image_teaser');
+  foreach ($profile_teasers as $profile_teaser) {
+    $instance = field_info_instance('node', 'og_vocabulary', 'person');
+    $instance['display'][$profile_teaser] = Array ('label' => 'hidden',
+                                               'type' => 'og_vocab',
+                                               'weight' => 10,
+                                               'settings' => Array ('concatenate' => 1),
+                                               'module' => 'vsite_vocab',
+                                               );
+    field_update_instance($instance);
+  }
+}
+
+/**
+ * Remove the show_description field
+ */
+function os_taxonomy_update_7006() {
+
+  // Mark the field instance for deletion.
+  db_update('field_config_instance')
+    ->fields(array('deleted' => 1))
+    ->condition('field_name', 'show_description')
+    ->condition('entity_type', 'taxonomy_term')
+    ->execute();
+
+  // Clear the cache.
+  field_cache_clear();
+
+  // Delete the field itself we just deleted its last instance.
+  field_delete_field('show_description');
+
+}

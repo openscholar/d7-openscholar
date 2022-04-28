@@ -1,0 +1,197 @@
+<?php
+
+//Registration Form Logic
+include_once ('includes/os_pinserver_auth.register_form.inc');
+
+//Private Files Logic
+include_once ('includes/os_pinserver_auth.private_files.inc');
+
+//Private Sites Logic
+include_once ('includes/os_pinserver_auth.private_sites.inc');
+
+// Temporarially Private, access restricted to pin users. All files Public.
+define('OS_PINSERVER_ACCESS', 4);
+// Perminantly Private, access restricted to pin users. All files Private.
+define('OS_PINSERVER_INTRANET_ACCESS', 5);
+
+/**
+ * Implements hook_menu_alter().
+ */
+function os_pinserver_auth_menu_alter(&$items) {
+  // Add wrapper for "pinserver/auth"
+  $items['pinserver/auth']['page callback'] = 'os_pinserver_auth_init_check_user';
+
+  if(isset($items['user/pin'])){
+    // Add wrapper for "user/pin"
+    $items['user/pin']['page callback'] = 'os_pinserver_auth_pin_user_login';
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function os_pinserver_auth_menu() {
+  //Add file menu callbacks
+  $items = _os_pinserver_auth_private_files_menu();
+
+  return $items;
+}
+
+/**
+ * Implements hook_node_access().
+ *
+ * Deny Create to group content when a user has not passed through PIN.
+ */
+function os_pinserver_auth_node_access($node, $op, $account) {
+  //Get Bundle
+  $type = is_string($node) ? $node : (is_array($node) ? $node['type'] : $node->type);
+
+  // Given: an anon user is trying to create a group node, they have not logged in through pin, and pinserver registration is enabled.
+  // Deny Access
+  if($op == 'create' && !$account->uid && variable_get('os_pinserver_registration', FALSE) && og_is_group_type('node', $type) && !pinserver_check_status()){
+    //Only influence the create operation for logged out users.
+    return NODE_ACCESS_DENY;
+  }
+
+  return _os_pinserver_auth_private_site_access($node, $op, $account);
+}
+
+/**
+ * Register a "JS" callback.
+ */
+function os_pinserver_auth_js() {
+  // Ensure the stream wrappers are available
+   drupal_load('module', 'system');
+   _os_pinserver_auth_init_variables(TRUE);
+
+  return array(
+    'files' => array(
+      'callback' => 'os_pinserver_auth_private_file_download',
+      'dependencies' => array('pinserver','file_entity', 'user', 'syslog','system','file'),
+      'includes' => array('path'),
+      'bootstrap' => DRUPAL_BOOTSTRAP_VARIABLES,
+    ),
+    'auth' => array(
+      'callback' => 'os_pinserver_auth_pinserver_check_user',
+      'dependencies' => array('pinserver','file_entity', 'user', 'syslog','system','file'),
+      'includes' => array('path'),
+      'bootstrap' => DRUPAL_BOOTSTRAP_SESSION,
+    ),
+  );
+}
+
+/**
+ * Implements hook_file_download().
+ *
+ * Checks for pinserver and serves file if all rules pass.
+ */
+function os_pinserver_auth_file_download($uri) {
+
+  return _os_pinserver_auth_file_download($uri);
+}
+
+/**
+ * Implements hook_stream_wrappers_alter().
+ *
+ * Used to extend the private stream wrapper.
+ *
+ * @param array $wrappers
+ */
+function os_pinserver_auth_stream_wrappers_alter(&$wrappers){
+
+  // Use OS Pinserver Auth Stream Wrapper.
+  if (isset($wrappers['private'])) {
+    $wrappers['private']['class'] = 'OSPinserverPrivateStreamWrapper';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for vsite_register_form.
+ */
+function os_pinserver_auth_form_vsite_register_form_alter(&$form, $form_state, $form_id) {
+  //Should pinserver take over registration
+  if(variable_get('os_pinserver_registration', FALSE)){
+    _os_pinserver_auth_vsite_register_form_alter($form, $form_state, $form_id);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for vsite_users_profile_node_form.
+ */
+function os_pinserver_auth_form_vsite_users_profile_node_form_alter(&$form, $form_state, $form_id) {
+  if (variable_get('os_pinserver_registration', FALSE)) {
+    _os_pinserver_auth_vsite_users_profile_node_form_alter($form, $form_state, $form_id);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for pinserver_config.
+ */
+function os_pinserver_auth_form_pinserver_config_alter(&$form, $form_state) {
+  // Add config setting for private files
+  _os_pinserver_auth_pinserver_private_file_settings($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for user_profile_form.
+ */
+function os_pinserver_auth_form_user_profile_form_alter(&$form, $form_state) {
+  $user = $form_state['user'];
+
+  if (pinserver_user_has_associated_pin($user->uid)) {
+    $form['account']['#prefix'] = '<p>' . t('Your account is linked to HarvardKey.') . ' ' . l('Learn more about linking accounts', 'https://harvard.service-now.com/ithelp?id=kb_article&sys_id=bcb7c5eadbba0fc0a914fff31d9619dc', array('attributes' => array('target' => '_blank', 'rel' => 'noopener'))) . '.</p>';
+  }
+  else {
+    $form['account']['#prefix'] = '<p>' . t('Your account is not linked to HarvardKey.') . ' ' . l('Learn more about linking accounts', 'https://harvard.service-now.com/ithelp?id=kb_article&sys_id=bcb7c5eadbba0fc0a914fff31d9619dc', array('attributes' => array('target' => '_blank', 'rel' => 'noopener'))) . '.</p>';
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Adds pathauto support for core modules.
+ */
+function os_pinserver_auth_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'file_download' && isset($implementations['os_pinserver_auth'])) {
+    // Move os_pinserver_auth.module to get included first since it redirects instead of returning denied.
+    $pa_hook = $implementations['os_pinserver_auth'];
+    unset($implementations['os_pinserver_auth']);
+    $implementations = array_merge(array('os_pinserver_auth' => $pa_hook), $implementations);
+  }
+}
+
+/**
+ * Add Pinserver Site Privacy options
+ */
+function os_pinserver_auth_vsite_access_privacy_values_alter(&$privacy_options){
+  _os_pinserver_auth_vsite_access_privacy_values_alter($privacy_options);
+}
+
+/**
+ * React to vsite access denied
+ */
+function os_pinserver_auth_vsite_access_denied($vsite){
+  _os_pinserver_auth_vsite_access_denied($vsite);
+}
+
+/**
+ * Provide wrapper for "pinserver/auth" pinserver_check_user()
+ */
+function os_pinserver_auth_init_check_user(){
+
+  //Init Domain specific pin variables
+  _os_pinserver_auth_init_variables();
+
+  return pinserver_check_user();
+}
+
+/**
+ * Provide wrapper for 'pin/user' to init domain specific variables
+ */
+ function os_pinserver_auth_pin_user_login(){
+
+   //Init Domain specific pin variables
+   _os_pinserver_auth_init_variables();
+
+   pinserver_authenticate_pin_user_login();
+ }

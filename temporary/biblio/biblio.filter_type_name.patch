@@ -1,0 +1,24 @@
+diff --git a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+index 4f9a970..662a9b4 100644
+--- a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
++++ b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+@@ -510,7 +510,7 @@ function biblio_build_query($arg_list) {
+           $query->condition('b.biblio_citekey', $value);
+           break;
+         case 'type':
+-          $query->condition('b.biblio_type', $value);
++          $query->condition(db_or()->condition('b.biblio_type', $value)->condition('bt.name', ucwords(strtolower(str_replace(array('-', '_'), ' ', $value)))));
+           break;
+         case 'search':
+           $search_nids = array();
+@@ -687,8 +687,8 @@ function _biblio_filter_info_line($args = array()) {
+         //return;
+         $type = t("First letter of title");
+       }
+-      if ($type == 'type' && $value > 0) {
+-        if (($pub_type = db_query('SELECT t.* FROM {biblio_types} as t WHERE t.tid=:tid', array(':tid' => $value))->fetchObject())) {
++      if ($type == 'type' && ($value > 0 || !is_numeric($value))) {
++        if (($pub_type = db_query('SELECT t.* FROM {biblio_types} as t WHERE t.tid=:tid OR t.name=:name', array(':tid' => $value, ':name' => ucwords(strtolower(str_replace(array('-', '_'), ' ', $value)))))->fetchObject())) {
+           $value = drupal_ucfirst(_biblio_localize_type($pub_type->tid, $pub_type->name));
+           $type = t("Type");
+         }

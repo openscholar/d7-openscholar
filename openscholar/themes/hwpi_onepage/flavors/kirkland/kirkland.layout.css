@@ -1,0 +1,21 @@
+/* Layout CSS */
+
+.block-boxes-os_boxes_twitterfeed {
+    margin-left: auto;
+    margin-right: auto;
+}
+.block-boxes-os_boxes_twitterfeed {
+    width: 980px;
+}
+
+
+.front .block-boxes-os_boxes_accordion .block-boxes-os_boxes_twitterfeed,
+.front .block-boxes-os_boxes_tabs .block-boxes-os_boxes_twitterfeed,
+.front .block-boxes-os_boxes_columns .block-boxes-os_boxes_twitterfeed {
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 1em;
+    line-height: 1.5;
+    width: 100%;
+}
+

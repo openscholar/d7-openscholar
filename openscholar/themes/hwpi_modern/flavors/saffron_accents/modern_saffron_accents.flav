@@ -1,0 +1,6 @@
+name = Saffron Accents
+description = A light color version of the Modern theme with saffron accents
+screenshot = screenshot.png
+
+css[] = saffron_accents.css
+css[] = responsive.saffron_accents.css

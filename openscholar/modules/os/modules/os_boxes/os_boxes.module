@@ -1,0 +1,721 @@
+<?php
+// $Id$
+
+define('OS_BOXES_RSS2JSON_API_URL', 'https://api.rss2json.com/v1/api.json');
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function os_boxes_ctools_plugin_api($module, $api) {
+  if ($module == 'boxes' && $api == 'plugins') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function os_boxes_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'oembed' && $plugin == 'providers') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Passthrough function so box plugin definitions are only loaded when they're needed
+ * We don't need to include and process the file on every page
+ */
+function os_boxes_boxes_plugins() {
+  require_once ('os_boxes.plugins.inc');
+  return _os_boxes_boxes_plugins();
+}
+
+/**
+ * Impements hook_oembedprovider().
+ *
+ * The provider established by this module will attempt to resolve every URL it can.
+ */
+function os_boxes_oembedprovider() {
+  $base_url = url('', array('absolute' => TRUE)) . 'box/*';
+  return array(
+    $base_url => array(
+      'callback' => 'os_boxes_box_provider',
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function os_boxes_menu() {
+  $items['os/widget/add/%os_boxes'] = array(
+    //'title callback' => 'os_boxes_edit_title',
+    //'title arguments' => array(3),
+    'page callback' => 'os_boxes_edit_widget',
+    'page arguments' => array(3),
+    'access callback' => 'boxes_access_edit',
+    'type' => MENU_CALLBACK,
+    'file' => 'os_boxes.admin.inc',
+  );
+
+  $items['os/widget/%/%os_boxes/edit'] = array(
+    'title' => 'Edit Widget',
+    //'title callback' => 'os_boxes_edit_title',
+    //'title arguments' => array(3),
+    'page callback' => 'os_boxes_edit_widget',
+    'page arguments' => array(3),
+    'access callback' => 'boxes_access_edit',
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'os_boxes.admin.inc',
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 1,
+  );
+
+  $items['os/widget/%/%os_boxes/delete'] = array(
+    'title' => 'Delete Widget',
+    //'title callback' => 'os_boxes_edit_title',
+    //'title arguments' => array(3, true),
+    'page callback' => 'os_boxes_delete_widget',
+    'page arguments' => array(3),
+    'access callback' => 'boxes_access_edit',
+    'type' => MENU_CALLBACK,
+    'file' => 'os_boxes.admin.inc',
+    'weight' => 2,
+  );
+
+  $items['widget/embed/%os_boxes/%os_boxes_web_widget_style'] = array(
+    'title' => 'Embed Widget',
+    'page callback' => 'os_boxes_embed_code',
+    'page arguments' => array(2, 3),
+    'access callback' => true,
+    'type' => MENU_CALLBACK,
+    'file' => 'os_boxes.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Title callback
+ * Adds the plugin key to the title
+ *
+ * @todo This doesn't work in all cases due to the way the menu system works.
+ *  As it is now, the title is never generated for modals, since local tasks are never in the active path
+ *  If I make the edit link no longer a local task, it doesn't appear in the contextual links
+ *  @see http://drupal.org/node/996302
+ *
+ function os_boxes_edit_title($box, $is_deleting = false) {
+ if ($box->new) {
+ $info = ctools_get_plugins('boxes', 'plugins', $box->plugin_key);
+ return t('Add New @plugin', array('@plugin' => $info['title']));
+ }
+ elseif ($is_deleting) {
+ return t('Delete @info', array('@info' => $box->description));
+ }
+ else {
+ return t('Edit @info', array('@info' => $box->description));
+ }
+ }
+ */
+
+ /**
+  * Implements hook_load().
+  */
+function os_boxes_load($key) {
+  if ($box = boxes_box_load($key)) {
+    // this is an instance;
+    return $box;
+  }
+  // TODO: Build a real delta
+  if ($box = boxes_factory($key, array('delta' => os_boxes_create_delta()))) {
+    // this is a plugin, so create a new box
+    return $box;
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_load().
+ *
+ * Makes sure the style exists before we do something.
+ */
+function os_boxes_web_widget_style_load($name) {
+  if (module_exists('web_widgets')) {
+    $styles = web_widgets_get_styles ();
+    if (isset($styles[$name])) {
+      return $name;
+    }
+  }
+  return false;
+}
+
+/**
+ * Creates a delta from clues about the environment
+ * It just needs to be unique
+ */
+function os_boxes_create_delta() {
+  // TODO: Replace with real function
+  return time();
+}
+
+/**
+ * Retrieves all boxes plugins, or the plugin of the given name
+ *
+ * @param $name
+ * 		Name of the box
+ */
+function os_boxes_get_boxes_plugins($name = NULL) {
+  $boxes = &drupal_static(__FUNCTION__);
+  if (!isset($boxes)) {
+    ctools_include('plugins');
+    $boxes = ctools_get_plugins('boxes', 'plugins');
+    drupal_alter('boxes_plugins', $boxes);
+
+    unset($boxes['twitter']);
+  }
+
+
+  if (isset($name)) {
+    return isset($boxes[$name]) ? $boxes[$name] : FALSE;
+  }
+
+  return $boxes;
+}
+
+/**
+ * Prevents Box from showing up in Factory list
+ */
+function os_boxes_boxes_plugins_alter(&$plugins) {
+  $plugins['simple']['factory'] = false;
+}
+
+/**
+ * Impements hook_os_widget().
+ */
+function os_boxes_os_widget($box = NULL) {
+  if (isset($box)) {
+    $boxes = array($box->delta => (object)$box);
+    $return_single = TRUE;
+  }
+  else {
+    $boxes = boxes_box_load();
+  }
+  $widgets = array();
+  foreach ($boxes as $delta => $box) {
+    $bid = 'boxes-' . $delta;
+    $widgets[$bid] = array(
+      'module' => 'boxes',
+      'delta' => $delta,
+      'title' => $box->title,
+      'info' => $box->description,
+    );
+  }
+
+  if (isset($return_single)) {
+    return current($widgets);
+  }
+  return $widgets;
+}
+
+/**
+ * Implements hook_os_widget_alter().
+ *
+ * This function should add any parameters to the passed block that
+ * will be needed in the admin user interfaces.  Including access params
+ * config paths etc...
+ *
+ * @param $widget
+ */
+function os_boxes_os_widget_alter(&$widget) {
+  if (isset($widget['module']) && $widget['module'] == 'boxes') {
+    $box = boxes_box_load($widget['delta']);
+    if (!$box) {
+      return;
+    }
+
+    $plugin = os_boxes_get_boxes_plugins($box->plugin_key);
+    if (!$plugin) {
+      return;
+    }
+
+    $widget['info'] = $box->description;
+    $widget['plugin'] = $box->plugin_key;
+    if (isset($plugin['tags'])) {
+      $widget['class'] = $plugin['tags'];
+    }
+
+    // all boxes should be editable. If they aren't, why are they a box
+    $widget['can_edit'] = boxes_access_edit();
+    $widget['path'] = 'os/widget/boxes/' . $widget['delta'];
+
+    // Generally speaking, if they can create a widget, they can delete it.
+    // If they can't create it, they can't delete it either
+    if (!isset($plugin['factory']) || $plugin['factory']) {
+      $widget['can_delete'] = true;
+    }
+  }
+}
+
+/**
+ * Retrieves the list of boxes plugins.
+ */
+function os_boxes_get_factories() {
+  $plugins = os_boxes_get_boxes_plugins();
+  $items = array();
+
+  foreach ($plugins as $p => $info) {
+    // title catches abstract boxes
+    // factory catchs our boxes
+    $dummy = new stdClass();
+    $dummy->plugin_key = $p;
+    if (isset($info['title']) && (!isset($info['factory']) || $info['factory'] !== FALSE)) {
+      $tag = 'Misc';
+      if (!empty($info['tags'])) {
+        $tag = current($info['tags']);
+      }
+      $items[$tag]["boxes-boxes_add__$p"] = array(
+        'module' => 'boxes',
+        'delta' => "boxes_add__$p",
+        'label' => $info['title'],
+        'block_config_path' => "os/widget/add/{$p}",
+        'factory' => TRUE,
+      );
+
+      if (isset($info['weight'])) {
+        $items[$tag]["boxes-boxes_add__$p"]['weight'] = $info['weight'];
+      }
+    }
+  }
+  ksort($items);
+  // move misc to the bottom of the list
+  $misc = $items['Misc'];
+  unset($items['Misc']);
+  $items['Misc'] = $misc;
+
+  foreach ($items as $tag => $facts) {
+    uasort($items[$tag], '_os_boxes_sort_factories');
+  }
+
+  return $items;
+}
+
+function _os_boxes_sort_factories($a, $b) {
+  $aw = isset($a['weight'])?$a['weight']:0;
+  $bw = isset($b['weight'])?$b['weight']:0;
+
+  if ($aw < $bw) {
+    return -1;
+  }
+  elseif ($aw > $bw) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Returns an array containing all box plugin tags.
+ */
+function os_boxes_get_tags() {
+  $plugins = os_boxes_get_boxes_plugins();
+  $items = array();
+
+  foreach ($plugins as $p => $info) {
+    if (isset($info['tags']) && is_array($info['tags']) && count($info['tags'])) {
+      foreach ($info['tags'] as $t) {
+        $items[$t] = $t;
+      }
+    }
+  }
+  ksort($items);
+  // move misc to the bottom of the list
+  $misc = $items['Misc'];
+  unset($items['Misc']);
+  $items['Misc'] = $misc;
+
+
+  return $items;
+}
+
+/**
+ * Implements hook_admin_paths().
+ *
+ * Provides paths that should be opened in an overlay when linked to.
+ */
+function os_boxes_admin_paths() {
+  $paths = array(
+    'os/widget/*' => TRUE,
+  );
+
+  return $paths;
+}
+
+/**
+ * Implements hook_block_view_alter
+ *
+ * Don't display anything for boxes that have no content
+ * By default, boxes
+ */
+function os_boxes_block_view_alter(&$array, &$block) {
+  if ($block->module == 'boxes' && (strpos($array['content']['#markup'], '<div class="boxes-box-content"></div>') !== FALSE || strpos($array['content']['#markup'], 'box-empty') !== FALSE)) {
+    // box returned no content, but boxes wrapped it in some divs anyway. clear them out
+    $array['content'] = '';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for boxes_box.
+ *
+ * Removes default boxes controls; we use our own.
+ */
+function os_boxes_preprocess_boxes_box(&$variables) {
+  if (!empty($variables['block']) && !empty($variables['block']['controls'])){
+    unset($variables['block']['controls']);
+  }
+
+  $box = boxes_box_load($variables['block']['delta']);
+  if (!empty($variables['block']['embed_link']) && !empty($box->embed_as) && !web_widgets_inside_widget()) {
+    $delta = $variables['block']['delta'];
+    $base = url('widget/embed/'.$delta);
+
+    // copied from request_path() to do the same thing it does
+    $request_path = strtok($base, '?');
+    $base_path_len = strlen(rtrim(dirname($_SERVER['SCRIPT_NAME']), '\/'));
+    // Unescape and strip $base_path prefix, leaving q without a leading slash.
+    $base = substr(urldecode($request_path), $base_path_len);
+
+    $tab_links = array();
+    foreach ($box->embed_as as $v) {
+      $tab_links[$v] = array(
+        'title' => $box->embed_label($v),
+        'href' => '',
+        'external' => true,
+        'fragment' => $delta.'-'.$v
+      );
+    }
+
+    $purl = '';
+    if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+      if ($vsite->purl_provider != PURL_VSITE_DOMAIN) {
+        $purl = $vsite->group->purl.'/';
+      }
+    }
+
+    $output = array(
+      '#attached' => array(
+        'library' => array(
+          array('system', 'ui.tabs'),
+          array('system', 'ui.dialog'),
+        ),
+        'css' => array(
+          drupal_get_path('module', 'os_boxes').'/misc/os_boxes.embed.css',
+        ),
+        'js' => array(
+          drupal_get_path('module', 'os_boxes').'/misc/os_boxes.embed.js',
+        )
+      ),
+      'embed-links-button' => array(
+        '#markup' => l('<embed>', '', array('external' => true, 'attributes' => array('class' => array('os-embed-link'), 'data-delta' => $delta))),
+      ),
+      'embed-links' => array(
+        '#prefix' => '<div id="embed-popup-'.$delta.'" class="embed-popup">',
+        '#suffix' => '</div>',
+        'links' => array(
+          '#theme' => 'links',
+          '#links' => $tab_links
+        ),
+        'inline' => array(
+          '#prefix' => '<div id="'.$delta.'-inline">',
+          '#suffix' => '</div>',
+          '#markup' => web_widgets_render_embed_code('inline', array(
+            'path' => $base.'/inline',
+          )),
+          '#access' => in_array('inline', $box->embed_as)
+        ),
+        'iframe' => array(
+          '#prefix' => '<div id="'.$delta.'-iframe">',
+          '#suffix' => '</div>',
+          '#markup' => web_widgets_render_embed_code('iframe', array(
+            'path' => str_replace(array('http:', 'https:'), '', url(trim($base, '/').'/iframe', array('absolute' => true))),
+          )),
+          '#access' => in_array('iframe', $box->embed_as)
+        ),
+        'oembed' => array(
+          '#prefix' => '<div id="'.$delta.'-oembed">',
+          '#suffix' => '</div>',
+          '#markup' => theme('web_widgets_embed_code', array(
+            'code' => url('box/'.$purl.$delta, array('alias' => true, 'absolute' => true)),
+            'style' => 'inline',
+          )),
+          '#access' => in_array('oembed', $box->embed_as)
+        ),
+      )
+    );
+
+    $variables['block']['content'] .= drupal_render($output);
+  }
+}
+
+/**
+ * Implements hook_preprocess_web_widgets_inline
+ */
+function os_boxes_preprocess_web_widgets_inline(&$vars) {
+
+  $vars['script_url'] = url(trim($vars['script_url'], '/'), array(
+    'absolute' => true,
+  ));
+}
+
+/**
+ * Implements hook_preprocess_web_widgets_iframe.
+ */
+function os_boxes_preprocess_web_widgets_iframe(&$vars) {
+  $vars['content_url'] = $vars['path'];
+  $vars['script_url'] = str_replace(array('http:', 'https:'), '', $GLOBALS['base_url'].'/'.drupal_get_path('module', 'os_boxes').'/misc/os_boxes.resize_parent.js');
+}
+
+/**
+ * Implements hook_preprocess_block
+ *
+ * Adds a class to an embedded block so we can style it a little differently
+ */
+function os_boxes_preprocess_block(&$vars) {
+  if (web_widgets_inside_widget()) {
+    $vars['classes_array'][] = 'os-boxes-embedded';
+  }
+  // Custom css class as entered in widget settings page.
+  if (!empty($vars['elements']['#block']->additional_class)) {
+    $vars['classes_array'][] = $vars['elements']['#block']->additional_class;
+  }
+}
+
+/**
+ * Implements hook_og_permission().
+ */
+function os_boxes_og_permission() {
+  return array(
+    'add widget custom class' => array(
+      'title' => t('Add specific css class names to widgets and basic pages'),
+      'description' => t('For custom theming purposes only.'),
+      'os_override' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu_contextual_links_alter().
+ *
+ * Removes core block link from contextual links.
+ */
+function os_boxes_menu_contextual_links_alter(&$links, $router_item, $path) {
+  unset($links['block-configure']);
+
+  if (isset($links['widget-remove'])) {
+    $ctxs = array_keys(context_active_contexts());
+    $links['widget-remove']['localized_options']['query']['contexts'] = $ctxs;
+
+    drupal_add_js(drupal_get_path('module', 'os_boxes').'/misc/os_boxes.remove.js');
+  }
+}
+
+/**
+ * Implements hook_contextual_links_view_alter().
+ *
+ * Removes the 'remove widget' option when the block in question is inside a columns widget
+ */
+function os_boxes_contextual_links_view_alter(&$element, $items) {
+  if (!empty($element['#element']) && !empty($element['#element']['#block'])) {
+    $regions = system_region_list($GLOBALS['theme_key']);
+    $r = $element['#element']['#block']->region;
+    if (!isset($regions[$r])) {
+      // this block is inside a columns widget
+      unset($element['#links']['widget-remove']);
+    }
+  }
+}
+
+/**
+ * Implements hook_permission().
+ *
+ * Defines permissions for all the regions of the default theme
+ *
+ * @todo Regional permissions
+ * This may be spun off into its own module, so I'm putting it all in one place
+ */
+function os_boxes_permission() {
+  $regions = array_keys(system_region_list(variable_get('theme_default')));
+
+  $perms = array(
+    'use boxes advanced settings' => array(
+      'title' => t('Use Boxes Advanced Settings'),
+      'description' => t('Enable use of a boxes\' advanced settings'),
+    ),
+  );
+
+  return $perms;
+}
+
+/**
+ * Discards the default image when the user hits the "remove" button.
+ */
+function _os_image_remove_handler($form, $form_state) {
+  $parents = $form_state['triggering_element']['#array_parents'];
+  $element = drupal_array_get_nested_value($form, $parents);
+
+  // @see: file_managed_file_submit
+  if (!empty($element['#file'])) {
+    $orig = _imagefield_crop_file_to_crop($element['#file']->fid);
+    if ($orig) {
+      file_usage_delete($orig, 'imagefield_crop', NULL, NULL, 0);
+      file_delete($orig);
+    }
+    file_usage_delete($element['#file'], 'os_boxes', NULL, NULL, 0);
+    file_delete($element['#file']);
+    $element['#value']['fid'] = NULL;
+    unset($element['#file']);
+
+    $values_element = $element['#extended'] ? $element['fid'] : $element;
+    form_set_value($values_element, NULL, $form_state);
+    drupal_array_set_nested_value($form_state['input'], $values_element['#parents'], NULL);
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function os_boxes_entity_insert($entity, $type) {
+  os_boxes_invalidate_cache($entity, $type);
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function os_boxes_entity_delete($entity, $type) {
+  os_boxes_invalidate_cache($entity, $type);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function os_boxes_entity_update($entity, $type) {
+  os_boxes_invalidate_cache($entity, $type);
+}
+
+/**
+ * Invalidating the boxes cache of the VSite.
+ *
+ * @param $entity
+ *   The entity object which got affected by CRUD operation or widget settings
+ *   change.
+ * @param $type
+ *   The entity type.
+ */
+function os_boxes_invalidate_cache($entity, $type) {
+  if (!db_table_exists('cache_os_boxes')) {
+    return;
+  }
+
+  $wrapper = entity_metadata_wrapper($type, $entity);
+  if (!$wrapper->__isset(OG_AUDIENCE_FIELD)) {
+    return;
+  }
+
+  $gid = $wrapper->{OG_AUDIENCE_FIELD}->get(0)->getIdentifier();
+  $cid = 'os_boxes_cache:' . $gid . ':' . $type . ':' . $entity->type;
+  $general_cid = 'os_boxes_cache:' . $gid;
+
+  // Flush raw data.
+  cache_clear_all($cid, 'cache_os_boxes', TRUE);
+
+  // Flush general raw data.
+  cache_clear_all($general_cid, 'cache_os_boxes', TRUE);
+
+  // Flush assets.
+  cache_clear_all('assets:' . $cid, 'cache_os_boxes', TRUE);
+
+  // Flush general assets.
+  cache_clear_all('assets:' . $general_cid, 'cache_os_boxes', TRUE);
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function os_boxes_flush_caches() {
+  return array('cache_os_boxes');
+}
+
+/**
+ * Attempts to load every box on the site.
+ *
+ * @return mixed
+ *   If no boxes returned output, then the test passed. Returns ''.
+ *   If at least one box was loaded, returns the (string) plugin key of the box.
+ */
+function _os_boxes_test_load_all_boxes_outside_vsite_context() {
+  // Loads all existing box overrides.
+  $query = db_select('spaces_overrides', 'so');
+  $query->fields('so', array('value'));
+  $query->condition('object_type', 'boxes');
+  $result =$query->execute();
+
+  // Looks individually at each overridden box...
+  while ($record = $result->fetchAssoc()) {
+    // Attempts to load the box object...
+    $value = $record['value'];
+    $box = unserialize($value);
+    $box = boxes_box_load($box->delta);
+    $key = isset($box->plugin_key) ? $box->plugin_key : FALSE;
+    if ($key === FALSE) {
+      // @todo can't seem to check user-generated boxes with id's like 12341234.
+//      $pattern = '/delta.*?i:(?<delta>.*?);/';
+//      $subject = $value;
+//      $matches = array();
+//      $found = preg_match($pattern, $subject, $matches);
+//      if ($found && isset($matches['delta']) && strlen($matches['delta'])) {
+//        $delta = $matches['delta'];
+//        $box = boxes_box_load($delta);
+//        $key = isset($box->plugin_key) ? $box->plugin_key : FALSE;
+//      }
+//      else {
+//        continue;
+//      }
+      if ($key === FALSE) {
+        continue;
+      }
+    }
+    // Ignores sitewide boxes.
+    if ($key === 'simple') {
+      continue;
+    }
+
+    // Prevents undefined method error.
+    if (!method_exists($box, 'render')) {
+      continue;
+    }
+
+    // Checks that this box returns no content when loaded like this,
+    // outside of a vsite spaces context.
+    $render = $box->render();
+    if ($render) {
+      return $key;
+    }
+  }
+
+  // Only gets to this point if all boxes displayed no content.
+  return '';
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function os_boxes_preprocess_node(&$vars) {
+  if ($vars['type'] == 'feed') {
+    $options = [
+      'feed' => $vars['nid'],
+    ];
+    /** @var \boxes_box $box */
+    $box = boxes_box::factory('os_boxes_feedreader', $options);
+
+    $render_output = $box->render();
+    $vars['content']['node_feedreader_widget']['#markup'] = $render_output['content'];
+  }
+}

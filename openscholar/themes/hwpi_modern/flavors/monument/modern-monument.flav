@@ -1,0 +1,6 @@
+name = Monument
+description = A clean white version of the Modern theme
+screenshot = screenshot.png
+
+css[] = monument.css
+css[] = responsive.monument.css

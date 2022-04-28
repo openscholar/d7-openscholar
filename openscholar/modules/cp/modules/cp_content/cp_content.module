@@ -1,0 +1,590 @@
+<?php
+/**
+ * @file
+ * Code for the Control Panel: Content feature.
+ */
+
+include_once 'cp_content.features.inc';
+/**
+ * Implements hook_menu().
+ */
+function cp_content_menu() {
+  $items = array();
+
+  $items['cp/content/add'] = array(
+    'page callback' => 'cp_content_add_page',
+    'title' => 'Add New Content',
+    'type' => MENU_NORMAL_ITEM,
+    'access callback' => 'cp_content_add_page_access',
+    'file' => 'cp_content.pages.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_view_pre_render().
+ *
+ * This function strip the HTML tags from a publication title. Only allowed
+ * tags are left.
+ *
+ * @param $view
+ *    The view to alter its output.
+ */
+function cp_content_views_pre_render(&$view) {
+  if ($view->name != 'cp_content') {
+    return;
+  }
+
+  if (empty($view->result)) {
+    return;
+  }
+
+  foreach ($view->result as $item) {
+    if ($item->node_type != 'biblio') {
+      continue;
+    }
+    $item->node_title = filter_xss($item->node_title, variable_get('html_title_allowed_elements', array('em', 'sub', 'sup')));
+  }
+}
+
+/**
+ * Access callback; For "Add new content" page.
+ *
+ * @return boolean
+ *   Returns TRUE if the user has the permission to create nodes of any type that
+ *   is currently active on the VSite, or if the user has the permission to create
+ *   new content types. Returns FALSE otherwise.
+ */
+function cp_content_add_page_access() {
+  if (user_access('administer content types')) {
+    // User has the permission to administer the content types, so grant access
+    // to the page anyway.
+    return TRUE;
+  }
+
+  // Access is TRUE if at least one of the OS bundles returns access TRUE.
+  $bundles = os_get_bundles();
+  foreach (array_keys($bundles) as $type) {
+    $item = menu_get_item('node/add/' . $type);
+    if ($item && $item['access']) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_views_data_alter()
+ */
+function cp_content_views_data_alter(&$data){
+  //Add Origname Field if it has not been added.
+  if(!isset($data['file_managed']['origname'])){
+    // filesize
+    $data['file_managed']['origname'] = array(
+      'title' => t('Original Name'),
+      'help' => t('The original name of the file.'),
+      'field' => array(
+        'handler' => 'views_handler_field_file_size',
+        'click sortable' => TRUE,
+      ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_string',
+      ),
+      'argument' => array(
+        'handler' => 'views_handler_argument_string',
+      ),
+    );
+  }
+}
+
+/**
+ * Implements views_default_views_alter() for altering view settings.
+ */
+function cp_content_views_default_views_alter(&$views) {
+  if(variable_get('file_default_scheme', 'public') != 'private'){
+    return;
+  }
+
+  //Change the default CP Content view to display private files
+  if (isset($views['cp_files']->display->display_options['filters']['schema_type']['schema_type'])) {
+    // Add private files to the list.
+    $views['cp_files']->display->display_options['filters']['schema_type']['value']['private'] = 'private';
+  }
+}
+
+/**
+ * Implements hook_batch_alter().
+ *
+ * When selecting all the entities in the views including nodes from other pages
+ * we need to remove entities that don't belong to the current vsite.
+ */
+function cp_content_batch_alter(&$batch) {
+  if (!isset($batch['sets'][0]['finished'])) {
+    // Batch process didn't finish properly.
+    return;
+  }
+
+  if ($batch['sets'][0]['finished'] != '_views_bulk_operations_execute_finished') {
+    // Not a VBO action we need to alter.
+    return;
+  }
+
+  if (module_exists('vsite') && !$vsite = vsite_get_vsite()) {
+    return;
+  }
+
+  // Define an easy access to the arguments of the batch operation.
+  $arguments = &$batch['sets'][0]['operations'][0][1];
+  $entity_type = $arguments[1]->entityType;
+  $ids = array();
+
+  foreach ($arguments[0] as $entity_info) {
+    if (og_get_membership('node', $vsite->id, $entity_type, $entity_info['entity_id'])) {
+      $ids[] = $entity_info;
+    }
+  }
+
+  // Update the entities batch to the entities of the current vsite.
+  $arguments[0] = $ids;
+}
+
+/**
+ * Implements hook_action_info().
+ *
+ * Adds VBO operations to assign/remove taxonomy terms to nodes.
+ */
+function cp_content_action_info() {
+  return array(
+    'cp_content_assign_taxonomy_action' => array(
+      'type' => 'entity',
+      'label' => t('Apply Taxonomy term'),
+      'triggers' => array('any'),
+      'configurable' => TRUE,
+    ),
+    'cp_content_remove_taxonomy_action' => array(
+      'type' => 'entity',
+      'label' => t('Remove Taxonomy term'),
+      'triggers' => array('any'),
+      'configurable' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Form for assigning taxonomy terms.
+ */
+function cp_content_assign_taxonomy_action_form($form, $form_state) {
+  $title = t('Apply Terms to Content');
+  $list_title = t('The selected terms above will be applied to the following content:');
+  $action = 'apply_terms';
+  $vbo = _views_bulk_operations_get_field($form['view']);
+  $form = _cp_content_build_taxonomy_action_form($title, $list_title,  $action, $form_state, $vbo);
+
+  return $form;
+}
+
+/**
+ * Form for removing taxonomy terms.
+ */
+function cp_content_remove_taxonomy_action_form($form, $form_state) {
+  $title = t('Remove Terms from Content');
+  $list_title = t('The selected terms above will be removed from the following content:');
+  $action = 'remove_terms';
+  $vbo = _views_bulk_operations_get_field($form['view']);
+  $form = _cp_content_build_taxonomy_action_form($title, $list_title, $action, $form_state, $vbo);
+
+  return $form;
+}
+
+/**
+ * Helper function; build the form for adding/removing taxonomy terms.
+ */
+function _cp_content_build_taxonomy_action_form($title, $list_title, $action, $form_state, $vbo) {
+  $view_name = $form_state['build_info']['args'][0]->name;
+  switch ($view_name) {
+    case 'os_files_private' :
+      $form_entity_type = 'file';
+      $file_indentification = 'filename';
+      break;
+    case 'cp_files' :
+      $form_entity_type = 'file';
+      $file_indentification = 'filename';
+      break;
+    case 'cp_content' :
+      $form_entity_type = 'node';
+      $file_indentification = 'title';
+      break;
+    default :
+      $form_entity_type = 'node';
+      $file_indentification = 'title';
+  }
+  module_load_include('inc', 'vsite_vocab', 'includes/taxonomy');
+  $vocabs = vsite_vocab_get_vocabularies();
+
+  $vocabularies = array();
+  foreach ($vocabs as $vocab) {
+    $vocabularies[$vocab->vid] = $vocab->name;
+  }
+
+  // Build a list of node titles to which we apply the action.
+  $node_titles = array();
+
+  $load_function = $form_entity_type . "_load_multiple";
+  $nodes = $load_function($form_state['selection']);
+  foreach ($nodes as $node) {
+    $node_titles[] = $node->$file_indentification;
+  }
+
+  // All rows on all pages have been selected, so show a count of additional items.
+  if ($form_state['select_all_pages']) {
+    $more_count = $vbo->view->total_rows - count($vbo->view->result);
+    $node_titles[] = t('...and <strong>!count</strong> more.', array('!count' => $more_count));
+  }
+
+  $form = array();
+
+  $form['title'] = array(
+    '#type' => 'item',
+    '#markup' => '<h1>' . $title . '</h1>',
+  );
+
+  $form['vocab'] = array(
+    '#type' => 'select',
+    '#required' => TRUE,
+    '#title' => t('Vocabulary'),
+    '#options' => $vocabularies,
+    '#ajax' => array(
+      'event' => 'change',
+      'callback' => 'cp_content_select_callback',
+      'wrapper' => 'select-terms',
+    ),
+  );
+
+  $form['terms'] = array(
+    '#type' => 'hidden',
+    '#prefix' => '<div id="select-terms">',
+    '#suffix' => '</div>',
+  );
+
+  $vid = !empty($form_state['values']['vocab']) ? $form_state['values']['vocab'] : 0;
+  if ($vid) {
+    $terms = taxonomy_get_tree($vid);
+
+    $options = array();
+    foreach ($terms as $term) {
+      $options[$term->tid] = $term->name;
+    }
+
+    // Adding the select2 functionality for multiple selection.
+    $form['terms'] = array(
+      '#type' => 'select',
+      '#prefix' => '<div id="select-terms">',
+      '#suffix' => '</div>',
+      '#options' => $options,
+      '#title' => t('Terms'),
+      '#required' => TRUE,
+      '#multiple' => TRUE,
+      '#after_build' => array('os_select2_widget_after_build'),
+      '#cardinality' => -1,
+      '#attached' => array(
+        'css' => array(
+          libraries_get_path('select2') . '/select2.css',
+          drupal_get_path('module', 'os') . '/css/select2-widget.css',
+        ),
+        'js' => array(
+          libraries_get_path('select2') . '/select2.min.js',
+          drupal_get_path('module', 'os') . '/js/select2-widget.js',
+        ),
+      ),
+    );
+  }
+
+  $variables = array(
+    'items' => $node_titles,
+    'title' => $list_title,
+  );
+
+  $form['node_titles'] = array(
+    '#type' => 'item',
+    '#markup' => theme('item_list', $variables),
+  );
+
+  $form['vbo_action'] = array(
+    '#type' => 'hidden',
+    '#value' => $action,
+  );
+
+  return $form;
+}
+
+/**
+ * Ajax callback to update the list of terms of the form.
+ */
+function cp_content_select_callback($form, $form_state) {
+  return $form['terms'];
+}
+
+/**
+ * Submit handler; Passes the selected vocabulary and terms to the action function.
+ */
+function cp_content_assign_taxonomy_action_submit($form, $form_state) {
+  $return = array();
+  $return['vocab'] = $form_state['values']['vocab'];
+  $return['terms'] = $form_state['values']['terms'];
+
+  return $return;
+}
+
+/**
+ * Action function; Assigns terms to nodes.
+ *
+ * @param $nodes
+ *  The nodes to perform the action on.
+ * @param $context
+ *  Contains information passed with the action's form submit handler.
+ */
+function cp_content_assign_taxonomy_action(&$node, $context) {
+  if (isset($context['entity_type'])) {
+    $entity_type = $context['entity_type'];
+  } else {
+    $entity_type = 'node';
+  }
+  $vocabulary = $context['vocab'];
+  $terms = $context['terms'];
+
+  // Make a list of bundles associated with the selected vocabulary.
+  $vsite = vsite_get_vsite();
+  $bundles = os_taxonomy_og_vocabulary_bundles($vocabulary, $vsite->id);
+  $bundle_names = array();
+  foreach ($bundles as $bundle) {
+    $bundle_names[] = $bundle->bundle;
+  }
+
+  $selected_terms = is_array($terms) ? $terms : array($terms);
+  $skipped_titles = array();
+  $applied_titles = array();
+  $wrapper = entity_metadata_wrapper($entity_type, $node);
+  // Check if the bundle of the node is associated with selected vocabulary.
+  if (in_array($node->type, $bundle_names)) {
+    // Assign the term(s) to the current node.
+    $node_terms = $wrapper->{OG_VOCAB_FIELD}->value(array('identifier' => TRUE));
+    $node_terms = array_merge($node_terms ,$selected_terms);
+    $wrapper->{OG_VOCAB_FIELD}->set($node_terms);
+    $wrapper->save();
+    $applied_titles[] = $wrapper->label();
+  }
+  else {
+    $skipped_titles[] = $wrapper->label();
+  }
+
+  $terms = taxonomy_term_load_multiple($selected_terms);
+  $names = array();
+  foreach ($terms as $term) {
+    $names[] = $term->name;
+  }
+
+  // Notify the user on the applied nodes.
+  if (!empty($applied_titles)) {
+    $params = array(
+      '%terms' => implode(", ", $names),
+      '!nodes' => theme('item_list', array('items' => $applied_titles)),
+    );
+
+    $message = format_plural(count($selected_terms), 'Taxonomy term %terms was applied on the content: !nodes', '@count taxonomy terms %terms were applied on the content: !nodes', $params);
+    drupal_set_message($message);
+  }
+
+  // Notify the user on the skipped nodes (nodes whose bundle is not associated
+  // with the selected vocabulary).
+  if (!empty($skipped_titles)) {
+    $params = array(
+      '%terms' => implode(", ", $names),
+      '!nodes' => theme('item_list', array('items' => $skipped_titles)),
+    );
+
+    $message = format_plural(count($selected_terms), 'Taxonomy term %terms could not be applied on the content: !nodes', '@count taxonomy terms %terms could not be applied on the content: !nodes', $params);
+    drupal_set_message($message, 'warning');
+  }
+}
+
+/**
+ * Submit handler; Passes the selected terms to the action function.
+ */
+function cp_content_remove_taxonomy_action_submit($form, $form_state) {
+  $return = array();
+  $return['vocab'] = $form_state['values']['vocab'];
+  $return['terms'] = $form_state['values']['terms'];
+
+  return $return;
+}
+
+/**
+ * Action function; Removes terms from nodes.
+ *
+ * @param $nodes
+ *  The nodes to perform the action on.
+ * @param $context
+ *  Contains information passed with the action's form submit handler.
+ */
+function cp_content_remove_taxonomy_action(&$node, $context) {
+  if (isset($context['entity_type'])) {
+    $entity_type = $context['entity_type'];
+  } else {
+    $entity_type = 'node';
+  }
+  $vocabulary = $context['vocab'];
+  $terms = $context['terms'];
+
+  // Make a list of bundles associated with the selected vocabulary.
+  $vsite = vsite_get_vsite();
+  $bundles = os_taxonomy_og_vocabulary_bundles($vocabulary, $vsite->id);
+  $bundle_names = array();
+  foreach ($bundles as $bundle) {
+    $bundle_names[] = $bundle->bundle;
+  }
+
+  $selected_terms = is_array($terms) ? $terms : array($terms);
+
+  $skipped_titles = array();
+  $removed_titles = array();
+
+  $wrapper = entity_metadata_wrapper($entity_type, $node);
+  $node_terms = $wrapper->{OG_VOCAB_FIELD}->value(array('identifier' => TRUE));
+  $terms_to_remove = array_intersect($node_terms, $selected_terms);
+  // Check if the bundle of the node is associated with selected vocabulary
+  // or if the selected terms are not assigned to the current node.
+  if (in_array($node->type, $bundle_names) || !$terms_to_remove) {
+
+    // Remove the term(s) from the current node.
+    $node_terms = array_diff($node_terms, $selected_terms);
+    $wrapper->{OG_VOCAB_FIELD}->set($node_terms);
+    $wrapper->save();
+    $removed_titles[] = array(
+      'title' => $wrapper->label(),
+      'removed_terms' => $terms_to_remove,
+    );
+  }
+  else {
+    $skipped_titles[] = $wrapper->label();
+  }
+
+  // Notify the user on the nodes which terms were being removed of.
+  if (!empty($removed_titles)) {
+    foreach ($removed_titles as $removed_title) {
+      $terms = taxonomy_term_load_multiple($removed_title['removed_terms']);
+      $names = array();
+      foreach ($terms as $term) {
+        $names[] = $term->name;
+      }
+
+      $params = array(
+        '%terms' => implode(", ", $names),
+        '!node' => $removed_title['title'],
+      );
+
+      $message = format_plural(count($removed_title['removed_terms']), 'Taxonomy term %terms was removed from the content: !node', '@count taxonomy terms %terms were removed from the content: !node', $params);
+      drupal_set_message($message);
+    }
+  }
+
+  // Notify the user on the skipped nodes (nodes whose bundle is not associated
+  // with the selected vocabulary).
+  if (!empty($skipped_titles)) {
+    $params = array(
+      '%terms' => implode(", ", $names),
+      '!nodes' => theme('item_list', array('items' => $skipped_titles)),
+    );
+
+    $message = format_plural(count($selected_terms), 'No term was removed from the content: !nodes', 'No terms were removed from the content: !nodes', $params);
+    drupal_set_message($message, 'warning');
+  }
+}
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function cp_content_form_views_form_cp_content_page_alter(&$form, &$form_state) {
+  // Adding a JS file to present help text for the VBO element.
+  if (!empty($form['views_bulk_operations']) && !empty($form['#space'])) {
+    $form['#attached']['js'][] = drupal_get_path('module', 'cp_content') . '/cp_content.js';
+    return;
+  }
+
+  // The vocab element is present when applying/removing a term. In this case we
+  // need to change the buttons to match this action.
+  if (!empty($form['vocab'])) {
+    $form['actions']['submit']['#value'] = $form['vbo_action']['#value'] == 'apply_terms' ? t('Apply Terms') : t('Remove Terms');
+
+    $options = array(
+      'attributes' => array(
+        'class' => array('button'),
+      ),
+    );
+    $form['actions']['submit']['#suffix'] = l(t('Cancel'), 'cp/content', $options);
+  }
+}
+
+/**
+ * Implements hook_preprocess_view_view().
+ */
+function cp_content_preprocess_views_view(&$vars) {
+  if ($vars['view']->name == 'cp_files') {
+    os_common_angular_apps('cp-files');
+    drupal_add_library('media', 'media_browser');
+    drupal_add_library('os_common', 'FileEditorModal');
+    drupal_add_js(drupal_get_path('module', 'cp_content').'/apps/cp_files.js');
+    // $vars['attributes_array']['ng-controller'] = 'CpFilesController'; Reminder to myself that this doesn't work cause Views doesn't print attributes
+  }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function cp_content_views_query_alter(&$view, views_plugin_query_default &$query) {
+  if ($view->name != 'cp_content') {
+    return;
+  }
+
+  $filter = TRUE;
+
+  foreach ($query->where[1]['conditions'] as $condition) {
+
+    if ($condition['field'] == 'og_membership_node.group_type') {
+      $filter = FALSE;
+    }
+  }
+
+  $where = &$view->query->where[1]['conditions'];
+
+  if ($filter && $vsite = vsite_get_vsite()) {
+    // We have no filter in the view and we in a site context. We need to add the
+    // OG membership table and filter nodes that belong to the current group.
+    $join = new views_join();
+    $join->table = 'og_membership';
+    $join->field = 'etid';
+    $join->left_table = 'node';
+    $join->left_field = 'nid';
+    $join->type = 'left';
+
+    // Add the join the the view query.
+    $view->query->add_relationship('og_membership', $join, 'node');
+
+    // Filter by the current group ID and the entity type we display in the view.
+    $where[] = array(
+      'field' => 'og_membership.gid',
+      'value' => $vsite->id,
+      'operator' => '=',
+    );
+
+    $where[] = array(
+      'field' => 'og_membership.entity_type',
+      'value' => 'node',
+      'operator' => '=',
+    );
+  }
+
+}

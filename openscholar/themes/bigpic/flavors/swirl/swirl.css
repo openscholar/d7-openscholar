@@ -1,0 +1,29 @@
+body {
+  background: url('images/swirl.jpg') 0 0 no-repeat #fff;
+  }
+
+#page {
+  background: rgba(255, 255, 255, 0.4)
+  }
+
+#header-container h1 a, #header-container h1 a:visited, #header-container h2, #header-container p, #header-container p a, #header-container p a:visited  {
+  color: #678898;
+  }
+
+#menu-bar li a.active, #menu-bar li.active-trail a {
+  color: #83c0de;
+  }
+
+#menu-bar li a,
+#menu-bar li a:visited {
+  color: #678898;
+  text-transform: uppercase;
+  }
+
+#menu-bar li a.active, #menu-bar li.active-trail a {
+  color: #83c0de;
+  }
+
+p.copy a.poweredby {
+  background-position: 0 0;
+  }

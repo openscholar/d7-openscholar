@@ -1,0 +1,1211 @@
+<?php
+/**
+ * @file
+ * Main file for the OS importer module.
+ */
+include_once 'os_importer.features.inc';
+include_once 'os_importer.api.inc';
+
+/**
+ * Implements hook_feeds_plugins().
+ */
+function os_importer_feeds_plugins() {
+  $info = array();
+  $info['OsImporterFetcher'] = array(
+    'name'        => t('OS importer fetcher'),
+    'description' => t('Fetch node from a url.'),
+    'handler' => array(
+      'parent' => 'FeedsFetcher',
+      'class'  => 'OsImporterFetcher',
+      'file'   => 'OsImporterFetcher.inc',
+      'path'   => drupal_get_path('module', 'os_importer') . '/plugins',
+    ),
+  );
+  $info['OsImporterNodeProcessor'] = array(
+    'name' => t('OS importer Node processor'),
+    'description' => t('Import node from source. Including files form external URL.'),
+    'help' => t('Create and update nodes from parsed content.'),
+    'handler' => array(
+      'parent' => 'FeedsNodeProcessor',
+      'class' => 'OsImporterNodeProcessor',
+      'file' => 'OsImporterNodeProcessor.inc',
+      'path' => drupal_get_path('module', 'os_importer') . '/plugins',
+    ),
+  );
+  $info['OsFeedsCSVParser'] = array(
+    'name' => t('OS importer CSV parser'),
+    'description' => t('Parses a given file as a CSV file.'),
+    'help' => t('Parse data in Comma Separated Value format.'),
+    'handler' => array(
+      'parent' => 'FeedsCSVParser',
+      'class' => 'OsFeedsCSVParser',
+      'file' => 'OsFeedsCSVParser.inc',
+      'path' => drupal_get_path('module', 'os_importer') . '/plugins',
+    ),
+  );
+  $info['OsImporterMenuProcessor'] = array(
+    'name' => t('OS Importer Menu processor'),
+    'description' => t('Create and update menu links.'),
+    'help' => t('Create and update menu links from parsed content.'),
+    'handler' => array(
+      'parent' => 'FeedsProcessor',
+      'class' => 'OsImporterMenuProcessor',
+      'file' => 'OsImporterMenuProcessor.inc',
+      'path' => drupal_get_path('module', 'os_importer') . '/plugins',
+    ),
+  );
+  return $info;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function os_importer_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'feeds_tamper') {
+    return 'plugins';
+  }
+  if ($module == 'entity_validator') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_importer_os_app_info() {
+  return array(
+    'os_importer' => array(
+      'exclude_from_rss' => array(
+        'feed_importer',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_node_insert().
+ *
+ * Import feed item when the user add the feed importer for the first time.
+ */
+function os_importer_node_insert($node) {
+  if ($node->type == 'event' && !empty($node->feed_item)) {
+
+    $round = function($value) {
+      $time = strtotime($value);
+      $hour = date('H:i', $time);
+      $new_hour = os_importer_round_hour($hour);
+
+      list($day) = explode(' ', $value);
+      return $day . ' ' . $new_hour . ':00';
+    };
+
+    // Round the hour of the event
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $original_time = $wrapper->field_date->get(0);
+    $time = $original_time->value();
+    $time['value'] = $round($time['value']);
+    $time['value2'] = $round($time['value2']);
+
+    if ($time['value'] != gmdate('Y-m-d H:i:s', $original_time->value->value()) || $time['value2'] != gmdate('Y-m-d H:i:s', $original_time->value2->value())) {
+      $param = array(
+        '@title' => $node->title,
+      );
+      drupal_set_message(t('The value of minutes for the event @title is not in a multiple of 5 minutes and hence is altered.', $param), 'warning');
+    }
+
+    $wrapper->field_date->set(array($time));
+  }
+
+  // Source attached to node.
+  if (isset($node->feeds) || !$importer_id = feeds_get_importer_id($node->type)) {
+    return;
+  }
+
+  // TODO: Add the node importer into the os app info.
+  $type = $importer_id == 'os_blog_import_rss' ? 'blog' : 'news';
+
+  $_GET['destination'] = 'cp/os-importer/' . $type . '/manage';
+
+  $source = feeds_source($importer_id, $node->nid);
+
+  // Start import if requested.
+  if (feeds_importer($importer_id)->config['import_on_create']) {
+    $source->startImport();
+  }
+
+  // Schedule source and importer.
+  $source->schedule();
+  feeds_importer($importer_id)->schedule();
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function os_importer_admin_paths() {
+  return array(
+    'cp/os-importer/*' => TRUE,
+    'cp/os-importer/blog/manage' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_os_add_new_links_alter().
+ */
+function os_importer_os_add_new_links_alter(&$links) {
+  $item = menu_get_item();
+  $apps = os_app_info();
+
+  $current_app = '';
+  foreach ($apps as $app) {
+    if ($item['path'] == $app['path']) {
+      $current_app = $app;
+      break;
+    }
+  }
+
+  if (!$current_app || empty($current_app['importers'])) {
+    return;
+  }
+  foreach ($current_app['importers'] as $type => $importers) {
+    if (os_importer_import_access($type) || os_importer_import_access($type, FALSE)) {
+      $title = count($current_app['importers']) > 1 ? t('Import @type', array('@type' => node_type_get_name($type))) : $title = t('Import');
+      if ($type == 'news' || $type == 'blog' || $type == 'feed') {
+        $links['cp/os-importer-' . $type] = array(
+        'title' => $title,
+        'href' => 'cp/os-importer/' . $type,
+        );
+      }
+      else {
+        $links['cp/os-importer-' . $type] = array(
+        'title' => $title,
+        'attributes' => array(
+          'id' => 'os-importer-content-' . $type,
+          ),
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Get all the content types which can be imported from external source.
+ *
+ * @param $type
+ *  Select specific node which you want to get information about.
+ *
+ * @return array
+ *  Array of node types which the user can import content with from external
+ *  source.
+ */
+function os_importer_importable_content($type = '') {
+  $apps = os_app_info();
+  $types = array();
+  $space = spaces_get_space();
+
+  // Loop through the apps and check which app has an importer.
+  foreach ($apps as $feature => $app) {
+    // Check to which bundle the user can import content if we are in a space.
+    if ($space && !spaces_access_feature('create', $feature)) {
+      continue;
+    }
+
+    foreach ($app['importers'] as $bundle => $info) {
+      $types[$bundle] = $info;
+    }
+  }
+  if ($type == '') {
+    return $types;
+  } else if ($type && isset($types[$type])) {
+    return $types[$type];
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function os_importer_menu() {
+  $items = array();
+
+  $app_info = os_app_info();
+
+  foreach ($app_info as $type => $info) {
+    if (empty($info['importers'])) {
+      continue;
+    }
+
+    foreach ($info['importers'] as $node_type => $importer) {
+      $items['cp/os-importer/' . $node_type] = array(
+        'title callback' => 'os_importer_importer_title',
+        'title arguments' => array(2),
+        'access callback' => 'os_importer_import_access',
+        'access arguments' => array(2, FALSE),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('os_importer_import', 2),
+      );
+
+      // Content types with RSS importers need a manage page. Adding tabs which
+      // act as links to these pages.
+      if (!empty($importer['rss'])) {
+        $items['cp/os-importer/' . $node_type . '/import'] = $items['cp/os-importer/' . $node_type] + array(
+          'type' => MENU_DEFAULT_LOCAL_TASK,
+        );
+
+        $items['cp/os-importer/' . $node_type . '/manage'] = array(
+          'title' => 'Manage',
+          'page callback' => 'os_reader_import_news',
+          'access callback' => 'os_reader_import_news_access_callback',
+          'type' => MENU_LOCAL_TASK,
+        );
+      }
+    }
+  }
+
+  $items['cp/os-importer/%/template'] = array(
+    'page callback' => 'os_importer_download_template',
+    'page arguments' => array(2),
+    'access callback' => 'os_importer_import_access',
+    'access arguments' => array(2),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * When importing a biblio we need to original biblio page callback and
+ * arguments.
+ */
+function os_importer_menu_alter(&$items) {
+  $items['cp/os-importer/biblio']['page callback'] = 'drupal_get_form';
+  $items['cp/os-importer/biblio']['page arguments'] = array('biblio_import_form');
+  $items['cp/os-importer/biblio']['file'] = 'biblio.import.export.inc';
+  $items['cp/os-importer/biblio']['file path'] = drupal_get_path('module', 'biblio') . '/includes';
+}
+
+/**
+ * Page callback; Download a template of CSV with dummy content.
+ */
+function os_importer_download_template($type) {
+  drupal_add_http_header('Cache-Control', 'max-age=60, must-revalidate');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename="' . $type . '.csv"');
+  drupal_add_http_header('Content-type', 'text/csv; charset=utf-8');
+  print file_get_contents(drupal_get_path('module', 'os_importer') . '/templates/os_' . $type . '.csv');
+  return;
+}
+
+/**
+ * Generate callback for CSV importer page.
+ *
+ * @param $type
+ *  The CSV importer type.
+ *
+ * @return String
+ *  The title of the menu item.
+ */
+function os_importer_importer_title($type) {
+  $types = node_type_get_types($type);
+
+  // Display a custom name for publication.
+  $title = $type == 'biblio' ? 'Publication' : $types[$type]->name;
+
+  return t('@type', array('@type' => $title));
+}
+
+/**
+ * Access callback - determine if the user can import content from csv.
+ *
+ * @param $bundle
+ *  The type of the feeds importer or the node type.
+ * @param $feed
+ *  Determine if the access callback is for feed or rss. Set TRUE if the access
+ *  is made against a feed importer.
+ *
+ * @return bool
+ *  Return TRUE/FALSE.
+ */
+function os_importer_import_access($bundle, $feed = TRUE) {
+  if ($feed) {
+    $source = feeds_source($bundle);
+    $config = $source->importer->getConfig();
+
+    if (!$config['processor']['config']['content_type']) {
+      return FALSE;
+    }
+  }
+
+  $info = os_importer_importable_content();
+  $access = !empty($info[$bundle]);
+
+  // When we have 'vsite' we must have specific create permission per bundle.
+  if ($access && module_exists('vsite')) {
+    if (!$vsite = vsite_get_vsite()) {
+      return FALSE;
+    }
+    if ($bundle != 'biblio') {
+      $access = og_user_access('node', $vsite->id, "create $bundle content");
+    } else {
+      // Adding biblio specific condiption
+      $access = os_importer_access_biblio($vsite->id);
+    }
+  }
+  return $access;
+}
+
+/**
+ * Callback function to determine access to biblio import.
+ *
+ * @param $vsite_id
+ *   Vsite Id.
+*/
+function os_importer_access_biblio($vsite_id) {
+  if (biblio_access('import') && og_user_access('node', $vsite_id, "create biblio content")) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Callback function for importing files from out source.
+ *
+ * @param $source
+ *   Field mapper source settings.
+ * @param $entity
+ *   An entity object, for instance a node object.
+ * @param $target
+ *   A string identifying the target on the node.
+ * @param $value
+ *   The value to populate the target with.
+ * @param $mapping
+ *  Associative array of the mapping settings from the per mapping configuration
+ *  form.
+ */
+function os_importer_map_files($source, $entity, $target, $value, $mapping) {
+  if (!$value) {
+    return;
+  }
+  $field_name = $source->importer->processor->config['file_field'];
+  $files = array();
+
+  $sources = explode('|', $value);
+  $destination = 'public://' . token_replace(os_files_get_save_path(), array());
+  file_prepare_directory($destination, FILE_MODIFY_PERMISSIONS | FILE_CREATE_DIRECTORY);
+
+  foreach ($sources as $source) {
+    if ($file = system_retrieve_file($source, $destination, TRUE)) {
+      $files[] = array(
+        'fid' => $file->fid,
+        'display' => 1,
+        'description' => '',
+        'timestamp' => REQUEST_TIME - 200,
+      );
+    }
+    else {
+      // The file could not be accessible. Display the error.
+      $params = array(
+        '@address' => $source,
+      );
+      drupal_set_message(t('There was a problem with downloading the file from: @address. Please check if the file address is accessible', $params), 'error');
+    }
+  }
+
+  $entity->{$field_name}[$entity->language] = $files;
+}
+
+/**
+ * Importer callback for the set the registration field of the event to TRUE or
+ * FALSE.
+ *
+ * @param $source
+ *   Field mapper source settings.
+ * @param $entity
+ *   An entity object, for instance a node object.
+ * @param $target
+ *   A string identifying the target on the node.
+ * @param $value
+ *   The value to populate the target with.
+ * @param $mapping
+ *  Associative array of the mapping settings from the per mapping configuration
+ *  form.
+ */
+function os_importer_event_registration($source, $entity, $target, $value, $mapping) {
+  if (!$value) {
+    return;
+  }
+
+  if ($entity->type != 'event') {
+    // This is not a node event.
+    return;
+  }
+
+  $value = strtolower($value);
+  $register_on = in_array($value, array('on', 'true')) ? 'event_signup_simple' : '';
+  $entity->field_event_registration[$entity->language][0]['registration_type'] = $register_on;
+}
+
+/**
+ * Form callback - Adding an importer.
+ */
+function os_importer_import($form, &$form_state, $type) {
+  $bundle = os_importer_importable_content($type);
+  $form_state['type'] = $type;
+
+  $options = array();
+  foreach (array_keys($bundle) as $option) {
+    $options[$option] = $option == 'ical' ? t('iCal') : strtoupper($option);
+  }
+
+  $feed_importer = !empty($bundle['csv']) ? feeds_importer($bundle['csv']) : NULL;
+  $form['format'] = array(
+    '#type' => 'radios',
+    '#multiple' => TRUE,
+    '#title' => t('Format'),
+    '#options' => $options,
+    '#default_value' => key($options),
+  );
+
+  $params = array(
+    '!new-york-times' => l(t('New York Times'), 'http://www.nytimes.com/services/xml/rss/index.html'),
+    '@wikipedia-url' => 'http://en.wikipedia.org/wiki/Character_encoding',
+  );
+  $text = 'Importing content from RSS feeds supports only news and blog content. ';
+  $text .= 'For example: you can import a feed item from the !new-york-times rss news feeds.<br />';
+  $text .= "When submitting the form, the import process will begin. After that, you can choose which news items you want to import into your site.";
+  $text = t($text, $params);
+
+  $form['rss_container'] = array(
+    '#type' => 'container',
+    '#states' => array(
+      'visible' => array(
+        ':input[name="format"]' => array('value' => 'rss'),
+      ),
+    ),
+    'explain' => array(
+      '#markup' => $text,
+    ),
+  );
+
+  // Only CSV parsers have a template.
+  if ($feed_importer && $feed_importer->parser instanceof FeedsCSVParser) {
+    $form['csv_container'] = array(
+      '#type' => 'container',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="format"]' => array('value' => 'csv'),
+        ),
+      ),
+      'template' => array(
+        '#markup' => l(t('Download a template'), 'cp/os-importer/' . $type . '/template'),
+      ),
+    );
+  }
+
+  $form['import_source'] = array(
+
+    // RSS title.
+    'title' => array(
+      '#type' => 'textfield',
+      '#title' => t('Title'),
+
+      '#description' => t('Required field - The title of the feed source. E.g. "New York Times Sport". '),
+      '#states' => array(
+        'visible' => array(
+          ':input[name="format"]' => array('value' => 'rss'),
+        ),
+      ),
+    ),
+
+    // RSS url.
+    'url' => array(
+      '#type' => 'textfield',
+      '#title' => t('URL'),
+
+      '#description' => t('The url of your feed. E.g. http://rss.cnn.com/rss/cnn_tech.rss'),
+      '#states' => array(
+        'visible' => array(
+          ':input[name="format"]' => array('value' => 'rss'),
+        ),
+      ),
+    ),
+
+    // iCal / CSV need upload file from user computer.
+    'file' => array(
+      '#title' => t('File'),
+      '#type' => 'managed_file',
+      '#description' => t('Select a file from your computer to import.'),
+      '#upload_location' => 'public://' . token_replace(os_files_get_save_path()),
+      '#upload_validators' => array(
+        'file_validate_extensions' => array('ics csv'),
+      ),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="format"]' => array('value' => 'rss'),
+        ),
+      ),
+      '#weight' => -99,
+    ),
+
+    'encode' => array(
+      '#title' => t('Encoding'),
+      '#type' => 'select',
+      '#description' => t('Select the encoding of your file. For a full list of encodings you can visit <a href="@wikipedia-url">this</a> Wikipedia page.', $params),
+      '#default_value' => 'UTF-8',
+      '#options' => array(
+        'utf-8' => t('UTF-8'),
+        'utf-16' => t('UTF-16'),
+        'utf-32' => t('UTF-32'),
+        t('MS-Windows character sets') => array(
+          'Windows-1250' => t('Central European languages that use Latin script'),
+          'Windows-1251' => t('Cyrillic alphabets'),
+          'Windows-1252' => t('Western languages'),
+          'Windows-1253' => t('Greek'),
+          'Windows-1254' => t('Turkish'),
+          'WINDOWS-1255' => t('Hebrew'),
+          'Windows-1256' => t('Arabic'),
+          'Windows-1257' => t('Baltic languages'),
+          'Windows-1258' => t('Vietnamese'),
+        ),
+        t('ISO 8859') => array(
+          'ISO 8859-1' => t('Western Europe'),
+          'ISO 8859-2' => t('Western and Central Europe'),
+          'ISO 8859-9' => t('Western Europe with amended Turkish character set'),
+          'ISO 8859-14' => t('Celtic languages (Irish Gaelic, Scottish, Welsh)'),
+        ),
+      ),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="format"]' => array('value' => 'rss'),
+        ),
+      ),
+      '#weight' => -80,
+    ),
+  );
+
+  // Define our own order of validate functions.
+  $form['#validate'] = array(
+    'os_importer_import_validate',
+    'os_importer_verify_uploaded_file',
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
+    ),
+  );
+
+  $helpLinkMapping = _os_importer_get_help_link_mapping();
+  if (isset($helpLinkMapping[$type])) {
+    $path = $helpLinkMapping[$type]['path'];
+    $form['group'] = array(
+      '#id' => 'help-link-' . $type,
+      '#title' => t('Help link'),
+      '#weight' => -100,
+      '#markup' => '<div class="help-link ng-binding">' . l(t('Learn more about importing'), $path, array('attributes' => array('target' => '_blank'))) . '</div>'
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * @return array
+ */
+function _os_importer_get_help_link_mapping() {
+  $helpLinkMapping = [
+    'blog' => [
+      'path' => 'https://help.theopenscholar.com/blogs#importing-a-blog',
+    ],
+    'class' => [
+      'path' => 'https://help.theopenscholar.com/classes-app#importing-class',
+    ],
+    'event' => [
+      'path' => 'https://help.theopenscholar.com/importing-events',
+    ],
+    'faq' => [
+      'path' => 'https://help.theopenscholar.com/faq-app#importing-faqs',
+    ],
+    'feed' => [
+      'path' => 'https://help.theopenscholar.com/rss-feed#importing-feeds',
+    ],
+    'link' => [
+      'path' => 'https://help.theopenscholar.com/links-app#importing-links',
+    ],
+    'media_gallery' => [
+      'path' => 'https://help.theopenscholar.com/media-gallery#importing-a-media-gallery',
+    ],
+    'page' => [
+      'path' => 'https://help.theopenscholar.com/importing-pages',
+    ],
+    'presentation' => [
+      'path' => 'https://help.theopenscholar.com/presentations-app#importing-presentations',
+    ],
+    'person' => [
+      'path' => 'https://help.theopenscholar.com/importing-people-profiles',
+    ],
+    'news' => [
+      'path' => 'https://help.theopenscholar.com/news-app#importing-news-items',
+    ],
+    'biblio' => [
+      'path' => 'https://help.theopenscholar.com/publications-app#importing-publications',
+    ],
+    'software_project' => [
+      'path' => 'https://help.theopenscholar.com/software-app#importing-software',
+    ],
+  ];
+  return $helpLinkMapping;
+}
+
+/**
+ * Validate handler - if the user selected RRS importer then he must enter a
+ * RSS address and a title for the node importer..
+ */
+function os_importer_import_validate($form, $form_state) {
+
+  if ($form_state['values']['format'] == 'rss') {
+    if (empty($form_state['values']['title'])) {
+      form_set_error('title', t('The title field is required'));
+    }
+
+    if (empty($form_state['values']['url'])) {
+      form_set_error('url', t('The title field is required'));
+    }
+    else {
+      // Validate the url address.
+      $url = $form_state['values']['url'];
+      $result = drupal_http_request($url);
+      if ($result->code != 200) {
+        form_set_error('url', t("The address @url is not a valid address.", array('@url' => check_plain($url))));
+      }
+
+      // Verify the user didn't enter that address.
+      if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+        $importer_type = $form_state['type'] == 'blog' ? 'blog_import' : 'feed_importer';
+
+        // Check for existing nodes in the same VSite.
+        $query = new EntityFieldQuery();
+        $result = $query
+          ->entityCondition('entity_type', 'node')
+          ->entityCondition('bundle', $importer_type)
+          ->propertyCondition('status', NODE_PUBLISHED)
+          ->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', $vsite->id)
+          ->fieldCondition('field_rss_url', 'value', $url)
+          ->execute();
+
+        if (!empty($result['node'])) {
+          $row = reset($result['node']);
+          $node = node_load($row->nid);
+
+          $params = array(
+            '@url' => url('cp/os-importer/' . $form_state['type'] . '/manage/' . $node->nid),
+            '@title' => $node->title,
+          );
+
+          form_set_error('url', t('RSS url already exists in <a href="@url">@title</a>.', $params));
+        }
+      }
+    }
+  }
+  else {
+    if (empty($form_state['values']['file'])) {
+      form_set_error('file', t('The file field is required'));
+    }
+  }
+}
+
+/**
+ * Validate handler - verify that the uploaded CSV file has a validate columns
+ * structure.
+ */
+function os_importer_verify_uploaded_file($form, $form_state) {
+  if (in_array($form_state['values']['format'], array('ical', 'rss')) || empty($form_state['values']['file'])) {
+    // Don't validate when there is no file or iCal files.
+    return;
+  }
+  $bundle = os_importer_importable_content($form_state['type']);
+
+  $source = feeds_source($bundle[$form_state['values']['format']]);
+  $config = $source->importer->getConfig();
+
+  // Get the mappings of the current importer.
+  $mappings_diff = array();
+  $mappings = array();
+  foreach ($config['processor']['config']['mappings'] as $mapping) {
+    $mappings_diff[] = strtolower($mapping['source']);
+    $mappings[] = $mapping['target'];
+  }
+
+  // Load the uploaded file and parse his headers.
+  $file = file_load($form_state['values']['file']);
+
+  $file_content = _os_importer_fix_file_content($file);
+  $file_rows = explode("\n", $file_content);
+  file_put_contents($file->uri, $file_content);
+
+  feeds_include_library('ParserCSV.inc', 'ParserCSV');
+  $parser = new ParserCSV();
+  $parser->setDelimiter(',');
+  $iterator = new ParserCSVIterator($file->uri);
+
+  $rows = $parser->parse($iterator);
+
+  // Parse file's headers.
+  $header = _os_importer_parse_header($parser, $iterator, $mappings);
+
+  // Check what columns are missing from the uploaded CSV file and display
+  // message if needed.
+  if ($missing = array_diff($mappings_diff, $header)) {
+    $params = array('!missing' => theme('item_list', array('items' => $missing)));
+    form_set_error('file', t('The following columns are not present in the CSV file: !missing The structure of the your CSV file probably needs to be updated. Please download the template again. ', $params));
+
+    return;
+  }
+
+  // Iterate over the rows for field validation and removing empty rows.
+  foreach ($rows as $key => $row) {
+    if (!$key) {
+      // Check the header for bad vocabularies.
+      foreach (array_diff(array_map('strtolower', $row), $mappings_diff) as $vocab) {
+        if (!trim($vocab)) {
+          form_set_error('', t('You cannot have a vocabulary without a name.'));
+          continue;
+        }
+
+        if (preg_match('@[^a-z0-9_]+@', $vocab) && !str_replace(array(' ', '.', '&', '-'), '', strtolower($vocab))) {
+          form_set_error('', t("The vocabularies you want to import doesn't contain any text."));
+        }
+      }
+      continue;
+    }
+
+    // Check if row is empty.
+    if (!implode("", $row)) {
+      unset($rows[$key]);
+      continue;
+    }
+
+    /** @var OsImporterEntityValidateBase $handler */
+    if (!$handler = entity_validator_get_validator_handler('node', $form_state['type'])) {
+      continue;
+    }
+
+    $handler->rest = FALSE;
+
+    $node = array(
+      'type' => $form_state['type'],
+    );
+    $node = entity_create('node', $node);
+    $wrapper = entity_metadata_wrapper('node', $node);
+    // Build the form values - break down the row.
+
+    foreach ($row as $delta => $value) {
+      // Check only the fields found in the mappings array. Columns after the
+      // last mapping column are used to create taxonomy terms.
+      // @see os_importer_feeds_presave().
+      if ($delta >= count($mappings)) {
+        break;
+      }
+
+      // Fail in case mapping does not exist.
+      if (!isset($mappings[$delta])) {
+        $params = array(
+          '@delta' => $delta,
+          '@value' => $value,
+        );
+        form_set_error('file', t('Mapping of CSV file is incorrect for delta @delta with value @value', $params));
+        return;
+      }
+      $field = $mappings[$delta];
+
+      $field = str_replace(':', '__', $field);
+
+      // Do not validate file fields.
+      if ($field == 'file') {
+        continue;
+      }
+
+      if ($field == 'body') {
+        $value = array('value' => $value);
+      }
+
+      $info = $wrapper->{$field}->info();
+
+      if (!is_array($value) && $info['type'] == 'list<text>') {
+        $value = array($value);
+      }
+      elseif (!is_array($value) && $info['type'] == 'text_formatted') {
+        $value = array('value' => $value);
+      }
+      elseif (empty($value) && in_array($info['type'], array('integer', 'decimal'))) {
+        $value = 0;
+      }
+      elseif ($value && $info['type'] == 'integer') {
+        $value = intval($value);
+      }
+      elseif ($field == 'created' && is_string($value)) {
+        $orig_value_created = $value;
+        $value = strtotime($value);
+        // if strtotime() output is blank, then date format is not correct, displaying error message.
+        if(empty($value) || ($value < 0)) {
+          form_set_error('created', t('Invalid date value entered for the field "!field" with value "!value".', array('!field' => $field, '!value' => $orig_value_created)));
+        }
+      }
+
+      try {
+        $wrapper->{$field}->set($value);
+      }
+      catch (EntityMetadataWrapperException $e) {
+        form_set_error('', t('Settings the value of field "!field" with value "!value" failed.', array('!field' => $field, '!value' => $orig_value)));
+      }
+    }
+
+    if ($handler->validate($node, TRUE) === FALSE) {
+      $errors = $handler->getErrors(FALSE);
+
+      $return = array();
+
+      // Replace the messages' placeholders with the CSV column name for better
+      // validation error messages.
+      foreach ($errors as $field => $field_errors) {
+        foreach ($field_errors as $error) {
+          if (!isset($error['params']['@field'])) {
+            continue;
+          }
+
+          // We take the label of the field (either the original label, or if
+          // it's a property we added, then the one defined in
+          // os_importer_entity_property_info_alter().
+          $field_info = $wrapper->{$field}->info();
+          $field_label = $field_info['label'];
+          $error['params']['@field'] = $field_label;
+
+          $return[] = format_string($error['message'], $error['params']) . '</br>';
+        }
+      }
+
+      $return = array(
+        '!errors' => implode("\n\r", $return),
+      );
+      form_set_error('', t('Field validation errors:</br>!errors', $return));
+    }
+  }
+
+  // Update the file contents with the validated contents.
+  file_put_contents($file->uri, implode("\n", $file_rows));
+  $form_state['values']['file'] = $file->fid;
+}
+
+/**
+ * Form submit.
+ */
+function os_importer_import_submit($form, &$form_state) {
+  global $language, $user;
+  $values = $form_state['values'];
+  $bundle = os_importer_importable_content($form_state['type']);
+
+  if (in_array($values['format'], array('csv', 'ical'))) {
+    $fid = $values['file'];
+    $file = file_load($fid);
+
+    $source = feeds_source($bundle[$values['format']]);
+    $fetcher_config = $source->getConfigFor($source->importer->fetcher);
+    $fetcher_config['source'] = $file->uri;
+    $fetcher_config['file'] = $file;
+    $fetcher_config['encode'] = $values['encode'];
+    $source->setConfigFor($source->importer->fetcher, $fetcher_config);
+    $source->save();
+
+    $source->startImport();
+  }
+  else {
+    $node_type = $form_state['type'] == 'blog' ? 'blog_import' : 'feed_importer';
+    $node = entity_create('node', array(
+      'title' => $values['title'],
+      'type' => $node_type,
+      'language' => $language->language,
+      'uid' => $user->uid,
+    ));
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $wrapper->field_rss_url->set($values['url']);
+    $wrapper->save();
+  }
+}
+
+/**
+ * Implements hook_feeds_presave().
+ *
+ * Supporting creation of vocabularies on the fly from the CSV file.
+ */
+function os_importer_feeds_presave(FeedsSource $source, $entity, $item) {
+  if (!$id = _os_importer_determine_context()) {
+    return;
+  }
+
+  // only handle declared node bundles
+  if (isset($entity->type) && os_app_info_declared_node_bundle($entity->type)) {
+    // When importing an event and the end date is empty we use the start date.
+    if ($entity->type == "event") {
+      if (empty($entity->field_date[LANGUAGE_NONE][0]['value2'])) {
+        $entity->field_date[LANGUAGE_NONE][0]['value2'] = $entity->field_date[LANGUAGE_NONE][0]['value'];
+      }
+
+      // Allow events with both empty start and end dates in CSV import.
+      // We clear them here since date module autopopulates empty values with
+      // today's date.
+      if ($source->id == 'os_events_csv' && empty($item['start date']) && empty($item['start date'])) {
+        $entity->field_date = array();
+      }
+      // Handling repeating events for Event import by ical files.
+      if ($source->id == 'os_ical' && !empty($item->component->rrule[0]['value'])) {
+        include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'date_api') . '/date_api_ical.inc';
+        $rrule = 'RRULE:';
+        // Building rrule string from array.
+        foreach ($item->component->rrule[0]['value'] as $key => $value) {
+          $separator = ',';
+          if (is_array($value)) {
+            $options = array();
+            foreach ($value as $option) {
+              $element = is_array($option) ? array_shift($option) : $option;
+              $options[] = $element;
+              if(strpos($element, '+') === 0 || strpos($element, '-') === 0) {
+                $separator = '';
+              }
+            }
+            if ($key == 'UNTIL') {
+              $separator = '';
+              $options = array($options[0], str_pad($options[1], 2, '0', STR_PAD_LEFT), $options[2], 'T', $options[3], $options[4], $options[5], $options[6]);
+            }
+            $rrule .= $key . '=' . implode($separator, $options) . ';';
+            $separator = ',';
+          }
+          else {
+            $rrule .= $key . '=' . $value . ';';
+          }
+        }
+        $field_info = field_info_field('field_date');
+        $date_item = array(
+          'value' => $entity->field_date[LANGUAGE_NONE][0]['value'],
+          'value2' => $entity->field_date[LANGUAGE_NONE][0]['value2'],
+          'rrule' => $rrule
+        );
+        // Assigning repeat dates from date_repeat module.
+        $entity->field_date[LANGUAGE_NONE] = date_repeat_build_dates(NULL, date_ical_parse_rrule($field_info, $rrule), $field_info, $date_item);
+      }
+    }
+
+    // Allow importing a presentation with date is empty.
+    if ($entity->type == "presentation" && empty($item['date'])) {
+      $entity->field_presentation_date = array();
+    }
+
+    // If the item we import didn't have a year value, clear the default value
+    // given by the date module from the entity.
+    if ($entity->type == "class" && empty($item['year'])) {
+      $entity->field_offered_year = array();
+    }
+  }
+
+  // Only import vocabularies, if not disallowed explicitly.
+  $importer_config = $source->importer()->getConfig();
+  if (empty($importer_config['skip_vocabularies'])) {
+    _os_importer_import_vocab($source, $entity, $item, $id);
+  }
+
+  _os_importer_import_behalf_of_user($source, $entity, $item, $id);
+}
+
+/**
+ * Helper function for determine the vsite ID.
+ *
+ * @return $id
+ *  The ID of the group.
+ */
+function _os_importer_determine_context() {
+  // Vsite context exists - use him.
+  if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    return $vsite->id;
+  }
+
+  // Verify we're in a queue.
+  if ($_GET['q'] != 'batch') {
+    return;
+  }
+
+  // Decide how we should get the vsite ID.
+  $batch = batch_load($_GET['id']);
+
+  if (empty($batch['form_state']['complete form']['#space']['#value'])) {
+    return;
+  }
+
+  list(, $id) = explode(':', $batch['form_state']['complete form']['#space']['#value']);
+
+  return $id;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adding a submit handler for redirect after import publication.
+ */
+function os_importer_form_biblio_import_form_alter(&$form, $form_state) {
+  $_GET['destination'] = 'cp/os-importer/biblio';
+}
+
+/**
+ * Implements hook_feeds_processor_targets_alter().
+ */
+function os_importer_feeds_processor_targets_alter(&$targets, $entity_type, $bundle_name) {
+  if ($bundle_name != 'person') {
+    return;
+  }
+
+  $targets['person_photo'] = array(
+    'name' => t('Personal photo'),
+    'description' => t('Importing a personal photo from external soource.'),
+    'callback' => 'os_importer_import_person_photo',
+  );
+}
+
+/**
+ * Feeds callback; Importing a personal picture from external source.
+ *
+ * @param $source
+ *   Field mapper source settings.
+ * @param $entity
+ *   An entity object, for instance a node object.
+ * @param $target
+ *   A string identifying the target on the node.
+ * @param $value
+ *   The value to populate the target with.
+ * @param $mapping
+ *  Associative array of the mapping settings from the per mapping
+ *  configuration form.
+ */
+function os_importer_import_person_photo($source, $entity, $target, $value, $mapping) {
+  $file = os_copy_file($value);
+  $dimensions = array(
+    'cropbox_x' => 0,
+    'cropbox_y' => 0,
+    'cropbox_height' => 0,
+    'cropbox_width' => 0,
+  );
+  os_profiles_insert_image($entity, $file['file'], $dimensions, FALSE);
+}
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function os_importer_entity_property_info_alter(&$info) {
+  $base = array(
+    'type' => 'unknown',
+    'setter callback' => 'entity_metadata_field_verbatim_set',
+    'getter callback' => 'entity_metadata_field_verbatim_get',
+  );
+
+  $data = array(
+    'class' => array(
+      'field_class_link__title' => t('Class title'),
+      'field_class_link__url' => t('Class URL'),
+      'field_offered_year__start' => t('Offered year'),
+    ),
+    'event' => array(
+      'registration' => t('Registration'),
+      'field_date__start' => t('Date start'),
+      'field_date__end' => t('Date end'),
+    ),
+    'feed' => array(
+      'field_url__url' => t('Feed url'),
+    ),
+    'person' => array(
+      'person_photo' => t('Person photo'),
+      'field_website__url' => t('Website URL'),
+      'field_website__title' => t('Website title'),
+    ),
+    'link' => array(
+      'field_links_link__url' => t('Link URL'),
+    ),
+    'presentation' => array(
+      'field_presentation_date__start' => t('Presentation date start'),
+    ),
+    'news' => array(
+      'field_news_date__start' => t('Date'),
+      'field_url__url' => t('URL'),
+      'field_photo' => t('News photo'),
+    ),
+    'page' => array(),
+    'faq' => array(),
+    'blog' => array(),
+    'media_gallery' => array(),
+    'software_project' => array(),
+  );
+
+  foreach ($data as $bundle => $fields) {
+    foreach ($fields as $field => $label) {
+      $info['node']['bundles'][$bundle]['properties'][$field] = $base + array(
+        'label' => $label,
+      );
+
+      $info['node']['bundles'][$bundle]['properties']['created'] = $base + array(
+        'label' => t('Created'),
+      );
+    }
+
+    $info['node']['bundles'][$bundle]['properties']['created'] = $base + array(
+      'label' => t('Created'),
+    );
+
+    $info['node']['bundles'][$bundle]['properties']['path_alias'] = $base + array(
+      'label' => t('Path'),
+    );
+  }
+}
+
+/**
+ * round up the hour. If the hour is 15:53 the return value will be 15:55.
+ * If the hour is 15:56 the hour will be 16:00.
+ * @param $hour
+ *   The hour in a time format of HH:MM
+ * @return $hour
+ *   The new hour.
+ */
+function os_importer_round_hour($hour) {
+  list($hours, $minutes) = explode(':', $hour);
+
+  $single = $minutes % 10;
+  if ($single < 5) {
+    $new_minutes = intval($minutes / 10) * 10;
+  }
+  else if ($single > 5) {
+    $new_minutes = ((intval($minutes / 10) + 1) * 10) - 5;
+  }
+  else {
+    $new_minutes = $minutes;
+  }
+
+  if ($new_minutes == '0') {
+    $new_minutes = '00';
+  }
+
+  return $hours . ':' . $new_minutes;
+}
+
+/**
+ * @param $file
+ *
+ * @return bool|mixed|string
+ */
+function _os_importer_fix_file_content($file) {
+  // Replace the \r with \n.
+  $file_content = file_get_contents($file->uri);
+  $file_content = str_replace(["\r\n", "\r"], "\n", $file_content);
+
+  // UTF-8 BOM detection
+  $bom = pack("CCC", 0xef, 0xbb, 0xbf);
+  if (0 === strncmp($file_content, $bom, 3)) {
+    drupal_set_message('UTF-8 BOM detected and removed');
+    $file_content = substr($file_content, 3);
+  }
+  return $file_content;
+}

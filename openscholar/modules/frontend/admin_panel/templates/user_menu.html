@@ -1,0 +1,28 @@
+    <div id="topRightMenu" class="topRight_Menu" title="My Account" role="button" aria-label="Open my account menu" right-menu-toggle>
+        <div notification-check class="notifications-headsup"></div>
+    </div>
+    <div id="rightMenuSlide" class="topRight_Menu topRight_subMenu" style='display:none;'>
+      <ul class="user-menu">
+      	<li id="user-name">
+          {{ user.name }}
+          <div class="close-link close-user-menu" role="button" aria-label="Close my account menu" right-menu-toggle></div>
+        </li>
+        <li>
+          <a ng-href="/user/{{ user.uid }}/edit">Manage my account</a>
+        </li>
+        <li>
+          <a href="https://twitter.com/osappstatus" target="_blank">Updates on Twitter</a>
+        </li>
+        <li load-my-sites>
+          <a href="/user">My sites</a>
+        </li>
+        <li>
+          <a ng-href="{{ paths.support_subscribe }}" add-destination ng-if="user.support_user && !user.is_member">Support this site</a>
+          <a ng-href="{{ paths.support_unsubscribe }}" add-destination ng-if="user.support_user && user.is_member">Un-Subscribe from site</a>
+        </li>
+        <li class="slate">
+          <a href="{{ paths.logout }}">Logout</a>
+        </li>
+      </ul>
+    </div>
+  

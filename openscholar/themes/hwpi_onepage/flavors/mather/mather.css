@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css?family=Cardo');
+
+html, body {
+    color: #000;
+}
+.front #content-column {
+    font-size: 16px;
+}
+body,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+.block-boxes-os_taxonomy_fbt.navigation,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation,
+#footer ul.menu li ul li a,
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2,
+h2.block-title,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+.date-nav h3,
+.cke_editable * {
+    font-family: 'Cardo', sans-serif !important;
+}
+.breadcrumb,
+.breadcrumb,
+.breadcrumb a,
+#footer ul.menu a,
+.section-nav a {
+    font-family: 'Montserrat', sans-serif !important;
+}
+h1#page-title {
+    font-size: 2em;
+}
+
+.ui-tabs ul.ui-tabs-nav li.ui-tabs-active,
+#menu-bar {
+    border-top: 3px solid #333;
+}
+#menu-bar {
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+}
+#menu-bar ul.nice-menu .menuparent a:before {
+    background-position: -69px -566px;
+}
+.region-content-top,
+.region-content-second {
+    background-color: #fff;
+}
+#menu-bar ul.nice-menu ul,
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background-color: #333;
+}
+#menu-bar ul.nice-menu a {
+    font-size: 1.1em;
+}
+#menu-bar ul.nice-menu a,
+#footer .footer-login,
+#footer,
+#footer a,
+#footer ul.menu a {
+    color: #333;
+}
+#footer,
+#header {
+    background-color: #FBFBF1;
+}
+.front #content-panels .region-content-bottom,
+.front #content-panels .region-content-first {
+    background-color: #eee;
+}
+.event-start .event-year {
+    font-size: 13px;
+}
+.event-start .event-start span,
+.event-start-day,
+.event-start-month,
+.event-start .event-year {
+    color: #fff;
+}
+.event-start .event-year {
+    padding: 8px 0 0;
+}
+.event-start .event-start {
+    background: #000;
+    border: none;
+    border-top: none;
+    -webkit-border-bottom-right-radius: 0px;
+    -webkit-border-bottom-left-radius: 0px;
+    -moz-border-radius-bottomright: 0px;
+    -moz-border-radius-bottomleft: 0px;
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+.section-nav .menu-depth-1 > a {
+    background-color: #333 !important;
+    color: #fff !important;
+    border-bottom: 1px solid #999 !important;
+}
+.node-type-person .node-person .field-name-field-professional-title {
+	font-style:italic;
+}
+
+#footer .footer-login {
+    text-shadow: none;
+}
+#footer {
+    border-top: 1px solid #ddd;
+}
+
+#footer .footer-login:after {
+    background-image: none;
+}
+
+#powered-by a {
+    background-position: -14px -520px;
+}

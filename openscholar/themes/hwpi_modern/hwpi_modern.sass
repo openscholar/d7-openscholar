@@ -1,0 +1,332 @@
+//colors
+@import _colors
+@import _helpers
+
+//fonts
+$font_0: arial
+$font_1: Arial
+$font_2: Helvetica
+$font_3: sans-serif
+
+//urls
+$url_0: url(../../hwpi_basetheme/images/hwpi_basesprite.png)
+$url_1: url(../images/event-shield.png)
+$url_2: url(../images/footer-top-gradient.png)
+
+html 
+	background: #fff
+	color: #1e1e1e
+
+body 
+	background: #fff
+	color: #1e1e1e
+
+.not-front 
+	#content-column 
+		font-size: 15px
+		p 
+			font-family: $font_1, $font_2, $font_3
+
+	&.two-sidebars #content-column .content-inner 
+		border-right: 1px solid #cacaca
+
+#header 
+	background: $school
+	color: #fff
+
+#boxes-box-site_info 
+	color: #fff
+	a 
+		color: #fff
+
+#menu-bar 
+	background: $school_2
+	ul.nice-menu
+		a 
+			color: contrasting-color($school_2, $font_light, $font_dark)
+			&.active 
+				background: $school
+				color: contrasting-color($school, $font_light, $font_dark)
+
+			&:hover 
+				background: $school
+				color: contrasting-color($school, $font_light, $font_dark)
+
+
+		ul 
+			background: $school_2
+			.menuparent 
+				a 
+					&:hover 
+						color: contrasting-color($school_2, $font_light, $font_dark)
+
+					&.active 
+						color: contrasting-color($school_2, $font_light, $font_dark)
+
+
+				&.over > a 
+					color: contrasting-color($school_2, $font_light, $font_dark)
+
+
+
+		.menuparent 
+			a
+				&:hover 
+					background-color: $school
+				&.active 
+					background-color: $school
+			&.over > a 
+				background-color: $school
+			ul li a 
+				color: contrasting-color($school_l, $font_light, $font_dark)
+				font-family: $font_0
+				font-size: 13px
+				&.active 
+					color: contrasting-color($school_l, $font_light, $font_dark)
+					font-family: $font_0
+					font-size: 13px
+
+				&:hover 
+					color: contrasting-color($school_l, $font_light, $font_dark)
+
+#footer 
+	background: $url_2 repeat-x 0 0 #ebebeb
+	ul.menu 
+		li 
+			&.menuparent 
+				font-size: 12px
+				font-weight: bold
+			a 
+				font-family: $font_0
+				text-transform: uppercase
+				font-size: 13px
+			ul li a 
+				font-family: $font_0
+				text-transform: none
+				font-size: 14px
+		a
+			font-family: $font_1, $font_2, $font_3
+			font-size: 16px
+
+#page-title 
+	font-family: $font_1, $font_2, $font_3
+
+.node-title 
+	font-family: $font_1, $font_2, $font_3
+
+.page-search 
+	.title a 
+		font-family: $font_1, $font_2, $font_3
+		font-size: 15px
+		font-weight: bold
+
+	#content-column p 
+		font-family: $font_1, $font_2, $font_3
+
+.more-link 
+	font-family: $font_1, $font_2, $font_3
+	font-size: 12px
+	font-weight: bold
+
+.search-block-form
+
+	.form-item label 
+		color: #bac5c6
+
+.comment-wrapper 
+	border-top: 6px solid #f3f3f1
+
+.node-type-person 
+	#content-column .node-person h2.block-title 
+		background: none repeat scroll 0 0 #2d2d2d
+		color: #ffffff
+		font-size: 14px
+
+.block 
+	&.no-title
+		.view .date-nav-wrapper 
+			border-top: 1px solid #cacaca
+
+.ui-tabs
+	.ui-tabs-nav li a
+		font-size: 14px
+
+	ul.ui-tabs-nav li.ui-tabs-active 
+		background: $school !important
+		a
+			color: contrasting-color($school, $font_light, $font_dark)
+
+.calendar-calendar 
+	td 
+		border-color: #cacaca
+		&.empty 
+			border-color: #cacaca
+
+	.mini tbody 
+		border-top-color: #f3f3f1
+		border-color: #cacaca
+
+	th.days 
+		background-color: #fff
+		border-top-color: #cacaca
+		border-color: #cacaca
+		&.sun 
+			border-left-color: #cacaca
+
+		&.sat 
+			border-right-color: #cacaca
+
+#boxes-box-os_pages_section_nav 
+	border-color: #959595
+	font-weight: bold
+
+.section-nav 
+	.leaf 
+		&.menu-depth-3 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+		&.menu-depth-4 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+		&.menu-depth-5 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+		&.menu-depth-6 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+	ul.menu li a 
+		border-color: #959595
+
+	.menu-depth-1 > a 
+		background-color: #1e1e1e !important
+
+	.expanded.menu-depth-2 
+		> a 
+			background-color: #545454
+			&:hover 
+				background-color: $school_l !important
+
+
+		.menu-depth-3 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+
+		.menu-depth-4 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+
+		.menu-depth-5 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+
+		.menu-depth-6 > a 
+			background-color: #f3f3f1 !important
+			&:hover 
+				background-color: #e3e3e1 !important
+
+#columns a.node-readmore
+	&:after 
+		background: $url_0 no-repeat 3px -572px
+
+.region-header-third ul.nice-menu a 
+	color: #bac5c6
+
+#content-column .block 
+	&.block-boxes-os_boxes_manual_list 
+		&.styled
+			border-top: 6px solid #f3f3f1
+			h1.node-title a
+				font-size: 22px
+
+
+		.links.inline a 
+			font-family: $font_1, $font_2, $font_3
+			font-size: 12px
+			font-weight: bold
+.links a 
+	font-family: $font_1, $font_2, $font_3
+
+.boxes-box-content h2 
+	font-family: $font_1, $font_2, $font_3
+	font-weight: normal
+	font-size: 24px
+	line-height: 28px
+
+.view-os-events .views-field-colorbox 
+	font-family: $font_1, $font_2, $font_3
+
+h1#page-title 
+	font-size: 30px
+
+h2.block-title
+	font-size: 12px
+
+.front #content-column .block 
+	border-top: 6px solid #f3f3f1
+
+.node-person .block-inner 
+	border-top: 6px solid #f3f3f1
+
+.sidebar .block
+	h2.block-title 
+		background: none repeat scroll 0 0 #2d2d2d
+		color: #ffffff
+		font-size: 14px
+
+#block-views-os-events-block-1 .view .date-nav-wrapper
+	border-color: #cacaca
+
+.date-nav h3 
+	font-family: $font_0
+	a 
+		color: #1e1e1e
+
+
+.event-start
+	position: relative
+	.event-start
+		background: $url_1 no-repeat scroll 0 0 transparent
+		&:before
+			content: ""
+			position: absolute
+			height: 6px
+			top: 0
+			left: 0
+			right: 0
+			background-color: $school
+
+		ul
+			border-bottom: 1px solid #959595
+			border-left: 1px solid #959595
+			border-right: 1px solid #959595
+			li
+				border-top: 1px solid #959595
+
+.block-boxes-os_taxonomy_fbt.navigation
+	ul 
+		border-bottom: 1px solid #959595
+		border-left: 1px solid #959595
+		border-right: 1px solid #959595
+		li 
+			border-top: 1px solid #959595
+
+a.rslides_nav 
+	background-color: #000
+
+#search-block-form #edit-submit
+	background-position: -43px -440px
+	background-color: $school

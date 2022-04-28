@@ -1,0 +1,63 @@
+/* Front page bio overlay effect */
+
+.front .region-header-second .block-boxes-os_boxes_manual_list {
+  position: fixed;
+  background: #fff;
+  margin:0;
+  height:0;
+  margin-left:-375px;
+  font-size: 1.1em;
+  bottom: 30px;
+  width: 750px;
+  left:50%;
+  z-index:10;
+  -moz-box-shadow: 0 -1em 3em rgba(0,0,0,0.6);
+  -webkit-box-shadow: 0 -1em 3em rgba(0,0,0,0.6);
+  box-shadow: 0 -1em 3em rgba(0,0,0,0.6);
+  display:none;
+}
+
+.front .region-header-second .block-boxes-os_boxes_manual_list .node-content {
+  position:absolute;
+  overflow:auto;
+  bottom: 0;
+  left:40px;
+  top:40px;
+  right:10px;
+  padding-right:25px;
+}
+
+.front .region-header-second .block-boxes-os_boxes_manual_list .node-content {
+  bottom: -700px;
+    padding-top: 5px;
+}  
+   
+.front #header .block-boxes-os_boxes_manual_list .node-page {
+  position: relative;
+}
+
+#header .node-type-bio p {
+  margin-bottom: 1em;
+}
+
+.front .block-boxes-os_boxes_manual_list .node-page a.more {
+	color: #5C7677;
+	float: right;
+	padding: 11px 38px 10px 0;
+}
+
+/* Format the CV and Bio nodes to look like the biocv page. */
+.front .region-header-second .node-cv .node-title,
+.front .region-header-second .node-cv .submitted {
+	display: none;
+}
+
+.front .region-header-second .node-bio .node-content {
+	margin-top -1.4em;
+}
+
+/**
+ * Note: this selector fixes an issue that was NOT reproducible.
+ *
+ * @todo: re-evaluate and/or remove?
+ */

@@ -1,0 +1,38 @@
+.slide-copy h2 {
+    font-family: georgia,serif;
+}
+
+.one-sidebar #layout_3_1_overlay .slide-copy h2 {
+    font-family: georgia,serif;
+}
+
+.two-sidebars #layout_3_1_overlay .slide-copy h2 {
+font-family:georgia,serif;
+}
+
+#layout_16_9_side .rslides_tabs li {
+  font-family: georgia,serif;
+}
+
+#layout_16_9_overlay .slide-copy p,
+#layout_16_9_overlay .slide-copy h2, 
+#layout_16_9_side .slide-copy p, 
+#layout_16_9_side .slide-copy h2,
+.slide-copy p {
+	font-family:arial,sans-serif;
+}
+
+/*PREVENT JUMPY EFFECT WHEN NO SIDEARS AND 3-1 SS STYLE IS USED
+  HOLDS SPACE OPEN UNTIL JS CAN LOAD PRECISE INLINE HEIGHT VALUE*/
+.no-sidebars .region-content-top #layout_3_1_overlay .slide {
+height:327px;
+}
+
+.no-sidebars .region-content-top #layout_16_9_side .slide {
+height:300px;
+}
+
+
+ 
+
+

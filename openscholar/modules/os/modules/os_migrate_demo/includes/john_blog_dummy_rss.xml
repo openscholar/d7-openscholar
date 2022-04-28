@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+  <rss version="2.0">
+    <channel>
+      <item>
+        <title>NASA</title>
+        <guid>nasa_blog</guid>
+        <description><![CDATA[
+        NASA stands National Aeronautics and Space Administration.
+        ]]></description>
+      </item>
+      <item>
+        <guid>blog2</guid>
+        <title>John F. Kennedy International Airport</title>
+        <description><![CDATA[
+          Located in borough of Queens in New York City.
+        ]]></description>
+      </item>
+    </channel>
+  </rss>

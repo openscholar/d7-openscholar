@@ -1,0 +1,5 @@
+name = Control Panel: Toolbar
+description = A better toolbar for the Control Panel
+core = 7.x
+dependencies[] = cp
+dependencies[] = toolbar

@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css?family=Libre+Franklin:400,400i,700');
+
+.not-front .field-name-body,
+#content-column p,
+.cke_editable *,
+#content-column li,
+body *,
+#content-column li,
+.region-header-third ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#menu-bar ul a,
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu .menuparent a,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.page-search #content-column p,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.view-os-events .views-field-colorbox,
+.field-name-body h2,
+.field-name-body h3,
+.field-name-body h4 {
+	font-family: 'Libre Franklin', Helvetica, sans-serif;
+}
+.node-type-person #content-column .node-person h1.node-title,
+.block-title,h1#page-title {
+	text-transform:uppercase;
+}
+
+
+.ui-widget-content a,
+.region-header-third ul.nice-menu a,
+a,
+a:visited {
+	color: #A31F34;
+}
+.breadcrumb span,
+#footer a,
+.node-type-page .breadcrumb, .breadcrumb, .breadcrumb a  {
+	color: #fff;
+}
+
+
+a.rslides_nav {
+    background-color: #A31F34;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+	background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat scroll 2px -441px #A31F34;
+}
+#layout_16_9_side .slide {
+background: #A31F34;
+	background: -moz-linear-gradient(top, #A31F34 0%, #b9243c 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #A31F34), color-stop(100%, #b9243c));
+	background: -webkit-linear-gradient(top, #A31F34 0%, #b9243c 100%);
+	background: -o-linear-gradient(top, #A31F34 0%, #b9243c 100%);
+	background: -ms-linear-gradient(top, #A31F34 0%, #b9243c 100%);
+	background: linear-gradient(to bottom, #A31F34 0%, #b9243c 100%);
+	filter: progid: DXImageTransform.Microsoft.gradient(startColorstr='#A31F34', endColorstr='#b9243c', GradientType=0);
+}
+.branding-left {
+  
+       margin: 4px 0 0 0;
+}
+.not-front #columns {
+  
+    background-image: url(../images/standard-body-gradient.png?s1234);
+  
+  
+}
+.more-link:after {
+ 
+    background-image: none;
+ 
+}
+
+.view .date-nav-wrapper .date-prev a {
+    background: url(/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png) repeat scroll 0 0 #A31F34;
+    background-position: -24px -29px;
+    width: 20px;
+    height: 20px;
+}
+
+.view .date-nav-wrapper .date-next a {
+    background: url(/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png) repeat scroll 0 0 #A31F34;
+    background-position: -56px -30px;
+    width: 20px;
+    height: 20px;
+}

@@ -1,0 +1,18 @@
+name = OS RSS
+description = RSS module for creating custom feeds.
+core = 7.x
+
+dependencies[] = context
+dependencies[] = features
+dependencies[] = views
+dependencies[] = ctools
+dependencies[] = os
+dependencies[] = views
+features[context][] = os_rss_feed
+features[ctools][] = context:context:3
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[views_view][] = os_rss_feed_export
+files[] = views/os_rss_pubDate.inc
+files[] = views/os_rss_guid.inc
+files[] = views/os_rss_link.inc

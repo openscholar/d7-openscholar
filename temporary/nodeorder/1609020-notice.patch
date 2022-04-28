@@ -1,0 +1,19 @@
+diff --git a/nodeorder.install b/nodeorder.install
+index 6189594..90e8516 100644
+--- a/nodeorder.install
++++ b/nodeorder.install
+@@ -29,6 +29,7 @@ function nodeorder_install() {
+   // Add the column to the table
+   $ret = array();
+   db_add_field('taxonomy_index', 'weight', $spec, $keys);
++  $installation_failed = FALSE;
+ 
+   // Check for query errors
+   for ($i = 0; $i < count($ret); $i++) {
+@@ -104,4 +105,4 @@ function nodeorder_schema_alter(&$schema) {
+     'initial' => 0,
+     'description' => t('A user-defined weight for each node in its respective category.'),
+   );
+-}
+\ No newline at end of file
++}

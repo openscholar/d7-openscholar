@@ -1,0 +1,237 @@
+/* D6 retro css for older themes */
+#columns {padding:0 10px;}
+
+
+@font-face {
+	font-family: 'MyriadProBold';
+	src: url('../fonts/MyriadPro-Bold.eot');
+	src: local('../fonts/Myriad Pro Bold'), local('../fonts/MyriadPro-Bold'), url('../fonts/MyriadPro-Bold.woff') format('woff'), url('../fonts/MyriadPro-Bold.otf') format('opentype'), url('../fonts/MyriadPro-Bold.svg#MyriadPro-Bold') format('svg');
+}
+
+@font-face {
+	font-family: 'MyriadProRegular';
+	src: url('../fonts/MyriadPro-Regular.eot');
+	src: local('../fonts/Myriad Pro Regular'), local('../fonts/MyriadPro-Regular'), url('../fonts/MyriadPro-Regular.woff') format('woff'), url('../fonts/MyriadPro-Regular.otf') format('opentype'), url('../fonts/MyriadPro-Regular.svg#MyriadPro-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'MyriadProItalic';
+	src: url('../fonts/MyriadPro-It.eot');
+	src: local('../fonts/Myriad Pro Italic'), local('../fonts/MyriadPro-It'), url('../fonts/MyriadPro-It.woff') format('woff'), url('../fonts/MyriadPro-It.otf') format('opentype'), url('../fonts/MyriadPro-It.svg#MyriadPro-It') format('svg');
+}
+
+body {
+  background: url('../images/body-bg.png') repeat-x #373c3e;
+  font:14px/17px 'MyriadProRegular', sans-serif;
+  color: #050505;
+  }
+
+/*TYPOGRAPHY*/
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+    color: #005C9C;
+    text-decoration: none;
+}
+
+#header-container a {
+  color: #9AD5E0;
+  }
+
+#header-container h1 a,
+#header-container h1 a:visited,
+#header-container h2,
+#header-container p {
+  color: #fff;
+  margin-bottom: 0;
+  font-weight: normal;
+  }
+
+#header-container h1 {
+  margin-top:0;
+  font-size: 23px;
+  }
+
+#header-container h2,
+#header-container p {
+  margin-top: 3px;
+  }
+
+#header-container h2 {
+  font-size: 20px;
+  }
+
+.region-sidebar-first h2.block-title,
+.region-sidebar-second h2.block-title,
+.region-sidebar-second div.litecal .litecal-title h3.litecal-title,
+.region-sidebar-first div.litecal .litecal-title h3.litecal-title {
+  background: #353a3c;
+  color:#fff;
+  padding: 4px 5px;
+  -moz-border-radius:5px;
+  -webkit-border-radius:5px;
+  border-radius: 5px;
+  float:none;
+  font-size: 14px;
+  line-height: 17px;
+  margin-bottom: 1em;
+  }
+
+h1#page-title {
+	font-size:1.21em;
+	margin-bottom:20px;
+}
+
+.region-header-second .block-vsite_menus li a:hover {
+  color: #fff;
+  }
+
+/* LAYOUT */
+
+#page {
+  padding-top: 15px;
+
+  }
+
+
+#columns {
+  background: #fff;
+  padding-top:10px;
+  }
+
+#header-container {
+  min-height:117px;
+  }
+
+  
+  #menu-bar {
+     clear: none;
+    
+  
+}
+
+
+
+#scholar-shield {
+  margin: 10px 0 0 auto;
+  }
+
+.region-sidebar-first .region-inner {
+border-left: 1px solid #919191;
+}
+
+.region-sidebar-second .region-inner {
+border-left: 1px solid #919191;
+}
+
+
+#content-area {
+  background: #fdfdfd;
+  padding-top: 10px;
+  padding-bottom: 30px;
+  }
+  
+  #header-container #boxes-box-site_logo img {width:157px;}
+
+
+#header-container {
+      height: 134px;
+  }
+
+/* HTML ITEMS */
+
+#menu-bar ul.nice-menu {
+ display: table;
+  float: none;
+  margin: 0 auto;
+}
+
+#menu-bar li {
+  display: inline;
+  margin-right: 16px;
+  background: none;
+  }
+
+#menu-bar li.last {
+  margin-right: 0;
+  }
+
+#menu-bar li a,
+#menu-bar li a:visited {
+  color:#ec8501;
+  font-size: 16px;
+  }
+  
+  /** NICE MENUS **/
+#menu-bar ul.nice-menu ul {
+	margin-top:-20px;
+	border:none;
+	}
+	
+#menu-bar ul.nice-menu ul ul {
+	margin-top:0;
+	}
+		
+#menu-bar ul.nice-menu ul ul li {
+	margin-bottom:0;
+}
+		
+	
+#menu-bar ul.nice-menu ul li {
+	margin-top:0;
+	background:#252A2B;
+}
+
+#menu-bar ul.nice-menu ul,	
+#menu-bar ul.nice-menu ul li a {
+	color:#FFF;
+	background:#353535;
+	padding:4px 0 4px 5px;
+}
+
+
+ul.nice-menu-left li.menuparent {
+    background: none;
+    border:none;
+}
+
+	
+.region-sidebar-second.sidebar ul.menu ul {
+	margin-top:0;
+
+	}	
+
+
+  
+ul.nice-menu-left li.menuparent, ul.nice-menu-left li li.menuparent {
+    background: none;
+}	
+
+ul.nice-menu-right li.menuparent, ul.nice-menu-right li li.menuparent,
+ul.nice-menu-left li.menuparent, ul.nice-menu-left li li.menuparent,
+ul.nice-menu-right li.menuparent:hover, ul.nice-menu-right li li.menuparent:hover,
+ul.nice-menu-left li.menuparent:hover, ul.nice-menu-left li li.menuparent:hover {
+    background: none;
+}  
+
+#footer {
+  padding-top: 4px;
+  }
+
+p.copy, p.copy a, p.copy a:visited {
+    color:#f8f8f8;
+    }
+
+p.copy a {
+  text-decoration: underline;
+  }
+  
+
+
+.view .date-nav-wrapper .date-prev a, .view .date-nav-wrapper .date-next a {
+
+font-size: 11px;
+}
+
+#powered-by a {
+    background-position: -14px -546px;
+}

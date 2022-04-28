@@ -1,0 +1,106 @@
+diff --git a/nodeorder.module b/nodeorder.module
+index cbceeb6..680eaf0 100644
+--- a/nodeorder.module
++++ b/nodeorder.module
+@@ -716,51 +716,6 @@ function nodeorder_term_can_be_ordered($tid) {
+ }
+ 
+ /**
+- * Implements hook_node_presave().
+- */
+-function nodeorder_node_presave($node) {
+-  if (nodeorder_can_be_ordered($node)) {
+-    if (!isset($node->nodeorder)) {
+-      $node->nodeorder = array();
+-
+-      // When a node gets loaded, store an element called 'nodeorder' that contains
+-      // an associative array of tid to weight...
+-      $result = db_query('SELECT tid, weight FROM {taxonomy_index} WHERE nid = :nid', array(':nid' => $node->nid));
+-      foreach ($result as $term_node) {
+-        $node->nodeorder[$term_node->tid] = $term_node->weight;
+-      }
+-    }
+-  }
+-}
+-
+-/**
+- * Implements hook_node_delete().
+- */
+-function nodeorder_node_delete($node) {
+-  return;
+-  // make sure the weight cache is invalidated
+-  if (nodeorder_can_be_ordered($node)) {
+-    $tids = nodeorder_orderable_tids($node);
+-
+-    if (count($tids) > 0) {
+-      foreach ($tids as $i => $tid) {
+-        nodeorder_get_term_min_max($tid, TRUE); // reinitialize the cache
+-      }
+-    }
+-  }
+-}
+-
+-/**
+- * Implements hook_node_insert().
+- */
+-function nodeorder_node_insert($node) {
+-  // Set the initial weight to max+1... This makes sure that the weight
+-  // will be unique for each nid/tid combination
+-  //
+-  // NOTE - fall through to 'update' since we do mostly the same thing there.
+-}
+-
+-/**
+  * Implements hook_node_load().
+  */
+ function nodeorder_node_load($nodes, $types) {
+@@ -771,49 +726,6 @@ function nodeorder_node_load($nodes, $types) {
+ }
+ 
+ /**
+- * Implements hook_node_update().
+- */
+-function nodeorder_node_update($node) {
+-  // Set the weight -- taxonomy probably stomped it because
+-  // we added the weight column to term_node, and taxonomy
+-  // just wants to delete and re-insert rows when things change...
+-
+-  // Note that we only want to set the weight for tids that
+-  // are in orderable vocabularies...
+-  if (nodeorder_can_be_ordered($node)) {
+-    // @todo: switch on orderability check
+-    // $tids = nodeorder_orderable_tids($node);
+-    // if (count($tids) > 0) {
+-    
+-    if (TRUE) {
+-      $sql = "UPDATE {taxonomy_index} SET weight = %d WHERE tid = %d AND nid = %d";
+-
+-      foreach ($tids as $i => $tid) {
+-        db_lock_table('taxonomy_term_node');
+-        $weights = nodeorder_get_term_min_max($tid, FALSE); // get the cached weights
+-        // TODO Please convert this statement to the D7 database API syntax.
+-        db_query($sql, $weights["max"] + 1, $tid, $node->nid);
+-        nodeorder_get_term_min_max($tid, TRUE); // reinitialize the cache
+-        db_unlock_tables();
+-      }
+-    }
+-
+-    // New nodes won't have any saved weight values so this array will be empty...
+-    if ($node->nodeorder) {
+-      // Restore any saved weight values...
+-      $sql = "UPDATE {taxonomy_index} SET weight = %d WHERE nid = %d AND tid = %d";
+-      foreach ($node->nodeorder as $tid => $weight) {
+-        // weight cannot be 0
+-        if ($weight != 0) {
+-          // TODO Please convert this statement to the D7 database API syntax.
+-          db_query($sql, $weight, $node->nid, $tid);
+-        }
+-      }
+-    }
+-  }
+-}
+-
+-/**
+  * Form for Admin Settings
+  */
+ function nodeorder_admin($form, &$form_state) {

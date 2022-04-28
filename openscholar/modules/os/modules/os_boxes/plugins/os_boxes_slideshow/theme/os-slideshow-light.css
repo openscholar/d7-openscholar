@@ -1,0 +1,47 @@
+/* LIGHT VERSION */
+
+.views-field-filename {display:none;} /* REMOVE WHEN JON REMOVES FROM CONFIG FORM */
+
+.views-slideshow-cycle-main-frame {margin:0 auto;}
+
+.view-os-image-gallery-slideshow {border:1px solid #999;}
+
+.view-os-image-gallery-slideshow .views-field-media-title {
+	color: #444444;
+    font-weight: bold;
+    position:absolute;
+    top:0;
+    padding-left:5px;}
+
+
+.view-os-image-gallery-slideshow .views-slideshow-controls-bottom {padding:3px 0 2px 5px;color:#333;}
+.view-os-image-gallery-slideshow .views-slideshow-controls-bottom a {color:#333;}
+
+.views-slideshow-pager-fields {float:right;display:inline;clear:none;}
+.views-slideshow-controls-text {float:left;display:inline;clear:none;}
+
+.views-slideshow-controls-text-previous a {background: url('rev.png')no-repeat;}
+.views-slideshow-controls-text-next a {background: url('fwd.png')no-repeat;}
+.views-slideshow-controls-text-pause a {background: url('play.png')no-repeat;}
+.views-slideshow-controls-text-play a {background: url('play.png')no-repeat;}
+.views-slideshow-controls-text a {width:16px;height:14px;text-indent: 100%;white-space: nowrap;overflow:hidden;float:left;margin-right:5px;}
+
+.views_slideshow_slide img {
+    margin: 0 auto -20px auto;
+    padding-top:20px;
+}
+
+.view-os-image-gallery-slideshow .views-slideshow-controls-bottom {
+    color: #333;
+    padding: 1px 5px;
+}
+
+.view-os-image-gallery-slideshow .views-field-uri {
+	margin:0 auto;
+}
+
+.views-slideshow-pager-field-item {float:left;display:inline;color:#555;background:#FFF;margin-left:5px;}
+.views-slideshow-pager-field-item:hover {cursor:pointer;}
+.views-slideshow-pager-field-item.active {color:#FFF;background:#555;}
+
+.views-content-counter {width:16px;height:16px;text-align:center;}

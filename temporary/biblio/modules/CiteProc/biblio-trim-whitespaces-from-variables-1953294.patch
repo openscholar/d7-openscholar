@@ -1,0 +1,13 @@
+diff --git a/modules/contrib/biblio/modules/CiteProc/CSL.inc b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+index 7016b96..08c355e 100644
+--- a/modules/contrib/biblio/modules/CiteProc/CSL.inc
++++ b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+@@ -1117,7 +1117,7 @@ class csl_text extends csl_format {
+     $text = '';
+     switch ($this->source) {
+       case 'variable':
+-        if (!isset($data->{$this->variable}) || empty($data->{$this->variable})) return;
++        if (!isset($data->{$this->variable}) || empty($data->{$this->variable}) || trim($data->{$this->variable}) == FALSE) return;
+         if ($this->variable == 'biblio_url') {
+           $text = l($data->{$this->variable},  $data->{$this->variable});
+         }

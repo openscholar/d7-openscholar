@@ -1,0 +1,6 @@
+name = OpenScholar: Tours
+description = Provides tools to highlight features and notify users from external sources.
+package = "OpenScholar"
+dependencies[] = "os"
+dependencies[] = "cp"
+core = 7.x

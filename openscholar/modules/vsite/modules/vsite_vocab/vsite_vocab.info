@@ -1,0 +1,7 @@
+name = Vsite Taxonomy Integration
+description = Integration with OG Vocabulary.
+core = 7.x
+package = OpenScholar vsite
+php = 5.2.4
+dependencies[] = vsite
+dependencies[] = og_vocab

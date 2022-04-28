@@ -1,0 +1,13 @@
+#edit-shield .form-item-shield {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.item-shield-picker {
+  border: white solid 2px;
+  padding: 18px;
+}
+
+.item-shield-picker.active {
+  border-color: green;
+}

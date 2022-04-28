@@ -1,0 +1,76 @@
+@media (max-width: 768px) {
+	
+#columns {
+    width: 95%;
+}
+
+
+.gpanel .region {
+	display:block !important;
+	width:100% !important;
+	clear:both !important;
+	float:left !important;
+	margin:0 !important;
+}	
+
+#menu-bar {
+    background: none;
+    padding:0;
+}
+
+#menu-bar ul {
+ width: 100%;
+}
+
+#menu-bar ul.nice-menu li {
+    display: block;
+    float:none;
+    margin-top: 0;
+    }
+
+#menu-bar ul.nice-menu li a {
+    float: none;
+     padding: 0.5em 1.6em;
+     background: #D6DEDE;
+     border-bottom:1px solid #999;
+ 
+}
+
+#menu-bar ul.nice-menu li a.active {
+    background: #D6DEDE;
+}
+
+#menu-bar #block-os-primary-menu {
+    width: 100%;
+    margin:0;
+}
+
+
+
+
+#powerby-login {
+    width: 100%;
+}
+
+}
+
+
+@media (max-width: 900px) {
+.block-boxes-os_shields_box,
+.block-boxes-os_boxes_site_logo {
+	display:none;
+ }
+ 
+ 
+ }
+ 
+@media (max-width: 1024px) {
+
+ 
+ .region-header-second,
+.region-header-first,
+.region-header-second {
+	margin-left:0 !important;
+}
+ 
+ }

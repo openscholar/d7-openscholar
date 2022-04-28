@@ -1,0 +1,1360 @@
+<?php
+
+/**
+ * @file cp_appearance.module
+ *
+ * Provides and handles form for cp/appearance
+ */
+
+use GitWrapper\GitWrapper;
+use GitWrapper\GitException;
+
+/**
+ * Implements hook_menu().
+ */
+function cp_appearance_menu() {
+  $items = array();
+  $items['cp/appearance'] = array(
+    'title' => 'Themes',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cp_appearance_theme_picker_form'),
+    'weight' => 20,
+    'menu_name' => 'cp',
+    'access callback' => array('cp_appearance_change_theme_access'),
+  );
+
+  $items['cp/appearance/theme'] = array(
+    'title' => t('Theme'),
+    'page callback' => 'drupal_get_form',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'page arguments' => array('cp_appearance_theme_picker_form'),
+    'weight' => 20,
+    'menu_name' => 'cp',
+    'access callback' => array('cp_appearance_change_theme_access'),
+  );
+
+  $items['cp/appearance/add-subtheme'] = array(
+    'title' => 'Add subtheme',
+    'page callback' => 'cp_appearance_select_method',
+    'access callback' => 'cp_appearance_sub_theme_access',
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  foreach (subtheme_types() as $key => $info) {
+    // Check if there is an override function of the base form.
+    $form_id = function_exists('cp_appearance_manage_' . $key) ? 'cp_appearance_manage_' . $key : 'cp_appearance_manage_base';
+
+    $items['cp/appearance/add-subtheme/' . $key] = array(
+      'title' => $info->name,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array($form_id, 3),
+      'access callback' => 'cp_appearance_sub_theme_access',
+    );
+  }
+
+  $items['cp/appearance/update-subtheme/%'] = array(
+    'title' => 'Update subtheme',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cp_appearance_pull_subtheme', 3),
+    'access callback' => 'cp_appearance_sub_theme_access',
+  );
+
+  $items['cp/appearance/delete-subtheme/%'] = array(
+    'title' => 'Delete subtheme',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cp_appearance_delete_subtheme', 3),
+    'access callback' => 'cp_appearance_sub_theme_access',
+  );
+
+  return $items;
+}
+
+/**
+ * Access callback; For adding subthemes.
+ */
+function cp_appearance_sub_theme_access() {
+  if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    return og_user_access('node', $vsite->group->nid, 'manage subtheme', NULL, FALSE, TRUE);
+  }
+}
+
+/**
+ * Access callback; For changing the VSite's theme.
+ */
+function cp_appearance_change_theme_access() {
+  if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    return og_user_access('node', $vsite->group->nid, 'change theme');
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function cp_appearance_theme() {
+  $theme = array();
+
+  $theme['cp-appearance-theme-item'] = array(
+    'variables' => array(
+      'info' => array(),
+      'sub_theme' => ''
+    ),
+    'template' => 'cp-appearance-theme-item',
+    'path' => drupal_get_path('module', 'cp_appearance') . '/theme',
+  );
+
+  $theme['cp-appearance-subtheme-item'] = array(
+    'variables' => array(
+      'info' => array(),
+      'sub_theme' => ''
+    ),
+    'template' => 'cp-appearance-subtheme-item',
+    'path' => drupal_get_path('module', 'cp_appearance') . '/theme',
+  );
+
+  $theme['cp_appearance_theme_picker_form'] = array(
+    'render element' => 'form',
+    'function' => 'theme_cp_appearance_theme_picker_form'
+  );
+
+  $theme['cp_appearance_add_subtheme_list'] = array();
+
+  return $theme;
+}
+
+/**
+ * Form builder for CP > Appearance page.
+ */
+function cp_appearance_theme_picker_form($form, &$form_state) {
+  // Instantiates the form array and assets.
+  $module_path = drupal_get_path('module', 'cp_appearance');
+  $form = array(
+    '#title' => t('Theme Picker'),
+    '#theme' => array(
+      'cp_appearance_theme_picker_form'
+    ),
+    '#validate' => array(
+      'cp_appearance_theme_picker_form_validate'
+    ),
+    '#attached' => array(
+      'js' => array("{$module_path}/theme/cp_appearance_theme_picker.js"),
+      'css' => array("{$module_path}/theme/cp-appearance-theme_picker.css"),
+    )
+  );
+
+  ctools_include('themes', 'os');
+  $themes = os_get_themes();
+  ksort($themes);
+  $radio_options = array();
+  $default_flavor = '';
+
+  $themes_sorted = array();
+  $featured_themes = array_filter(variable_get('cp_appearance_featured_themes', array('aberdeen' => 'aberdeen', 'airstream' => 'airstream')));
+
+  // From where we get the list of single page themes?
+  $single_themes = array();
+
+  // Adds each theme option to the form, and flavor options if available.
+  foreach ($themes as $theme) {
+    // Adds this theme to the radio options.
+    $info = $theme->info;
+    $info['theme_name'] = $theme->name;
+
+    //Flavors is not shown for the featured themes
+    if ((!in_array($theme->name, $featured_themes)) && empty($theme->info['single'])) {
+      //Add this theme to the list of theme options.
+//      $radio_options[$info['theme_name']] = $info['theme_name'];
+//      $themes_sorted[$info['theme_name']] = $theme;
+//
+//      // Only continues if this theme has flavors.
+//      $theme_flavors = os_theme_get_flavors($info['theme_name']);
+//      $flavor_options = _cp_appearance_get_flavor_options($theme_flavors, $info, $default_flavor);
+//      if (!count($flavor_options)) {
+//        continue;
+//      }
+//
+//      // Adds the flavor select option to the form.
+//      $flavor_key = 'os_appearance_' . $info['theme_name'] . '_flavor';
+//      $form[$flavor_key] = array(
+//        '#type' => 'select',
+//        '#title' => t('Flavor'),
+//        '#options' => $flavor_options,
+//        '#default_value' => variable_get($flavor_key, $default_flavor),
+//        '#ajax' => array(
+//          'callback' => 'cp_appearance_swap_screenshot',
+//          'wrapper' => 'screenshot_' . $theme->name
+//        )
+//      );
+    }
+    else
+    {
+      //Add this theme to the list of theme options.
+      $radio_options[$info['theme_name'].'-os_featured_flavor-default'] = $info['theme_name'];
+      $theme->name = $info['theme_name'].'-os_featured_flavor-default';
+      $themes_sorted[$info['theme_name'].'-os_featured_flavor-default'] = $theme;
+      $featured_themes[$info['theme_name'].'-os_featured_flavor-default'] = $info['theme_name'].'-os_featured_flavor-default';
+      $theme->info['theme_flavor_name'] = $info['flavor_name'];
+
+      $flavors = os_theme_get_flavors($info['theme_name']);
+      foreach ($flavors as $flavor_name => $flav) {
+
+        $flavor_theme = (object)array(
+          'filename' => $flav['path'].'/'.$flav['file'],
+          'name' => $info['theme_name'].'-os_featured_flavor-'.$flavor_name,
+          'type' => 'theme',
+          'owner' => 'themes/engines/phptemplate/phptemplate.engine',
+          'status' => '1',
+          'weight' => '0',
+          'bootsrap' => '0',
+          'schema_version' => '-1',
+          'info' => drupal_parse_info_file($flav['path'].'/'.$flav['file']),
+          'base_themes' => $theme->base_themes,
+          'prefix' => 'phptemplate',
+          'stylesheets' => $theme->stylesheets,
+          'engine' => 'phptemplate',
+          'base_theme' => $theme->base_theme,
+          'is_flavor' => true,  // Indicate that this is a flavor not a full theme.
+          'single' => !empty($theme->info['single']) ? true: false,
+        );
+        $flavor_theme->info['flavor_name'] = $flavor_theme->info['name'];
+        $flavor_theme->info['name'] = $info['name'];
+        $flavor_theme->info['theme_flavor_name'] = $flavor_theme->info['flavor_name'];
+
+        $flavor_theme->info['screenshot'] = $flav['path'].'/screenshot.png';
+        $featured_themes[$info['theme_name'].'-os_featured_flavor-'.$flavor_name] = $info['theme_name'].'-os_featured_flavor-'.$flavor_name;
+        if (empty($theme->info['single'])) {
+          $themes_sorted[$info['theme_name'].'-os_featured_flavor-'.$flavor_name] = $flavor_theme;
+        }
+        else {
+          $single_themes[$flavor_theme->name] = $flavor_theme;
+        }
+        $radio_options[$info['theme_name'].'-os_featured_flavor-'.$flavor_name] = $flavor_theme->info['theme_flavor_name'];
+      }
+    }
+  }
+
+  // include flavors that have been added manually by user
+  foreach(cp_appearance_get_flavors() as $flavor_name => $flav) {
+    $theme = os_get_themes($flav['module']);
+    $flavor_theme = (object)array(
+      'filename' => $flav['path'],
+      'name' => $flav['module'] .'-os_featured_flavor-'.$flavor_name,
+      'type' => 'theme',
+      'owner' => 'themes/engines/phptemplate/phptemplate.engine',
+      'status' => '1',
+      'weight' => '0',
+      'bootsrap' => '0',
+      'schema_version' => '-1',
+      'info' => drupal_parse_info_file($flav['path'] . '/' . $flav['file']),
+      'base_themes' => $theme->base_themes,
+      'prefix' => 'phptemplate',
+      'stylesheets' => $theme->stylesheets,
+      'engine' => 'phptemplate',
+      'base_theme' => 'hwpi_basetheme',
+      'is_flavor' => true,  // Indicate that this is a flavor not a full theme.
+      'single' => $theme->info['single'],
+    );
+    $flavor_theme->info['flavor_name'] = $flavor_name;
+    $flavor_theme->info['name'] = $flavor_name;
+    $flavor_theme->info['theme_flavor_name'] = $flav['module'] .' - ' . $flavor_theme->info['flavor_name'];
+
+    $flavor_theme->info['screenshot'] = $flav['path'].'/screenshot.png';
+    $featured_themes[$flav['module'].'-os_featured_flavor-'.$flavor_name] = $flav['module'].'-os_featured_flavor-'.$flavor_name;
+    $themes_sorted[$flav['module'].'-os_featured_flavor-'.$flavor_name] = $flavor_theme;
+    $radio_options[$flav['module'].'-os_featured_flavor-'.$flavor_name] = $flavor_theme->info['theme_flavor_name'];
+  }
+
+  $themes = $themes_sorted;
+
+  // Sorts featured themes to the front.
+  $current_theme = os_theme_get();
+
+  $current_flavor = variable_get('os_appearance_'.$current_theme.'_flavor','defualt');
+
+  if (count($featured_themes)) {
+    $first_themes = array();
+    $other_themes = $themes;
+    foreach ($other_themes as $theme_name => $theme) {
+      if (in_array($theme_name, $featured_themes)) {
+        $first_themes[$theme_name] = $theme;
+        unset($other_themes[$theme_name]);
+      }
+    }
+  }
+
+  // Moves default theme to the front of the array.
+  if (!empty($first_themes)) {
+    if (isset($first_themes[$current_theme.'-os_featured_flavor-'.$current_flavor])) {
+      $current_theme = _cp_appearance_move_option_to_front($first_themes, $current_theme.'-os_featured_flavor-'.$current_flavor);
+    }
+    elseif (isset($single_themes[$current_theme.'-os_featured_flavor-'.$current_flavor])) {
+      $current_theme = _cp_appearance_move_option_to_front($single_themes, $current_theme.'-os_featured_flavor-'.$current_flavor);
+    }
+    elseif (isset($other_themes[$current_theme])) {
+      $current_theme = _cp_appearance_move_option_to_front($other_themes, $current_theme);
+    }
+    $featured_header =  array('HEADER_FEATURED' => 'HEADER_FEATURED');
+    $other_header = array('HEADER_OTHER' => 'HEADER_OTHER');
+
+    $themes = array_merge($featured_header, $first_themes);
+  }
+  elseif (isset($themes[$current_theme])) {
+    $current_theme = _cp_appearance_move_option_to_front($themes, $current_theme);
+  }
+  // Selects the first option in case the current theme wasn't found.
+  else {
+    $current_theme = key($themes);
+  }
+
+  // Get all the single page themes.
+  foreach ($themes_sorted as $delta => $theme) {
+
+    if (empty($theme->info['single'])) {
+      continue;
+    }
+
+    $single_themes[$theme->name] = $theme;
+  }
+
+  if (!empty($single_themes)) {
+
+    foreach (array_keys($single_themes) as $theme) {
+      // Remove the one page theme from the theme page in order to prevent
+      // duplications.
+      if (!empty($themes)) {
+        unset($themes[$theme]);
+      }
+      else {
+        unset($themes_sorted[$theme]);
+      }
+    }
+
+    $header_single = array('HEADER_SINGLE' => 'HEADER_SINGLE');
+    $featured_header = array('HEADER_FEATURED' => 'HEADER_FEATURED');
+
+    $themes = !empty($themes) ? array_merge($header_single, $single_themes, $themes) : array_merge($header_single, $display_single_themes, $featured_header, $themes_sorted);
+  }
+
+  // Adds the theme options to form
+  $form['theme_default'] = array(
+    '#enabled_themes' => $themes,
+    '#type' => 'radios',
+    '#options' => $radio_options,
+    '#default_value' => $current_theme,
+    '#tree' => TRUE,
+  );
+
+  $form = system_settings_form($form);
+
+  return $form;
+}
+
+/**
+ * Helper function for theme picker form.
+ */
+function _cp_appearance_move_option_to_front(&$options, $key) {
+  if (empty($options)) {
+    return FALSE;
+  }
+  if (isset($options[$key])) {
+    $value = $options[$key];
+    unset($options[$key]);
+    $first_option = array($key => $value);
+    $options = array_merge($first_option, $options);
+  }
+  else {
+    $key = key($options);
+  }
+
+  return $key;
+}
+
+/**
+ * Remove variables that do not need to be saved in the DB for all the unused theme-flavors
+ *
+ * @param $form
+ * @param $form_state
+ */
+function cp_appearance_theme_picker_form_validate($form, &$form_state){
+  $op = isset($form_state['values']['op']) ? $form_state['values']['op'] : '';
+
+  if ($op == t('Reset to defaults')) {
+    return;
+  }
+
+  $theme_default = $form_state['values']['theme_default'];
+  $theme_items = explode("-os_featured_flavor-", $theme_default, 2);
+  if(count($theme_items) > 1) {
+    list($theme_default, $flavor) = $theme_items;
+  }
+
+  if (isset($flavor)) {
+    $form_state['values']["os_appearance_" . $theme_default . "_flavor"] = $flavor;
+    $form_state['values']['theme_default'] = $theme_default;
+  }
+
+  foreach ( $form_state['values'] as $key => $value ) {
+    //No need to save all the default flavor variables
+    if ($key != "os_appearance_" . $theme_default . "_flavor" && substr($key, 0, 14) == "os_appearance_" && substr($key, - 7) == "_flavor") {
+      unset($form_state['values'][$key]);
+    }
+  }
+}
+
+/**
+ * Processes all the flavors a theme has.
+ *
+ * @param array $theme_flavors
+ *    List of flavors used by this theme
+ * @param array $info
+ *    Theme info
+ * @param &string $default_flavor
+ *     Flavor to default to
+ *
+ * @return array
+ */
+function _cp_appearance_get_flavor_options($theme_flavors, $info, &$default_flavor){
+  $options = array();
+  if (count($theme_flavors)) {
+    $options = array(
+      'default' => (isset($info['flavor_name'])) ? $info['flavor_name'] : t('Default ')
+    );
+    $options['default'] .= t(' (Default)');
+
+    foreach ( $theme_flavors as $key => $flavor ) {
+      if (isset($flavor['flavor_name'])) {
+        $options[$key] = $flavor['flavor_name'];
+        $default_flavor = $key;
+      }
+      else {
+        $options[$key] = $flavor['name'];
+      }
+    }
+  }
+
+  return $options;
+}
+
+/**
+ * Renders the theme_picker form.
+ */
+function theme_cp_appearance_theme_picker_form($variables) {
+  $form = $variables['form'];
+
+  $flavors = variable_get('flavors');
+
+  // Adding the sub themes to the JS so we could know if the user selected a sub
+  // theme.
+  if ($flavors) {
+    drupal_add_js(array('subthemes' => array_keys($flavors)), 'setting');
+  }
+
+  // Builds each item containing a screenshot-option or section separators.
+  $items = array();
+  foreach ($form['theme_default']['#enabled_themes'] as $theme) {
+    if (in_array($theme, array('HEADER_FEATURED', 'HEADER_OTHER', 'HEADER_SINGLE'))) {
+      $items[] = _cp_appearance_theme_header_item($theme);
+    }
+    else {
+      $items[] = _cp_appearance_theme_screenshot_item($theme, $form);
+    }
+  }
+
+  // Builds the "Theme picker" list of tile screenshots.
+  $form['theme_picker'] = array(
+    '#theme' => 'item_list',
+    '#items' => $items,
+    '#title' => NULL,
+    '#attributes' => array('class' => 'theme-picker'),
+  );
+
+  // Moves the actions button group to the bottom of the form.
+  $actions = $form['actions'];
+  unset($form['actions']);
+  $form['actions'] = $actions;
+
+  // Removes this theme wrapper and renders the the form.
+  unset($form['#theme']);
+
+  $output = '';
+
+  if ($flavors) {
+    $output .= t('<h1>Custom themes</h1>');
+    $themes = os_theme_get_flavors();
+
+    $items = array();
+    foreach (array_keys($flavors) as $flavor) {
+      $info = $themes[$flavor];
+      $path = isset($info['screenshot']) ? $info['path'] . '/' . $info['screenshot'] : '';
+      $theme_info = array(
+        'screenshot' => $path,
+        'name' => $info['name'],
+        'theme_name' => $flavor,
+      );
+
+      $subtheme = new SubTheme();
+      $subtheme->path = $info['path'];
+      $parsed_info = $subtheme->parseInfo();
+      $theme_default = variable_get('theme_default');
+
+      $selected_subtheme = '';
+      if ($theme_default == $parsed_info['module'] && variable_get('os_appearance_' . $theme_default . '_flavor') == $flavor) {
+        $selected_subtheme = 'current';
+      }
+      $class = strpos($info['path'], 'zip') !== FALSE ? 'zip-pull-button' : 'git-pull-button';
+      $actions = array(
+        "<div class='delete-subtheme'>" . l(t('Delete'), 'cp/appearance/delete-subtheme/' . $flavor) . "</div>",
+        "<div class='" . $class . "'>" . l(t('Update'), 'cp/appearance/update-subtheme/' . $flavor) . "</div>",
+      );
+
+      $items[] = array(
+        'class' => array('item-theme-picker', $selected_subtheme),
+        'id' => 'theme-' . str_replace('_', '-', $info['module']) . "-os-featured-flavor-$flavor",
+        'data' => theme('cp-appearance-subtheme-item', array(
+          'info' => $theme_info ,
+          'actions' => implode("", $actions),
+        )),
+      );
+    }
+    $variables = array(
+      'items' => $items,
+      'attributes' => array('class' => 'theme-picker'),
+    );
+    $output .= theme('item_list', $variables);
+
+  }
+
+  $output .= drupal_render($form);
+
+  return $output;
+}
+
+/**
+ * Returns a list item build array to inject into the options list as separator.
+ *
+ * @param string $header_type
+ *   One of 'HEADER_FEATURED' or 'HEADER_OTHER'.
+ *   If featured, prepares the value of 2 configurable settings to display,
+ *   otherwise prepares an item with the text "Other themes".
+ *
+ * @return array $build
+ *   An associative array to be sent to theme_list as a $items element.
+ */
+function _cp_appearance_theme_header_item($header_type) {
+  $build = array();
+  $build['class'] = array('false-item');
+  $build['id'] = 'theme-' . str_replace('_', '-', strtolower($header_type));
+  $title = $subtitle = '';
+
+  switch ($header_type) {
+    case 'HEADER_FEATURED':
+      $default = t('Featured themes');
+      $subtitle = t('Mobile-friendly themes using %university color palettes', array('%university' => variable_get('university_name')));
+      $display_title = variable_get('cp_appearance_featured_display_title', $default);
+      if (!empty($display_title)) {
+        $title = '<h2>' . check_plain($display_title) . '</h2>';
+      }
+      $description = variable_get('cp_appearance_featured_description', '');
+      if (!empty($description)) {
+        $subtitle = '<p>' . check_plain($description) . '</p>';
+      }
+      break;
+
+    case 'HEADER_OTHER':
+      $title = '<h2>' . t('Other themes') . '</h2>';
+      break;
+
+    case 'HEADER_SINGLE':
+      $params['@url'] = 'https://help.theopenscholar.com/one-page-themes';
+      $title = '<h2>' . t('One page / horizontal homepage layout themes') . '</h2>';
+      $subtitle = t('<p>Mobile-friendly themes with horizontal homepage regions. <a href="@url">How to use these themes.</a></p>', $params);
+      break;
+  }
+
+  $build['data'] = $title . $subtitle;
+
+  return $build;
+}
+
+/**
+ * Prepares a single theme's screenshot & select list for the theme picker form.
+ *
+ * @param object $theme
+ *   An individual available theme.
+ * @param array $form
+ *   The form object for the entire CP > Appearance page.
+ *
+ * @return array $item
+ *   A Drupal render array to be sent to theme_item_list().
+ */
+function _cp_appearance_theme_screenshot_item($theme, &$form) {
+  $subtheme_select_list = '';
+  $info = array_merge((array) $theme->info, array(
+    'theme_name' => $theme->name
+  ));
+
+  // Prepares each theme's subtheme select list and screenshot URL.
+  $key = 'os_appearance_' . $theme->name . '_flavor';
+  if (array_key_exists($key, $form)) {
+    $subtheme_select_list = drupal_render($form[$key]);
+    if ($flavor = $form[$key]['#default_value']) {
+      $flavors = os_theme_get_flavors();
+      if (array_key_exists($flavor, $flavors) && array_key_exists('screenshot', $flavors[$flavor]) && $flavors[$flavor]['module'] == $theme->name) {
+        $info['screenshot'] = $flavors[$flavor]['path'] . '/' . $flavors[$flavor]['screenshot'];
+      }
+    }
+    unset($form[$key]);
+  }
+
+  // Prepares the list item to be processed by our custom template.
+  // @see cp-appearance-theme-item.tpl.php
+  $status_class = '';
+  if ($theme->name == $form['theme_default']['#default_value']) {
+    $status_class = 'current';
+  }
+
+  $item = array(
+    'class' => array(
+      'item-theme-picker',
+      $status_class,
+    ),
+    'id' => 'theme-' . str_replace('_', '-', $theme->name),
+    'data' => theme('cp-appearance-theme-item', array(
+      'info' => $info,
+      'sub_theme' => $subtheme_select_list,
+    ))
+  );
+
+  return $item;
+}
+
+/**
+ * menu item takes a flavor and returns its screenshot via ajax
+ */
+function cp_appearance_swap_screenshot($form, &$state){
+  ctools_include('themes', 'os');
+
+  $trigger = $state['triggering_element']['#name'];
+  $flavor = $state['values'][$trigger];
+
+  $flavors = os_theme_get_flavors();
+  if (array_key_exists($flavor, $flavors)) {
+    $path = $flavors[$flavor]['path'] . '/' . $flavors[$flavor]['screenshot'];
+    $module = $flavors[$flavor]['module'];
+  }
+
+  //no screenshot or flavor.  just use the default
+  if (! ($path && file_exists($path))) {
+    $module = str_replace('os_appearance_', '', $trigger);
+    $module = str_replace('_flavor', '', $module);
+    $theme = os_get_themes($module);
+    $path = $theme->info['screenshot'];
+  }
+
+  return theme('image', array(
+    'path' => $path,
+    'alt' => t('Screenshot for %theme theme', array(
+      '%theme' => $module
+    )),
+    'title' => '',
+    'attributes' => array(
+      'class' => 'screenshot',
+      'id' => 'screenshot_' . $module
+    ),
+    'getsize' => FALSE
+  ));
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function cp_appearance_admin_paths() {
+  return array(
+    'cp/appearance/add-subtheme' => TRUE,
+    'cp/appearance/add-subtheme/*' => TRUE,
+    'cp/appearance/update-subtheme/*' => TRUE,
+    'cp/appearance/delete-subtheme/*' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_og_permission().
+ */
+function cp_appearance_og_permission() {
+  return array(
+    'manage subtheme' => array(
+      'title' => t('Add subtheme'),
+      'description' => t('Allow the user to add subtheme.'),
+    ),
+    'change theme' => array(
+      'title' => t('Change theme'),
+      'description' => t('Allow the user to change the theme.'),
+      'os_override' => true,
+    ),
+  );
+}
+
+/**
+ * Theme function - selecting the
+ */
+function theme_cp_appearance_add_subtheme_list($variables) {
+  $types = $variables['types'];
+
+  if ($types) {
+    $output = '<h4>Download the <a target="_blank" href="https://github.com/openscholar/starterkit">Subtheme Starter Kit</a> to begin developing your custom theme.</h4> Use of the custom theme feature is at your own risk. The OpenScholar team is not responsible for maintaining, fixing or updating custom themes uploaded to the system. We\'ll make every attempt possible to publish changes made to the markup used throughout OpenScholar from one code release to the next.';
+    $output .= '<ul class="admin-list">';
+    foreach ($types as $type => $info) {
+      $output .= '<li class="clearfix">';
+      $output .= '<span class="label">' . l($info->name, 'cp/appearance/add-subtheme/' . $type) . '</span>';
+      $output .= '<div class="description">' . filter_xss_admin($info->description) . '</div>';
+      $output .= '</li>';
+    }
+    $output .= '</ul>';
+  }
+  else {
+    $output = '<p>' . t('There are no subtheme types. Go to the <a href="@url">subtheme types create page</a> to add a new subtheme type.', array('@url' => url('admin/structure/subtheme'))) . '</p>';
+  }
+
+  return $output;
+}
+
+/**
+ * List of subtheme types.
+ */
+function subtheme_types() {
+  $types = array();
+
+  $types['zip'] = (object)array(
+    'name' => t('Zip'),
+    'description' => t('Upload zip files.'),
+  );
+
+  $types['git'] = (object)array(
+    'name' => t('Git'),
+    'description' => t('Clone from a repository.'),
+  );
+
+  return $types;
+}
+
+/**
+ * Select method for uploading the subtheme.
+ */
+function cp_appearance_select_method() {
+  $types = subtheme_types();
+
+  return theme('cp_appearance_add_subtheme_list', array(
+    'types' => $types,
+  ));
+}
+
+/**
+ * Editing a basic sub theme.
+ */
+function cp_appearance_manage_base($form, &$form_state) {
+  $form['file'] = array(
+    '#title' => t('Themes'),
+    '#type' => 'managed_file',
+    '#description' => t('The uploaded image will be displayed on this page using the image style choosen below.'),
+    '#required' => TRUE,
+    '#upload_location' => 'public://',
+    '#upload_validators' => array(
+      'file_validate_extensions' => array('zip'),
+    ),
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+    ),
+    'cancel' => array(
+      '#type' => 'markup',
+      '#markup' => l(t('Cancel'), 'cp/appearance/add-subtheme'),
+    ),
+  );
+
+  return $form;
+}
+
+/**
+ * Validate function - verify the subtheme based on a theme.
+ */
+function cp_appearance_manage_base_validate($form, $form_state) {
+  $subtheme = new SubTheme($form_state['values']['file']);
+
+  $subtheme->extract();
+  $info = $subtheme->parseInfo();
+
+  cp_appearance_validate_subtheme($info, 'file');
+}
+
+/**
+ * Validate the subtheme before creating the subtheme entity.
+ *
+ * @param $info
+ *  The parsed info file.
+ * @param $form_element_name
+ *  The form element.
+ * @param bool $in_form
+ *  Define if the validation is happening in a form. Used for set form errors.
+ *  When validation is not happening in a form set to FALSE.
+ *
+ * @return bool
+ *  Return true or false if the subtheme is validated or not.
+ */
+function cp_appearance_validate_subtheme($info, $form_element_name, $in_form = TRUE) {
+  $themes = list_themes();
+
+  if (empty($info['module'])) {
+    if ($in_form) {
+      form_set_error($form_element_name, t('The theme you uploaded is not valid.  `module` directive missing.'));
+    }
+
+    return FALSE;
+  }
+  else if (!in_array($info['module'], array_keys($themes))) {
+    if ($in_form) {
+      form_set_error($form_element_name, t('The theme you uploaded is not valid.  `module` refers to a theme that does not exist.'));
+    }
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+/**
+ * Editing or creating a new sub theme.
+ */
+function cp_appearance_manage_base_submit($form, &$form_state) {
+  $file = new Subtheme($form_state['values']['file']);
+
+  $vsite = vsite_get_vsite();
+  $flavors = $vsite->controllers->variable->get('flavors');
+
+  // Parse the info.
+  $info = $file->parseInfo();
+
+  // Save the path of the extracted theme for later.
+  $flavors[$info['theme name']] = array(
+    'path' => $file->extractPath,
+    'name' => $info['name'],
+  );
+
+  $vsite->controllers->variable->set('flavors', $flavors);
+
+  $form_state['redirect'] = 'cp/appearance';
+}
+
+/**
+ * Adding a theme - git.
+ */
+function cp_appearance_manage_git($form, &$form_state, $type) {
+  // Adding the git library.
+  require_once libraries_get_path('git') . '/autoload.php';
+
+  // Get the name of the current vsite so we can create a library to clone into
+  // the themes via GIT.
+  $form['repository'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Git repository address'),
+    '#required' => TRUE,
+    '#ajax' => array(
+      'callback' => 'cp_appearance_git_method_get_ajax_branches',
+      'wrapper' => 'branches-wrapper',
+      'method' => 'replace',
+      'keypress' => TRUE,
+    ),
+  );
+
+  $branches = array();
+
+  if ($repository_address = !empty($form_state['values']['repository']) ? trim($form_state['values']['repository']) : FALSE) {
+    $wrapper = new GitWrapper();
+    $wrapper->setPrivateKey('.');
+
+    $path = variable_get('file_public_path', conf_path() . '/files') . '/subtheme/' . $repository_address;
+
+    // @todo: Remove the github hardcoding.
+    $path = str_replace(array('http://', 'https://', '.git', 'git@github.com:'), '', $path);
+
+    if (!file_exists($path)) {
+      drupal_mkdir($path, NULL, TRUE);
+    }
+
+    $git = $wrapper->workingCopy($path);
+
+    if (!$git->isCloned()) {
+      try {
+        $git->clone($repository_address);
+        $git->setCloned(TRUE);
+      }
+      catch (GitException $e) {
+        // Can't clone the repo.
+        drupal_set_message(t('Could not clone @repository, error @error', array('@repository' => $repository_address, '@error' => $e->getMessage(), 'warning')));
+      }
+    }
+
+    $form['path'] = array(
+      '#type' => 'value',
+      '#value' => $path,
+    );
+
+    if ($git->isCloned()) {
+      try {
+        foreach ($git->getBranches()->remote() as $branch) {
+          if (strpos($branch, ' -> ') !== FALSE) {
+            // A branch named "origin/HEAD  -> xyz" is provided by the class, we
+            // don't need it.
+            continue;
+          }
+          $branches[str_replace(' ', '_', $branch)] = $branch;
+        }
+      }
+      catch (GitException $e) {
+      }
+    }
+
+    $subtheme = new SubTheme();
+    $subtheme->path = $path;
+    $form_state['subtheme'] = $subtheme;
+  }
+
+  $form['branches_wrapper'] = array(
+    '#prefix' => '<div id="branches-wrapper">',
+    '#suffix' => '</div>',
+  );
+
+  $valid_repo = FALSE;
+
+  if ($branches) {
+    $form['branches_wrapper']['branch'] = array(
+      '#type' => 'select',
+      '#title' => t('Branch'),
+      '#description' => t('Enter the branch of the git repository'),
+      '#options' => $branches,
+      '#required' => TRUE,
+    );
+
+    $valid_repo = TRUE;
+  }
+  elseif (!$branches && $repository_address) {
+    $form['branches_wrapper']['branch'] = array('#markup' => '<div id="branches">' .  t('Git repository is wrong.') . '</div>');
+  }
+  if ($valid_repo) {
+    $form['branches_wrapper']['actions'] = array(
+      '#type' => 'actions',
+      'submit' => array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+      ),
+    );
+  }
+  else {
+    // Place holder for Ajax.
+    $form['branches_wrapper']['actions'] = array(
+      '#type' => 'actions',
+      'submit' => array(
+        '#markup' => '<a href="#">' . t('Fetch branches') . '</a>',
+      ),
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Return piece of the form for AJAX rendering.
+ */
+function cp_appearance_git_method_get_ajax_branches($form, $form_state) {
+  return $form['branches_wrapper'];
+}
+
+/**
+ * Validate handler - verify the user selected a branch.
+ */
+function cp_appearance_manage_git_validate($form, $form_state) {
+  if (empty($form_state['values']['branch'])) {
+    return;
+  }
+
+  require_once libraries_get_path('git') . '/autoload.php';
+
+  $form_state['values']['repository'];
+  $branch = $form_state['values']['branch'];
+
+  $path = $form_state['values']['path'];
+
+  $wrapper = new GitWrapper();
+  $wrapper->setPrivateKey('.');
+  $git = $wrapper->workingCopy($path);
+
+  // We pull, in case the user wants to reload a subtheme.
+  try {
+    cp_appearance_git_checkout($git, $branch);
+  }
+  catch (GitException $e) {
+  }
+
+  try {
+    $git->pull();
+  }
+  catch (GitException $e) {
+  }
+
+  if (empty($form_state['subtheme'])) {
+    return;
+  }
+
+  $subtheme = $form_state['subtheme'];
+
+  $info = $subtheme->parseInfo();
+
+  cp_appearance_validate_subtheme($info, 'branch');
+}
+
+/**
+ * Submit handler - create the git subtheme entity.
+ */
+function cp_appearance_manage_git_submit($form, &$form_state) {
+  if (empty($form_state['subtheme'])) {
+    return;
+  }
+
+  $file = $form_state['subtheme'];
+
+  $vsite = vsite_get_vsite();
+  $flavors = $vsite->controllers->variable->get('flavors');
+
+  // Parse the info.
+  $info = $file->parseInfo();
+
+  // Save the path of the extracted theme for later.
+  $flavors[$info['theme name']] = array(
+    'path' => $file->path,
+    'name' => $info['name'],
+  );
+
+  $vsite->controllers->variable->set('flavors', $flavors);
+
+  $form_state['redirect'] = 'cp/appearance';
+}
+
+/**
+ * Search of the flavors uploaded to the vsite.
+ */
+function cp_appearance_get_flavors() {
+  if (module_exists('vsite') && !$vsite = vsite_get_vsite()) {
+    return array();
+  }
+  $flavors = array();
+
+  foreach ($vsite->controllers->variable->get('flavors') as $name => $info) {
+    $info_files = glob($info['path'] . '/*.flav');
+    $info_file = reset($info_files);
+
+    // Get the information from the info file.
+    $file_content = drupal_parse_info_file($info_file);
+
+    $flavors[$name] = $file_content + array(
+      'path' => dirname($info_file),
+    );
+  }
+
+  return $flavors;
+}
+
+/**
+ * Display the form for updating subthemes.
+ */
+function cp_appearance_pull_subtheme($form, &$form_state, $type) {
+  $flavors = variable_get('flavors');
+  $info = $flavors[$type];
+  $form_state['path'] = $info['path'];
+
+  if (strpos($info['path'], 'zip') !== FALSE) {
+    _cp_appearance_pull_subtheme_zip($form, $form_state, $info);
+    $form_state['subtheme_method'] = 'zip';
+  }
+  else {
+    _cp_appearance_pull_subtheme_git($form, $form_state, $info);
+    $form_state['subtheme_method'] = 'git';
+  }
+
+  return $form;
+}
+
+/**
+ * Updating subtheme which added in ZIP.
+ *
+ * @param $form
+ *  The form variable.
+ * @param $form_state
+ *  The form state variable.
+ * @param $info
+ *  The info of the subtheme.
+ */
+function _cp_appearance_pull_subtheme_zip(&$form, $form_state, $info) {
+  $form['file'] = array(
+    '#title' => t('Theme'),
+    '#type' => 'managed_file',
+    '#description' => t('The uploaded image will be displayed on this page using the image style choosen below.'),
+    '#required' => TRUE,
+    '#upload_location' => 'public://',
+    '#upload_validators' => array(
+      'file_validate_extensions' => array('zip'),
+    ),
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+    ),
+  );
+}
+
+/**
+ * Updating subtheme which added in GIT.
+ */
+function _cp_appearance_pull_subtheme_git(&$form, &$form_state, $info) {
+  require_once libraries_get_path('git') . '/autoload.php';
+
+  $wrapper = new GitWrapper();
+  $wrapper->setPrivateKey('.');
+  $git = $wrapper->workingCopy($info['path']);
+
+  $form['title'] = array(
+    '#type' => 'item',
+    '#markup' => t('<h1>Update @theme</h1>', array('@theme' => $info['name'])),
+  );
+
+  $form['info'] = array(
+    '#type' => 'item',
+    '#title' => t('Git repository address'),
+    '#markup' => str_replace("origin", ' ', $git->remote()->config('remote.origin.url')->getOutput()),
+  );
+
+  // Get the current branch.
+  $selected_branch = '';
+  $current_branches = explode("\n", $git->branch()->getOutput());
+  foreach ($current_branches as $branch) {
+    if ($branch && strpos($branch, '*') === 0) {
+      $selected_branch = trim(str_replace("*", '', $branch));
+    }
+  }
+
+  // Get the available branches.
+  $branches = array();
+  foreach ($git->getBranches() as $branch) {
+    $branches[$branch] = $branch;
+  }
+
+  $form['branches']['branch'] = array(
+    '#type' => 'select',
+    '#title' => t('Branch'),
+    '#options' => $branches,
+    '#default_value' => $selected_branch,
+    '#description' => t('Change the new branch or select the old one and update.'),
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => t('Update'),
+    ),
+    'description' => array(
+      '#type' => 'item',
+      '#markup' => t('This action will pull the latest version of the theme code from GitHub into OpenScholar.'),
+    ),
+  );
+
+  $form['#attached']['css'][] = drupal_get_path('module', 'cp_appearance') . '/theme/cp_appearance.css';
+  $form['#attached']['js'][] = drupal_get_path('module', 'cp_appearance') . '/theme/cp_appearance_theme_picker.js';
+}
+
+/**
+ * Submit handler; Checkout and/or pull from the repository.
+ */
+function cp_appearance_pull_subtheme_submit($form, $form_state) {
+  if ($form_state['subtheme_method'] == 'zip') {
+    $subtheme = new SubTheme($form_state['values']['file']);
+
+    // Set the extract path in order to override the previous extracted theme.
+    $subtheme->extractPath = $form_state['path'];
+    $subtheme->extract();
+  }
+  else {
+    require_once libraries_get_path('git') . '/autoload.php';
+
+    $branch = $form_state['values']['branch'];
+
+    $wrapper = new GitWrapper();
+    $wrapper->setPrivateKey('.');
+    $git = $wrapper->workingCopy($form_state['path']);
+
+    $success = TRUE;
+
+    // We didn't just updated - we change the branch. Checking out to that branch.
+    try {
+      cp_appearance_git_checkout($git, $branch);
+    }
+    catch (GitException $e) {
+      drupal_set_message($e->getMessage(), 'error');
+      $success = FALSE;
+    }
+
+    // Pulling hte data from the git repository.
+    try {
+      $git->pull();
+    }
+    catch (GitException $e) {
+      drupal_set_message($e->getMessage(), 'error');
+      $success = FALSE;
+    }
+
+    // When pulling a git updates or extracting the zip again clear the related
+    // cache.
+//    _drupal_flush_css_js();
+//
+//    registry_rebuild();
+//    drupal_clear_css_cache();
+
+    if ($success) {
+      drupal_set_message(t('The subtheme updated succesfully.'));
+    }
+  }
+}
+
+/**
+ * Checkout out to branch.
+ * @param \GitWrapper\GitWorkingCopy $git
+ *  The git object.
+ * @param $branch
+ *  The name of the branch.
+ */
+function cp_appearance_git_checkout(\GitWrapper\GitWorkingCopy $git, $branch) {
+  if (strpos($branch, 'remotes') === 0) {
+    $git->checkout($branch, array('t' => TRUE));
+  }
+  else {
+    $git->checkout($branch);
+  }
+}
+
+/**
+ * Delete a subtheme.
+ */
+function cp_appearance_delete_subtheme($form, $form_sate, $type) {
+  $form['type'] = array('#type' => 'value', '#value' => $type);
+  $flavors = variable_get('flavors');
+  $params = array('%title' => $flavors[$type]['name']);
+
+  return confirm_form($form,
+    t('Are you sure you want to delete the sub theme %title?', $params),
+    'cp/appearance',
+    t('Deleting the sub theme will remove her files and cannot be undone.'),
+    t('Delete'),
+    t('Cancel'));
+}
+
+/**
+ * Submit handler; Delete the subtheme.
+ */
+function cp_appearance_delete_subtheme_submit($form, &$form_state) {
+  $flavors = variable_get('flavors');
+  $info = $flavors[$form_state['values']['type']];
+
+  // Remove the folder and set the redirect.
+  cp_appearance_rmdir($info['path']);
+  $form_state['redirect'] = 'cp/appearance';
+
+  // Set the title.
+  $params = array('%title' => $info['name']);
+  drupal_set_message(t('The theme %title has been removed.', $params));
+
+  // Remove the theme from the variable.
+  unset($flavors[$form_state['values']['type']]);
+  if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    $vsite->controllers->variable->set('flavors', $flavors);
+  }
+  else {
+    variable_set('flavors', $flavors);
+  }
+}
+
+/**
+ * Delete a folder containing files.
+ * @param $dir
+ *  The directory path.
+ */
+function cp_appearance_rmdir($dir) {
+  try {
+    $it = new RecursiveDirectoryIterator($dir);
+    $files = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
+    foreach($files as $file) {
+      if ($file->getFilename() === '.' || $file->getFilename() === '..') {
+        continue;
+      }
+
+      if ($file->isDir()) {
+        rmdir($file->getRealPath());
+      }
+      else {
+        unlink($file->getRealPath());
+      }
+    }
+
+    rmdir($dir);
+  } catch (Exception $e) {
+    $params = array('@error' => $e->getMessage());
+    drupal_set_message('An error occurred: @error', $params, 'error');
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for os_settings_form.
+ */
+function cp_appearance_form_os_settings_form_alter(&$form, &$form_state, $form_id) {
+  ctools_include('themes', 'os');
+  $themes = os_get_themes();
+  $theme_options = array();
+  foreach ($themes as $name => $theme) {
+    $theme_options[$name] = $theme->info['name'];
+  }
+
+  $form['cp_appearance_featured_themes'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Featured themes'),
+    '#weight' => 10,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['cp_appearance_featured_themes']['cp_appearance_featured_display_title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Display title'),
+    '#weight' => 0,
+    '#size' => 20,
+    '#default_value' => variable_get('cp_appearance_featured_display_title', t('Featured themes')),
+    '#description' => t('The title that displays to users on the Appearance control panel'),
+  );
+  $form['cp_appearance_featured_themes']['cp_appearance_featured_description'] = array(
+    '#type' => 'textarea',
+    '#rows' => 2,
+    '#title' => t('Description'),
+    '#weight' => 1,
+    '#default_value' => variable_get('cp_appearance_featured_description', ''),
+    '#description' => t('Optional'),
+  );
+  $form['cp_appearance_featured_themes']['cp_appearance_featured_themes'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $theme_options,
+    '#title' => t('Featured themes'),
+    '#weight' => 2,
+    '#default_value' => variable_get('cp_appearance_featured_themes', array()),
+    '#description' => t('Which themes to display as featured at the top of the Appearance control panel'),
+  );
+}

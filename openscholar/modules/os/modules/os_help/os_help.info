@@ -1,0 +1,4 @@
+name = OS Help
+description = Adds popup help links for external OpenScholar docs.
+core = 7.x
+package = OpenScholar

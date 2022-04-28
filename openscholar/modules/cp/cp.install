@@ -1,0 +1,162 @@
+<?php
+
+function cp_enable() {
+
+  $t = get_t();
+
+  // Create a custom menu, if menu module is enabled.
+  // @see devel_modules_installed()
+  if (module_exists('menu')) {
+    $menu = array(
+      'menu_name' => 'cp',
+      'title' => $t('Control Panel'),
+      'description' => $t('Administration links')
+    );
+    menu_save($menu);
+  }
+
+  //update weight so cp is after views and can alter views' menu alterations.
+  $weight = db_select('system', 's')
+    ->fields('s', array('weight'))
+    ->condition('name', 'views', '=')
+    ->execute()->fetchField(0);
+
+  db_update('system')
+    ->fields(array('weight' => $weight + 1))
+    ->condition('name', 'cp', '=')
+    ->condition('type', 'module', '=')
+    ->execute();
+}
+
+/**
+ * Implements hook_install().
+ */
+function cp_install() {
+  // Install additional contact categories for the contact module.
+  if(module_exists('contact')) {
+  	// Check to see if the categories already exist.
+  	// Bug Report
+  	$bug_result = db_query('SELECT cid FROM {contact} WHERE category = :category', array(':category'=>'Bug report'))->fetchField();
+  	if(!$bug_result) {
+  	  db_insert('contact')
+        ->fields(array(
+          'category' => 'Bug report',
+          'recipients' => variable_get('site_mail', ini_get('sendmail_from')),
+          'selected' => 0,
+          'reply' => '',
+      ))
+      ->execute();
+  	}
+  	// Feature Request.
+    $fr_result = db_query('SELECT cid FROM {contact} WHERE category = :category',array(':category'=>'Feature request'))->fetchField();
+  	if(!$fr_result) {
+  	  db_insert('contact')
+        ->fields(array(
+          'category' => 'Feature request',
+          'recipients' => variable_get('site_mail', ini_get('sendmail_from')),
+          'selected' => 0,
+          'reply' => '',
+      ))
+      ->execute();
+  	}
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function cp_update_7001() {
+  // Install additional contact categories for the contact module.
+  if(module_exists('contact')) {
+  	// Check to see if the categories already exist.
+  	// Bug Report
+  	$bug_result = db_query('SELECT cid FROM {contact} WHERE category = :category', array(':category'=>'Bug report'))->fetchField();
+  	if(!$bug_result) {
+  	  db_insert('contact')
+        ->fields(array(
+          'category' => 'Bug report',
+          'recipients' => variable_get('site_mail', ini_get('sendmail_from')),
+          'selected' => 0,
+          'reply' => '',
+      ))
+      ->execute();
+  	}
+  	// Feature Request.
+    $fr_result = db_query('SELECT cid FROM {contact} WHERE category = :category',array(':category'=>'Feature request'))->fetchField();
+  	if(!$fr_result) {
+  	  db_insert('contact')
+        ->fields(array(
+          'category' => 'Feature request',
+          'recipients' => variable_get('site_mail', ini_get('sendmail_from')),
+          'selected' => 0,
+          'reply' => '',
+      ))
+      ->execute();
+  	}
+  }
+}
+
+/**
+ * Enable redirect module and revert CP module to export new permission.
+ */
+function cp_update_7002() {
+  // First, enables the redirect module to prevent permission insert error.
+  $modules = array('redirect');
+  module_enable($modules);
+
+  // Last, reverts the feature to expose the newly exported redirect permission.
+  $revert = array(
+    'cp' => array(
+      'user_permission',
+    ),
+  );
+  features_revert($revert);
+}
+
+/**
+ * Instantiate newly exported variable value: redirect_page_cache = 1.
+ */
+function cp_update_7003() {
+  module_load_include('inc', 'os', 'includes/update');
+  $variables = array(
+    'redirect_page_cache' => 1,
+  );
+  $message = _os_update_strongarm($variables);
+  return $message;
+}
+
+/**
+ * Implements hook_schema().
+ */
+function cp_schema() {
+  $schema = array();
+
+  $schema['node_noindex'] = array(
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'noindex' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+        'disp-width' => '1',
+      ),
+    ),
+    'indexes' => array(
+      'noindex' => array('noindex'),
+    ),
+    'primary key' => array('nid'),
+  );
+  return $schema;
+}
+
+/**
+ * Implements hook_update(). to add node_noindex table
+ */
+function cp_update_7005() {
+  if (!db_table_exists('node_noindex')) {
+    drupal_install_schema('cp');
+  }
+}

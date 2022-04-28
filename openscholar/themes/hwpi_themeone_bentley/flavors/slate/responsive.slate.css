@@ -1,0 +1,82 @@
+@media (max-width: 1008px) {
+
+.region-header-third #block-os-secondary-menu.opened, 
+.region-header-third .os-custom-menu.opened {
+background-color: #FFF;
+}
+
+.region-header-third ul.nice-menu a {
+color: #215990 !important;
+}
+
+
+.region-header-third .os-custom-menu li, .region-header-third #block-os-secondary-menu li {
+border-top: 1px solid #f4f4f4 !important;
+
+}
+
+
+#header {
+border-bottom: none;
+}
+
+#menu-bar {
+padding: 0 15px !important;
+background: #F9F9F9;
+border-bottom: none;
+}
+
+
+
+#menu-bar ul.nice-menu li {
+background-color: #FFFFFF !important;
+color:#000 !important;
+}
+
+#menu-bar #block-os-primary-menu a {
+color: #000 !important;
+}
+
+#menu-bar #block-os-primary-menu li {
+border-bottom: 1px solid #f4f4f4!important;
+border-top: none!important;
+}
+
+.link-count-mobi-main a {
+background-position: 0 -493px;
+}
+
+
+.link-count-mobi-util a {
+background-position: -52px -529px;
+}
+
+.link-count-mobi-util a {
+    background-color: #F7F7F7;
+}
+
+
+.link-count-mobi-main a {
+    background-color:#C2230E;
+}
+
+.link-count-mobi-main a {
+background-position: 0 -493px;
+}
+
+.link-count-mobi-search a {
+    background-color: #8996A0;
+}
+
+.mobi-util a {
+    background: #F7F7F7;
+
+}
+
+
+.mobile-buttons a {
+color: #000!important;
+
+
+}
+

@@ -1,0 +1,24 @@
+@media (max-width: 1008px) {
+    #menu-bar ul.nice-menu ul,
+    #menu-bar #block-os-primary-menu,
+    .link-count-mobi-main a {
+        background-color: #3c4858 !important;
+    }
+    #menu-bar #block-os-primary-menu li {
+        border-bottom: 1px solid #344254 !important;
+        border-top: 1px solid #4d5d71 !important;
+    }
+    .link-count-mobi-search a {
+        background-color: orange;
+    }
+    .region-header-third .os-custom-menu.opened,
+    .region-header-third #block-os-secondary-menu.opened,
+    .link-count-mobi-util a {
+        background-color: #4d5d71 !important;
+    }
+    .region-header-third .os-custom-menu li,
+    .region-header-third #block-os-secondary-menu li {
+        border-bottom: 1px solid #4d5d71!important;
+        border-top: 1px solid #4d5d71!important;
+    }
+}

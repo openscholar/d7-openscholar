@@ -1,0 +1,169 @@
+@import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro);
+#page {
+    background: #F3F3F1;
+}
+.front #content-column {
+    font-size: 16px;
+}
+body,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.section-nav a,
+#content-column h2,
+#content-column h3,
+#content-column h4,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation,
+.block-boxes-os_taxonomy_fbt.navigation,
+#footer ul.menu li ul li a,
+#layout_16_9_side .slide-copy h2,
+#layout_3_1_overlay .slide-copy h2,
+#layout_16_9_below .slide-copy h2,
+#layout_16_9_overlay .slide-copy h2,
+h2.block-title,
+.region-header-third ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#menu-bar ul.nice-menu a,
+.cke_editable * {
+    font-family: 'Source Sans Pro', sans-serif, Georgia, serif !important;
+}
+.biblio-title a,
+.block-boxes-os_boxes_facetapi_vocabulary.navigation a,
+.block-boxes-os_taxonomy_fbt.navigation a,
+.breadcrumb a,
+a,
+a:visited {
+    color: #A51C30;
+}
+a.os-swipe-large,
+a.os-swipe-small {
+    background-color: #A51C30;
+}
+
+.biblio-title a {
+    font-weight: normal !important;
+}
+.section-nav .menu-depth-1 > a,
+#header {
+    background: #8C8179 !important;
+}
+#footer,
+#menu-bar {
+    background: #1E1E1E;
+}
+#header-container,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#search-block-form .form-item label,
+.search-block-form .form-item label,
+#footer,
+#footer a,
+#footer strong,
+.region-header-third ul.nice-menu a,
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu .menuparent ul li a:hover {
+    color: #fff;
+}
+#branding_footer {
+    background: #444;
+}
+#menu-bar ul.nice-menu ul {
+    background: #1E1E1E;
+}
+#menu-bar ul.nice-menu .menuparent a:before {
+    background-position: 0 -566px;
+    /* White Arrow */
+}
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background-color: #8C8179;
+}
+.event-start .event-start {
+    width: 55px;
+    height: 55px;
+    background: #FFF;
+    border: 1px solid #ccc;
+}
+.event-start-month {
+    color: #000;
+}
+.event-start .event-year {
+    padding: 8px 0 0;
+    font-size: 11px;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+    background: url('/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png') no-repeat 2px -441px #A51C30;
+    height: 34px;
+}
+.search-block-form .container-inline .form-item .form-text,
+#search-block-form .container-inline .form-item .form-text {
+    background-color: #dedede;
+}
+.sidebar .block,
+.front #content-column .block,
+#content-column .block.block-boxes-os_boxes_columns .block,
+.node-person .block-inner,
+.comment-wrapper {
+    border-top: 1px solid #A51C30;
+}
+.sidebar .block,
+.front #content-column .block.block-boxes-os_slideshow_box,
+#content-column .block.block-boxes-os_boxes_columns .block,
+.node-person .block-inner,
+.comment-wrapper {
+    border-top: none;
+}
+.section-nav ul.menu li a {
+    border-bottom: none;
+}
+#boxes-box-os_pages_section_nav {
+    border: 1px solid #BF7D86;
+}
+.section-nav .expanded.menu-depth-2 > a:hover,
+.section-nav .expanded.menu-depth-2 > a {
+    background-color: #BAC5C6 !important;
+    color: #222;
+}
+.region-header-third ul.nice-menu a {
+    text-transform: none;
+}
+#columns .accordion ul.nice-menu li,
+#columns .os-custom-menu ul.nice-menu li,
+#columns #block-os-primary-menu ul.nice-menu li,
+#columns #block-os-secondary-menu ul.nice-menu li,
+#columns .os-custom-menu ul.menu li,
+#columns #block-os-primary-menu ul.menu li,
+#columns #block-os-secondary-menu ul.menu li {
+    background-color: #ededed !important;
+}
+a.biblio-abstract-link.toggle {
+    background-position: 0 -397px;
+}
+a.rslides_nav {
+    background-color: #A51C30;
+}
+#powered-by a {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') no-repeat scroll -14px -547px transparent;
+}
+.more-link:after {
+    background-image: none;
+}
+#footer ul.menu li a {
+    text-transform: none;
+}
+#footer ul.menu li a.menu-heading {
+    text-transform: uppercase;
+}

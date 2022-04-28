@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * @file
+ * VSite Register install module.
+ */
+
+/**
+  * Grant vsite admin role to all existing vsite owners.
+  */
+function vsite_register_update_7000(&$sandbox) {
+  require_once (drupal_get_path('module', 'os') . '/includes/user.inc');
+
+  // Get group bundles.
+  $node_info = module_invoke_all('vsite_og_node_type_info');
+  $group_bundles = array_keys($node_info, 'group');
+
+  // Get total amount of vsites.
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $group_bundles, 'IN')
+    ->count()
+    ->execute();
+  if (!isset($sandbox['progress'])) {
+    // Get the total amounts of vsites.
+    $sandbox['max'] = $result;
+  }
+
+  $batch = 60;
+  $nid = empty($sandbox['nid']) ? 0 : $sandbox['nid'];
+
+  // Get vsites.
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $group_bundles, 'IN')
+    ->propertyCondition('nid', $nid, '>')
+    ->range(0, $batch)
+    ->execute();
+  $vsites = empty($result['node']) ? array() : node_load_multiple(array_keys($result['node']));
+
+  // Run through vsites.
+  foreach ($vsites as $vsite) {
+    // Grant vsite admin role to vsite owner.
+    os_role_grant($vsite->uid, 'vsite admin', $vsite->nid);
+
+    $sandbox['progress']++;
+    $sandbox['nid'] = $vsite->nid;
+  }
+
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+  return t('VSite owners were granted vsite-admin role successfully.');
+}

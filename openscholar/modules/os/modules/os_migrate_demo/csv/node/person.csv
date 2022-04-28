@@ -1,0 +1,8 @@
+ID,Prefix,First name,Middle name,Last name,Phone,Professional titles,Address,E-mail,Websites,Body,Site,Terms,UID
+person1,,John,Fitzgerald,Kennedy,555-1245,Drupal developer at Gizra.inc;QA person at Gizra.inc,"Israel, tel-aviv",roy.segall@gizra.com,Gizra inc.|http://www.gizra.com;Google|http://google.com,"often referred to by his initials JFK, was the 35th President of the United States, serving from 1961 until his assassination in 1963.",personal1,ScienceTerm1|ScienceTerm2|ScienceTerm3,user2
+person2,,Henry,Lou,Gehrig,555-1246,"Won with the ""Yankiz"" 6 times in a row;1936 American League MVP","Manhattan, East Harlem",lou@gmail.com,,Richards buddy from Harlem,project1,,user2
+person3,,Hillary,Diane Rodham,Clinton,555-4216,67th United States Secretary of State,White house,hillary@whitehouse.gove,Official website|http://www.state.gov/secretary/index.htm,,personal2,,user2
+person4,,Michelle,LaVaughn Robinson,Obama,555-4217,"The 44th ""firse wife"" of the united states",White house,michelle@whitehouse.gov,,,personal2,,user2
+person5,,Norma,Jeane,Mortenson,555-1245,Actress,,,Wikipedia page|http://en.wikipedia.org/wiki/Marilyn_Monroe,AKA Marilyn Monroe,personal1,ScienceTerm2,user2
+person6,,Kristen,,"Anderson ",,,,,,,personal1,,user2
+person7,,Charles,,"Anderson ",,,,,,,personal1,,user2

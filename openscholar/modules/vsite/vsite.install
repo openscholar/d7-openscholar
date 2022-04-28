@@ -1,0 +1,1075 @@
+<?php
+// $Id$
+
+
+/**
+ * Implements hook_install().
+ */
+function vsite_install() {
+  drupal_static_reset('og_fields_info');
+  og_create_field(OG_AUDIENCE_FIELD, 'user', 'user');
+  // Add "Support expire" field to allow support team to auto-subscribe to
+  // a group to a set interval.
+  $og_field = og_fields_info(OG_AUDIENCE_FIELD);
+  $og_field['instance']['label'] = 'Support expire';
+  $og_field['field']['settings']['handler_settings']['membership_type'] = 'support_expire';
+  og_create_field('vsite_support_expire', 'user', 'user', $og_field);
+
+  // Sets the default OG preset to be os_personal
+  variable_set('spaces_preset_og', 'os_scholar');
+
+  _vsite_initilize_group_fields();
+
+  // Get all group types.
+  $node_info = module_invoke_all('vsite_og_node_type_info');
+  $group_bundles = array_keys($node_info, 'group');
+
+  // Set the default manager roles for each group type.
+  foreach ($group_bundles as $bundle) {
+    $og_roles = og_roles('node', $bundle);
+    $rid = array_search('vsite admin', $og_roles);
+    variable_set('og_group_manager_default_rids_node_' . $bundle, $rid);
+  }
+  _os_set_additional_captcha_points();
+}
+
+/**
+ * Adds default group and group content fields to existing content.
+ *
+ * Only attaches to types provided by hook_vsite_og_node_type_info().
+ */
+function _vsite_initilize_group_fields() {
+
+  $bundles = vsite_get_type_from_bundle();
+
+  // Gets installed nodes.
+  $info = entity_get_info('node');
+
+  // Excludes nodes managed by this module.
+  // These are the only nodes that will not require action.
+  if (function_exists('vsite_node_info')) {
+    $info['bundles'] = array_diff_key($info['bundles'], vsite_node_info());
+  }
+
+  foreach ($bundles as $bundle => $type) {
+    // Skips if this bundle has not been created.
+    if (!isset($info['bundles'][$bundle])) {
+      continue;
+    }
+
+    if ($type == 'group') {
+      vsite_attach_fields_to_group($bundle);
+    }
+    // Otherwise, treats this as "group content".
+    else {
+      vsite_attach_fields_to_group_content('node', $bundle);
+    }
+  }
+
+  $info = entity_get_info('file');
+  foreach ($info['bundles'] + array('undefined' => '') as $bundle => $type) {
+    vsite_attach_fields_to_group_content('file', $bundle);
+  }
+}
+
+/**
+ * Enables field_group_overlay
+ * Replace site info blocks with the new field_group block
+ */
+function vsite_update_7001(&$ctx) {
+  module_enable('field_group_overlay');
+
+  $nodes = db_select('node', 'n')->fields('n', array('nid'))->where('type', 'personal');
+
+  foreach ($nodes as $r) {
+    $override = db_select('spaces_override', 'so')
+                ->fields('so', array('object_id', 'value'))
+                ->where('id', $r->nid)
+                ->where('object_type', 'context')
+                ->where('object_id', '%reaction:block', 'LIKE')
+                ->execute();
+    foreach ($override as $over) {
+      $blocks = unserialize($over->value);
+      if (isset($blocks['boxes-site_info'])) {
+        $delta = 'fg:node:'.$r->nid.':group_site_info';
+        $blocks['vsite-'.$delta] = array(
+          'module' => 'vsite',
+          'delta' => $delta,
+          'weight' => $blocks['boxes-site_info']['weight'],
+          'region' => $blocks['boxes-site_info']['region'],
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function vsite_uninstall() {
+  variable_del('vsite_support_expire');
+}
+
+/**
+ * Enable the views_og_cache module
+ */
+function vsite_update_7002(&$ctx) {
+  if (module_exists('views_og_cache')) {
+    $output = t('views_og_cache is already enabled, nothing to do');
+  }
+  else if (!module_enable(array('views_og_cache'))) {
+    throw new DrupalUpdateException('This version of OS requires views_og_cache, but it could not be enabled.');
+  }
+  else {
+    $output = t('views_og_cache was enabled');
+  }
+
+  return $output;
+}
+
+/**
+ * Set OG's permissions for group-members.
+ */
+function vsite_update_7003() {
+  // Set permissions per group-type.
+  $default_rid = array_search(OG_AUTHENTICATED_ROLE, og_get_default_roles());
+  $default_permissions = og_get_default_permissions();
+  $permissions = array_keys($default_permissions[$default_rid]);
+
+  // Remove permissions to "edit any" or "delete any" content.
+  foreach ($permissions as $key => $permission) {
+    if (strpos($permission, 'update any') === 0 || strpos($permission, 'delete any') === 0) {
+      unset($permissions[$key]);
+    }
+  }
+
+  $group_types = og_get_all_group_bundle();
+  foreach (array_keys($group_types['node']) as $bundle) {
+    $rids = og_roles('node', $bundle);
+    // Get the role ID of the group-member.
+    $rid = array_search(OG_AUTHENTICATED_ROLE, $rids);
+    og_role_grant_permissions($rid, $permissions);
+  }
+}
+
+/**
+ * Fixes taxonomy terms that were previously saved without purls in the alias.
+ */
+function vsite_update_7004() {
+  // Selects all vsite nids and purls.
+  $query = db_select('node', 'n');
+  $query->join('purl', 'p', 'p.id = n.nid AND p.provider LIKE \'spaces_og\' ');
+  $query->condition('type', array('personal', 'project', 'department'), 'IN');
+  $query->fields('n', array('nid'));
+  $query->fields('p', array('value'));
+  $results = $query->execute();
+  // For each site, prepends the purl to term paths without a purl already.
+  foreach ($results as $result) {
+    $purl = $result->value;
+    $term_paths = _vsite_update_7004_term_paths_by_sid($result->nid);
+    if (strlen($term_paths) === 0) {
+      continue;
+    }
+    foreach ($term_paths as $term_path) {
+      // First make sure we aren't going to cause a duplicate alias...
+      $existing = db_select('url_alias', 'ua')
+        ->fields('ua')
+        ->condition('source', $term_path)
+        ->condition('alias', "$purl/%", 'NOT LIKE')
+        ->execute()
+        ->fetchAllAssoc('pid');
+      if ($existing) {
+        $alias_orig = array_shift($existing);
+        $alias_orig = $alias_orig->alias;
+        $new_alias = "$purl/$alias_orig";
+        $i = 0;
+        // Increments the path until unique alias is found.
+        while (_vsite_update_7004_duplicate($new_alias)) {
+          if ($i) {
+            $new_alias = substr($new_alias, 0, -1 * (strlen($i) + 1));
+          }
+          $new_alias = "$new_alias-$i";
+          $i++;
+        }
+        // Updates the existing value.
+        $query = "UPDATE {url_alias} "
+          . "SET alias='" . $new_alias . "' WHERE source ='" . $term_path . "'";
+        db_query($query);
+      }
+    }
+  }
+}
+
+/**
+ * Revert vsite logo fields
+ */
+function vsite_update_7005() {
+  features_revert(array('vsite' => array('field')));
+}
+
+/**
+ * Returns TRUE if the given alias already exists (note: aliases include purl).
+ */
+function _vsite_update_7004_duplicate($new_alias) {
+  $result = db_select('url_alias', 'ua')
+    ->fields('ua', array('pid'))
+    ->condition('alias', $new_alias)
+    ->execute()
+    ->fetchAllAssoc('pid');
+  return count($result);
+}
+
+/**
+ * Returns an array of string term paths in a given vsite.
+ */
+function _vsite_update_7004_term_paths_by_sid($sid) {
+  $term_paths = array();
+
+  $vids = _vsite_update_7004_vids_by_sid($sid);
+  if (empty($vids)) {
+    return '';
+  }
+
+  $tids = _vsite_update_7004_tids_by_vid(array_keys($vids));
+  foreach ($tids as $tid => $info) {
+    $term_paths[] = "taxonomy/term/$tid";
+  }
+
+  return $term_paths;
+}
+
+/**
+ * Returns the vocabulary IDs belonging to a vsite.
+ */
+function _vsite_update_7004_vids_by_sid($sid) {
+  return db_select('og_vocab_relation', 'ogr')
+    ->fields('ogr', array('vid'))
+    ->condition('group_type','node')
+    ->condition('gid', $sid)
+    ->execute()
+    ->fetchAllKeyed();
+}
+
+/**
+ * Returns the terms that belong in a list of vocabularies.
+ */
+function _vsite_update_7004_tids_by_vid($vids) {
+  if (is_int($vids)) {
+    $vids = array($vids);
+  }
+  return db_select('taxonomy_term_data', 'ttd')
+    ->fields('ttd', array('tid'))
+    ->condition('vid', $vids, 'IN')
+    ->execute()
+    ->fetchAllKeyed();
+}
+
+/**
+ * Creates newly exported term reference fields on vsite node types.
+ */
+function vsite_update_7006() {
+  // Reverts the vsite module's newly exported vocabulary.
+  // This garuntees that the "organization" vocabulary exists, and the new
+  // Site URL field definition and instance on that vocabulary's terms.
+  features_revert(array('vsite' => array('taxonomy')));
+  features_revert(array('vsite' => array('field')));
+
+  // Adds the new term reference field to each vsite node type. At the time of
+  // this update, OpenScholar exports three vsite node types: personal, project,
+  // and department.
+  // @todo  update _vsite_initialize_group_fields() to do this.
+  $group_types = array_keys(array_intersect(module_invoke_all('vsite_og_node_type_info'), array('group')));
+  foreach ($group_types as $type) {
+    vsite_attach_fields_to_group($type);
+  }
+}
+
+/**
+ * This is not currently used, disabling for now to remove REALM queries
+ */
+function vsite_update_7007(){
+
+  if(module_exists('og_access')){
+    module_disable(array('og_access'));
+    if (module_exists('og_access')) {
+      throw new DrupalUpdateException('Unable to disable og_access.');
+    }
+    else {
+      $output = t('og_access was disabled');
+    }
+  }
+
+  return $output;
+}
+
+/**
+ * Enable the og_tasks module
+ */
+function vsite_update_7008(&$ctx) {
+  if (module_exists('og_tasks')) {
+    $output = t('og_tasks is already enabled, nothing to do');
+  }
+  else if (!module_enable(array('og_tasks'))) {
+    throw new DrupalUpdateException('og_tasks could not be enabled.');
+  }
+  else {
+    $output = t('og_tasks was enabled');
+  }
+
+  return $output;
+}
+
+/**
+ * Adds new role 'content editor' to og roles.
+ */
+function vsite_update_7009() {
+  $node_info = module_invoke_all('vsite_og_node_type_info');
+  $group_bundles = array_keys($node_info, 'group');
+  foreach ($group_bundles as $group_bundle) {
+
+    // Adds the base vsite roles as OG roles
+    $vsite_roles = array(
+      'content editor',
+    );
+
+    foreach ($vsite_roles as $name) {
+      $role = og_role_create($name, 'node', 0, $group_bundle);
+      og_role_save($role);
+    }
+
+    $roles = og_roles($group_type = 'node', $bundle = $group_bundle);
+    // Sets OG-specific roles
+    foreach ($roles as $rid => $role) {
+      switch ($role) {
+        case 'content editor':
+          og_role_grant_permissions($rid, array(
+            'view users outside groups',
+            'unsubscribe',
+          ));
+          break;
+      }
+    }
+  }
+}
+
+/**
+ * Adds all permissions that basic users have to the content editor role too.
+ */
+function vsite_update_7010() {
+  $modules = array(
+    'os',
+    'os_comments',
+    'os_wysiwyg',
+  );
+
+  if (module_exists('os_slideshow')) {
+    $modules[] = 'os_slideshow';
+  }
+
+  $revert = array_fill_keys($modules, array('user_permission'));
+  features_revert($revert);
+}
+
+/**
+ * Enables module vsite_preset.
+ */
+function vsite_update_7011() {
+  $module = 'vsite_preset';
+  $replacements = array('@module' => $module);
+  if (module_exists($module)) {
+    $output = t('Module @module is already enabled, nothing to do', $replacements);
+  }
+  else if (!module_enable(array($module))) {
+    throw new DrupalUpdateException('Module @module could not be enabled.', $replacements);
+  }
+  else {
+    $output = t('Success: module @module was enabled', $replacements);
+  }
+
+  return $output;
+}
+
+/**
+ * Enables the vsite preset module and makes new presets available.
+ */
+function vsite_update_7012() {
+  // Enables the new module vsite_preset.
+  module_enable(array('vsite_preset'));
+
+  // Reverts the existing spaces in module os.
+  features_revert(array('os' => array('spaces_presets')));
+
+  // Sets the available presets variable (instead of reverting vsite strongarm).
+  $value = array(
+    'os_department' => 'os_department',
+    'os_department_minimal' => 'os_department_minimal',
+    'os_scholar' => 'os_scholar',
+    'os_project' => 'os_project',
+    'hwp_administrative' => 'hwp_administrative',
+    'hwp_lab_research_group' => 'hwp_lab_research_group',
+    'hwp_project' => 'hwp_project',
+  );
+  variable_set('os_enabled_spaces_presets', $value);
+}
+
+/**
+ * Adds subsite_domains field to vsite node types and Add "Support expire" field to allow support team to auto-subscribe to VSite.
+ */
+function vsite_update_7013() {
+  //subsite domains field
+  features_revert(array('vsite' => array('field')));
+
+  $group_types = array_keys(array_intersect(module_invoke_all('vsite_og_node_type_info'), array('group')));
+  $group_types = array_intersect($group_types, variable_get('subsite_parents', array('department', 'project')));
+
+  foreach ($group_types as $type) {
+    vsite_attach_fields_to_group($type);
+  }
+
+  //og support field
+  $og_field = og_fields_info(OG_AUDIENCE_FIELD);
+  $og_field['instance']['label'] = 'Support expire';
+  $og_field['field']['settings']['handler_settings']['membership_type'] = 'support_expire';
+  og_create_field('vsite_support_expire', 'user', 'user', $og_field);
+}
+
+/**
+ * Add "Override roles and permissions" functionality to VSites.
+ */
+function vsite_update_7014() {
+  $group_types = array_keys(array_intersect(module_invoke_all('vsite_og_node_type_info'), array('group')));
+  foreach ($group_types as $type) {
+    vsite_attach_fields_to_group($type);
+  }
+
+  variable_set('og_node_access_strict', TRUE);
+
+  // Delete the "vsite user" site-wide role.
+  if ($role = user_role_load_by_name('vsite user')) {
+    user_role_delete('vsite user');
+  }
+
+  // Remove the "vsite admin" site-wide role from users in case it was
+  // accidentally assigned to them.
+  $role_names = array(
+    'content editor',
+    'vsite admin',
+    'vsite user',
+  );
+  $rids = array();
+  foreach ($role_names  as $role_name) {
+    $role = user_role_load_by_name($role_name);
+    $rids[] = $role->rid;
+  }
+
+  db_delete('users_roles')
+    ->condition('rid', $rids, 'IN')
+    ->execute();
+
+  features_revert(array('os' => array('user_role')));
+  features_revert(array('os' => array('user_permission')));
+  $features = array(
+    'biocv',
+    'book',
+    'blog',
+    'classes',
+    'events',
+    'faq',
+    'image_gallery',
+    'links',
+    'news',
+    'pages',
+    'presentations',
+    'profiles',
+    'publications',
+    'reader',
+    'software',
+  );
+
+  foreach ($features as $feature) {
+    features_revert(array('os_' . $feature => array('user_permission')));
+  }
+
+  // Set og permissions for VSite roles.
+  $bundles = og_get_all_group_bundle();
+  foreach (array_keys($bundles['node']) as $bundle) {
+    vsite_set_og_permissions($bundle);
+  }
+}
+
+/**
+ * Grant the VSite the permissions and remove all permissions from member and
+ * non-member roles.
+ */
+function vsite_update_7015() {
+  $default_roles = og_get_default_roles();
+  $default_permissions = og_get_default_permissions();
+
+  // Get a list of all the permissions to be revoked from member and non-member.
+  $all_permissions = array_keys(og_get_permissions());
+
+  // Get all group types.
+  $node_info = module_invoke_all('vsite_og_node_type_info');
+  $group_bundles = array_keys($node_info, 'group');
+
+  // Iterate over all existing group permissions, and change them according to
+  // the default ones.
+  foreach ($group_bundles as $bundle) {
+    $og_roles = og_roles('node', $bundle);
+
+    foreach ($og_roles as $rid => $name) {
+      $default_rid = array_search($name, $default_roles);
+      $permissions = $default_permissions[$default_rid];
+
+      // Revoke all permissions, before re-adding the needed ones.
+      if (in_array($name, array('member', 'non-member'))) {
+        og_role_revoke_permissions($rid, $all_permissions);
+        continue;
+      }
+
+      // Grant vsite user, vsite admin and content editor the default permissions.
+      og_role_grant_permissions($rid, array_keys($permissions));
+
+      // If role is content editor revoke the following permissions.
+      if ($name == 'content editor') {
+        og_role_revoke_permissions($rid, array('update any feed content', 'update any feed importer content'));
+      }
+    }
+  }
+}
+
+ /**
+ * Updates the enabled presets value to expose new `HWP Personal` preset.
+ */
+function vsite_update_7016() {
+  // Sets the available presets variable (instead of reverting vsite strongarm).
+  $default = array(
+    'os_department' => 'os_department',
+    'os_department_minimal' => 'os_department_minimal',
+    'os_scholar' => 'os_scholar',
+    'os_project' => 'os_project',
+    'hwp_administrative' => 'hwp_administrative',
+    'hwp_lab_research_group' => 'hwp_lab_research_group',
+    'hwp_project' => 'hwp_project',
+  );
+  $value = variable_get('os_enabled_spaces_presets', $default);
+  $value['hwp_personal'] = 'hwp_personal';
+  variable_set('os_enabled_spaces_presets', $value);
+}
+
+/**
+ * Give support team domain and create vsite on behalf privileges
+ */
+function vsite_update_7017() {
+  features_revert(array('vsite' => array('user_permission')));
+}
+
+/**
+ * Saves the value for the newly exported variable `theme_settings`.
+ *
+ * This is so that there is no need to revert the feature.
+ */
+function vsite_update_7018() {
+  $name = 'theme_settings';
+  $original = variable_get($name, array());
+  $modified = array(
+    'toggle_favicon' => 0,
+    'default_favicon' => 0,
+    'favicon_path' => NULL,
+    'favicon_upload' => NULL,
+  );
+  $value = array_merge($original, $modified);
+
+  variable_set($name, $value);
+}
+
+/*
+ * Set "content editor" permissions for "synced" permissions.
+ */
+function vsite_update_7019() {
+  $permissions = array('edit boxes');
+
+  $group_bundles = og_get_all_group_bundle();
+
+  foreach (array_keys($group_bundles['node']) as $bundle) {
+    $og_roles = og_roles('node', $bundle);
+    $rid = array_search('content editor', $og_roles);
+    og_role_grant_permissions($rid, $permissions);
+  }
+}
+
+/**
+ * Add description to image fields
+ */
+function vsite_update_7020() {
+  features_revert(array('vsite' => array('field_instance')));
+}
+
+/**
+ * Revert field instance exports for meta description to vsite group bundles.
+*/
+function vsite_update_7021() {
+  features_revert(array('vsite' => array('field_instance')));
+  return t('Meta description fields should now appear on vsite node edit forms.');
+}
+
+/**
+ * Show meta description fields on vsite node page view.
+ */
+function vsite_update_7022() {
+  features_revert(array('vsite' => array('field_instance', 'metatag')));
+  return t('Meta description fields should now appear on vsite node page view.');
+}
+
+/**
+ * Set "vsite admin" permissions for edit and administer boxes.
+ */
+function vsite_update_7023() {
+  $permissions = array(
+    'administer boxes',
+    'edit boxes',
+  );
+  $group_bundles = og_get_all_group_bundle();
+
+  foreach (array_keys($group_bundles['node']) as $bundle) {
+    $og_roles = og_roles('node', $bundle);
+    $rid = array_search('vsite admin', $og_roles);
+    og_role_grant_permissions($rid, $permissions);
+  }
+}
+
+/**
+ * Grant permission for the support team to delete a vsite.
+ */
+function vsite_update_7024() {
+  features_revert(array('vsite' => array('user_permission')));
+}
+
+/**
+ * Fix permissions slideshow for overridden roles
+ */
+function vsite_update_7025() {
+
+  // The default slideshow permissions for each role.
+  $vsite_admin_perms = array('create slideshow_slide content','delete any slideshow_slide content','delete own slideshow_slide content','update any slideshow_slide content','update own slideshow_slide content');
+  $vsite_user_perms = array('create slideshow_slide content','delete own slideshow_slide content','update own slideshow_slide content');
+  $content_editor_perms = array('create slideshow_slide content','delete own slideshow_slide content','update any slideshow_slide content','update own slideshow_slide content');
+
+  // Get all overridden vsite roles that are missing the slideshow permissions.
+  $results = db_query("SELECT COUNT(orp.permission) num_perm, ogr.*
+    FROM og_role ogr
+    LEFT JOIN og_role_permission orp ON orp.rid = ogr.rid AND orp.permission IN(:perms)
+    WHERE ogr.name IN('vsite user','vsite admin','content editor') AND ogr.gid > 1
+    GROUP BY ogr.rid
+    HAVING num_perm < :min_perm", array(':min_perm' => 3, ":perms" => $vsite_admin_perms));
+
+  // For each of the roles add the permissions that are missing.
+  foreach ($results as $result) {
+    switch ($result->name) {
+      case 'vsite admin':
+        og_role_grant_permissions($result->rid, $vsite_admin_perms);
+      break;
+      case 'vsite user':
+        og_role_grant_permissions($result->rid, $vsite_user_perms);
+      break;
+      case 'content editor':
+        og_role_grant_permissions($result->rid, $content_editor_perms);
+      break;
+    }
+  }
+}
+
+/**
+ * Fix url aliases for vsite taxonomy terms that should include vsite
+ */
+function vsite_update_7026() {
+  // get all taxonomy term aliases
+  $aliases = db_select('url_alias', 'ua')
+              ->fields('ua')
+              ->condition('source', 'taxonomy/term/%', 'LIKE')
+              ->execute();
+
+  $counter = 0;
+  foreach ($aliases as $a) {
+    $alias_parts = explode("/", $a->alias);
+    $path_parts = explode("/", $a->source);
+    $query = "SELECT value FROM og_vocab_relation LEFT JOIN taxonomy_term_data ON taxonomy_term_data.vid = og_vocab_relation.vid LEFT JOIN purl ON og_vocab_relation.gid = purl.id AND purl.provider = 'spaces_og' WHERE og_vocab_relation.group_type = 'node' AND tid = " . $path_parts[2];
+    //Get the vsites related to a term.
+    $vsites = db_query($query);
+    // If this term is in multiple sites or none, then don't do anything.
+    if(!count($vsites) || count($vsites) > 1) continue;
+
+    foreach ($vsites as $v) {
+      // if alias is associated with a particular vsite but the alias does not start with that vsite, fix
+      if(isset($v->value) && $alias_parts[0] != $v->value) {
+        $num_updated = db_update('url_alias')
+                        ->fields(array('alias' => $v->value . "/" . $a->alias))
+                        ->condition('pid', $a->pid)
+                        ->execute();
+        $counter++;
+      }
+    }
+  }
+
+  return $counter . " " . t('aliases fixed.');
+}
+
+/**
+ * Adds file-related permissions to default site roles.
+ */
+function vsite_update_7027() {
+  $permissions = array(
+    'create files',
+    'add media from remote sources',
+    'edit any files',
+    'delete any files',
+  );
+
+  $group_bundles = og_get_all_group_bundle('node');
+  $default_roles = array('vsite admin', 'content editor', 'vsite user');
+
+  // handle the defaults
+  foreach (array_keys($group_bundles) as $bundle) {
+    $og_roles = og_roles('node', $bundle);
+    foreach ($default_roles as $role) {
+      $rid = array_search($role, $og_roles);
+      og_role_grant_permissions($rid, $permissions);
+    }
+  }
+
+  // handle the overridden roles
+  $results = db_query("SELECT ogr.*
+    FROM og_role ogr
+    WHERE ogr.name IN('vsite user','vsite admin','content editor')
+      AND ogr.gid >= 1");
+
+  // For each of the roles add the permissions that are missing.
+  foreach ($results as $r) {
+    og_role_grant_permissions($r->rid, $permissions);
+  }
+}
+
+/**
+ * Fixes view showing grid of featured sites
+ */
+function vsite_update_7028() {
+  features_revert(array('vsite' => array('views_view')));
+}
+
+/**
+ * Apply by pass redirection og permission to vsite content managers.
+ */
+function vsite_update_7029(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'vsite') . '/updates/update7029.php',
+  ));
+}
+
+/**
+ * Apply access content overview og permission to vsite content managers.
+ */
+function vsite_update_7030(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'vsite') . '/updates/update7030.php',
+  ));
+}
+
+/**
+ * Apply create sub book pages permissions.
+ */
+function vsite_update_7031(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'vsite') . '/updates/update7031.php',
+  ));
+}
+
+/**
+ * Apply insert a link into wysiwyg permissions.
+ */
+function vsite_update_7032(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'vsite') . '/updates/update7032.php',
+  ));
+}
+
+/**
+ * Apply insert a link into wysiwyg permissions.
+ */
+function vsite_update_7033(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'vsite') . '/updates/update7033.php',
+  ));
+}
+
+/*
+ * This update will have no effect on production systems (since the var is already set there),
+ * but will add the Documentation link to left-hand Control Panel on scholar-demo.iq.harvard.edu
+*/
+function vsite_update_7034() {
+  variable_set('vsite_register_welcome_message', '57421');
+}
+
+/**
+ * Modify existing primary menu presets with home as link_path
+ */
+function vsite_update_7035() {
+  $result = db_select('spaces_overrides', 'so')
+    ->fields('so')
+    ->condition('object_type', 'menus')
+    ->condition('object_id', 'primary-menu')
+    ->execute();
+
+  $reversed = array();
+  foreach ($result as $m) {
+    $m->value = unserialize($m->value);
+    $home_menu = $m->value[900]['link_path'];
+    if ($home_menu == 'home') {
+      $m->value[900]['link_path'] = '<front>';
+      $m_value = serialize($m->value);
+
+      db_update('spaces_overrides')
+        ->fields(array('value' => $m_value))
+        ->condition('object_type', 'menus')
+        ->condition('object_id', 'primary-menu')
+        ->condition('id', $m->id)
+        ->execute();
+    }
+  }
+}
+
+/**
+ * Updates the enabled presets value to expose new `HWP Professional` preset.
+ */
+function vsite_update_7036() {
+  // Sets the available presets variable (instead of reverting vsite strongarm).
+  $default = array(
+    'os_department' => 'os_department',
+    'os_department_minimal' => 'os_department_minimal',
+    'os_scholar' => 'os_scholar',
+    'os_project' => 'os_project',
+    'hwp_administrative' => 'hwp_administrative',
+    'hwp_lab_research_group' => 'hwp_lab_research_group',
+    'hwp_project' => 'hwp_project',
+  );
+  $value = variable_get('os_enabled_spaces_presets', $default);
+  $value['hwp_professional'] = 'hwp_professional';
+  variable_set('os_enabled_spaces_presets', $value);
+}
+
+/**
+ * Enable captcha and recaptcha module and add custom captcha_points
+ */
+function vsite_update_7037() {
+  if (!module_exists('recaptcha')) {
+    module_enable(['captcha', 'recaptcha']);
+  }
+  _os_set_additional_captcha_points();
+  drupal_set_message(t('Successfully added custom captcha points!'));
+
+  // Revert captcha settings what is stored in feature strongarm
+  features_revert(array('os' => array('variable')));
+  drupal_set_message(t('Reverted to default OS feature variable component!'));
+}
+
+/**
+ * Disable and uninstall mollom and honeypot module
+ */
+function vsite_update_7038() {
+  $honeypot_modules = array(
+    'honeypot',
+    'honeypot_test'
+  );
+  if (module_exists('honeypot')) {
+    module_disable($honeypot_modules);
+  }
+  if (drupal_uninstall_modules($honeypot_modules)) {
+    drupal_set_message(t('Successfully uninstalled honeypot module.'));
+  }
+  else {
+    drupal_set_message(t('Unable to uninstall honeypot module.'), 'error');
+  }
+  $mollom_modules = array(
+    'mollom',
+    'mollom_test',
+    'mollom_test_server',
+  );
+  if (module_exists('mollom')) {
+    module_disable($mollom_modules);
+  }
+  if (drupal_uninstall_modules($mollom_modules)) {
+    drupal_set_message(t('Successfully uninstalled mollom module.'));
+  }
+  else {
+    drupal_set_message(t('Unable to uninstall mollom module.'), 'error');
+  }
+}
+
+function _vsite_fix_group_path_get_all($group_path_pattern = '%/_') {
+  $query = db_select('field_data_field_group_path', 'fgp');
+  $query->fields('fgp', ['field_group_path_url', 'entity_id']);
+  $query->leftJoin('purl', 'p', 'fgp.entity_id = p.id');
+  $query->fields('p', ['value']);
+  $query->condition('fgp.field_group_path_url', $group_path_pattern, 'LIKE');
+  return $query->execute();
+}
+
+function _vsite_fix_group_path_update_field($node) {
+  if (empty($node->purl)) {
+    drupal_set_message(t('Purl value is empty (%title [nid:!nid]).', array(
+      '!nid' => $node->nid,
+      '%title' => $node->title,
+    )), 'warning');
+    return FALSE;
+  }
+  $group_path = '[site:url]' . $node->purl;
+
+  // Do update without node save, to faster update values.
+  $node->field_group_path[LANGUAGE_NONE][0]['url'] = $group_path;
+  field_attach_presave('node', $node);
+  field_attach_update('node', $node);
+  return TRUE;
+}
+/**
+ * Update bad field_group_path_url values with token pattern.
+ */
+function vsite_update_7039() {
+  $result = _vsite_fix_group_path_get_all();
+  $count = 0;
+  while ($row = $result->fetchAssoc()) {
+    $node = node_load($row['entity_id']);
+    if(_vsite_fix_group_path_update_field($node)) {
+      $count++;
+    }
+  }
+  return t('Updated !count field one char records with token pattern.', array('!count' => $count));
+}
+
+/**
+ * Delete all files with empty uri.
+ */
+function vsite_update_7040(&$sandbox) {
+  $query = db_delete('file_managed');
+  $query->isNull('uri');
+
+  $affected = $query->execute();
+
+  return t('Deleted @count empty uri files from database.', [
+    '@count' => $affected,
+  ]);
+}
+
+/**
+ * Delete all group content nodes which does not have a group.
+ */
+function vsite_update_7041(&$sandbox) {
+  $excepted_node_types = array(
+    'personal',
+    'department',
+    'project',
+  );
+
+  $query = db_select('node', 'n');
+  $query->condition('n.type', $excepted_node_types, 'NOT IN');
+  $query->leftJoin('og_membership', 'om', "om.etid = n.nid AND om.entity_type = 'node'");
+  $query->isNull('om.id');
+  // Use the sandbox at your convenience to store the information needed
+  // to track progression between successive calls to the function.
+  if (!isset($sandbox['progress'])) {
+
+    // The count of nodes visited so far.
+    $sandbox['progress'] = 0;
+    $query_count = clone $query;
+    // Total nodes that must be deleted.
+    $query_count->addExpression('COUNT(nid)');
+    $sandbox['max'] = $query_count->execute()->fetchField();
+
+    // A place to store deleted node types during the run.
+    $sandbox['deleted_types'] = array();
+
+    // Last node read via the query.
+    $sandbox['current_node'] = -1;
+
+    $sandbox['start_time'] = REQUEST_TIME;
+  }
+  if ($sandbox['max'] == 0) {
+    return t('There is no record to be deleted.');
+  }
+  $limit = 50;
+
+  // Retrieve the next group of nids.
+  $query->fields('n', array(
+    'nid',
+    'type',
+  ));
+  $query->orderBy('n.nid', 'ASC');
+  $query->where('n.nid > :nid', array(
+      ':nid' => $sandbox['current_node'],
+    ));
+  $query->range(0, $limit);
+  $result = $query->execute();
+  $nids = array();
+  foreach ($result as $row) {
+    $nids[] = $row->nid;
+
+    // Update our progress information.
+    $sandbox['progress']++;
+    $sandbox['current_node'] = $row->nid;
+    if (isset($sandbox['deleted_types'][$row->type])) {
+      $sandbox['deleted_types'][$row->type]++;
+    }
+    else {
+      $sandbox['deleted_types'][$row->type] = 1;
+    }
+  }
+  node_delete_multiple($nids);
+
+  // Set the "finished" status, to tell batch engine whether this function
+  // needs to run again. If you set a float, this will indicate the progress
+  // of the batch so the progress bar will update.
+  $sandbox['#finished'] = floor($sandbox['progress'] / $sandbox['max']);
+  // Some reason possible to reach the end before pre-calculated max.
+  if (empty($nids)) {
+    $sandbox['#finished'] = 1;
+  }
+
+  if ($sandbox['#finished']) {
+    $final_message = '';
+    foreach ($sandbox['deleted_types'] as $type => $count) {
+      $final_message .= $type . ': ' . $count . "\n";
+    }
+    return t("List of deleted content types and count:\n @message", array(
+      '@message' => $final_message,
+    ));
+  }
+  return t("Processed elements: @progress/@max (@percent) started at @start_time", array(
+    '@max' => $sandbox['max'],
+    '@progress' => $sandbox['progress'],
+    '@percent' => round(100 * $sandbox['progress'] / $sandbox['max'], 2) .'%',
+    '@start_time' => format_date($sandbox['start_time'], 'short'),
+  ));
+}
+
+/**
+ * Update bad field_group_path_url values with token pattern (2).
+ */
+function vsite_update_7042() {
+  $result = _vsite_fix_group_path_get_all('[site:url]_');
+  $count = 0;
+  while ($row = $result->fetchAssoc()) {
+    $node = node_load($row['entity_id']);
+    if(_vsite_fix_group_path_update_field($node)) {
+      $count++;
+    }
+  }
+  return t('Updated !count field one char records with token pattern.', array('!count' => $count));
+}

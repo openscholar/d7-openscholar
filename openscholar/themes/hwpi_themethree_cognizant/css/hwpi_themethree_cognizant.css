@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css?family=Libre+Franklin:400,400i,700');
+
+.not-front .field-name-body,
+#content-column p,
+.cke_editable *,
+#content-column li,
+body *,
+#content-column li,
+.region-header-third ul.nice-menu a,
+#boxes-box-site_info,
+#boxes-box-site_info a,
+#menu-bar ul a,
+#menu-bar ul.nice-menu a,
+#menu-bar ul.nice-menu .menuparent a,
+#page-title,
+.node-title,
+.page-search .title a,
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a,
+.more-link,
+.page-search #content-column p,
+.links a,
+#footer ul.menu a,
+.boxes-box-content h2,
+.view-os-events .views-field-colorbox,
+.field-name-body h2,
+.field-name-body h3,
+.field-name-body h4 {
+	font-family: 'Libre Franklin', Helvetica, sans-serif;
+}
+
+
+.node-type-person #content-column .node-person h1.node-title,
+.block-title,
+h1#page-title {
+	text-transform: uppercase;
+}
+.ui-widget-content a,
+.region-header-third ul.nice-menu a,
+a,
+a:visited {
+	color: #4298b5;
+}
+.breadcrumb span,
+#footer a,
+.node-type-page .breadcrumb,
+.breadcrumb,
+.breadcrumb a {
+	color: #fff;
+}
+a.rslides_nav {
+	background-color: #4298b5;
+}
+.search-block-form input.form-submit,
+.search-block-form #edit-submit,
+#search-block-form input.form-submit,
+#search-block-form #edit-submit,
+#search-form #edit-submit {
+	background: url(/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png) no-repeat scroll 2px -441px #4298b5;
+}
+#layout_16_9_side .slide {
+	background: #4298b5;
+	background: -moz-linear-gradient(top, #4298b5 0%, #3687a2 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #4298b5), color-stop(100%, #3687a2));
+	background: -webkit-linear-gradient(top, #4298b5 0%, #3687a2 100%);
+	background: -o-linear-gradient(top, #4298b5 0%, #3687a2 100%);
+	background: -ms-linear-gradient(top, #4298b5 0%, #3687a2 100%);
+	background: linear-gradient(to bottom, #4298b5 0%, #3687a2 100%);
+	filter: progid: DXImageTransform.Microsoft.gradient(startColorstr='#4298b5', endColorstr='#3687a2', GradientType=0);
+}
+.branding-left {
+	margin: 7px 0 0 0;
+}
+.not-front #columns {
+	background-image: url(../images/standard-body-gradient.png?s1234);
+}
+.more-link:after {
+	background-image: none;
+}

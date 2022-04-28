@@ -1,0 +1,44 @@
+#header-container .gpanel {
+  background: #898989;
+  }
+
+#header-container a,
+#header-container a:visited,
+#header-container h1 a,
+#header-container h1 a:visited,
+#header-container h2,
+#header-container p,
+#menu-bar li a,
+#menu-bar li a:visited {
+  color: #fff;
+  }
+
+#menu-bar #block-os-primary-menu {
+  background: #8a5a57;
+  }
+
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar li.active-trail a {
+  background: #000;
+  }
+
+.region-sidebar-first {
+  background:#ededed;
+  }
+
+.region-sidebar-second {
+  background:#cecece;
+  }
+
+.region-sidebar-first h2.block-title {
+  background: #dfdfdf;
+  }
+
+.region-sidebar-second h2.block-title {
+  background: #bebebe;
+  }
+
+#footer .wrap {
+  background: #807e7e;
+  }

@@ -1,0 +1,6 @@
+name = Ivy Accents
+description = A ivy accent version of the Classic theme
+screenshot = screenshot.png
+
+css[] = ivy_accents.css
+css[] = responsive.ivy.css

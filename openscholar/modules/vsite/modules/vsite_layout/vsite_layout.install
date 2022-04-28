@@ -1,0 +1,119 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the vsite_layout module.
+ *
+ */
+
+
+/**
+ * Implemenation of hook_schema().
+ */
+function vsite_layout_schema() {
+  $schema = array();
+  $schema['vsite_layout_block'] = array(
+    'description' => 'Stores relationship of blocks to layouts.',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The group nid this context block relationship is in.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'delta' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => "The block's {block}.delta.",
+      ),
+      'module' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => "The module responsible for this block.",
+      ),
+      'context' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => "The name of the context this is in.",
+      ),
+      'region' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'default' => '',
+        'description' => 'Region name.',
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Block weight within region.',
+      ),
+    ),
+    'indexes' => array(
+      'block_context' => array('sid', 'module', 'delta'),
+      'context' => array('sid','context'),
+    ),
+  );
+  return $schema;
+}
+
+/**
+ * Enable the new schema
+ */
+function vsite_layout_update_7001(&$sandbox) {
+
+  // Install the new table.
+  $schema['vsite_layout_block'] = array(
+    'description' => 'Stores relationship of blocks to layouts.',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The group nid this context block relationship is in.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'delta' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => "The block's {block}.delta.",
+      ),
+      'module' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => "The module responsible for this block.",
+      ),
+      'context' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => "The name of the context this is in.",
+      ),
+      'region' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'default' => '',
+        'description' => 'Region name.',
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Block weight within region.',
+      ),
+    ),
+    'indexes' => array(
+      'block_context' => array('sid', 'module', 'delta'),
+      'context' => array('sid','context'),
+    ),
+  );
+
+  db_create_table('vsite_layout_block', $schema['vsite_layout_block']);
+
+}

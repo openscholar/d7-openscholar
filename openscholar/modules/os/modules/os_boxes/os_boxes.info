@@ -1,0 +1,10 @@
+name = OpenScholar: Boxes
+description = Extensions to Boxes necessary for OpenScholar to function.
+core = 7.x
+package = OpenScholar
+dependencies[] = boxes
+dependencies[] = context
+dependencies[] = features
+features[features_api][] = api:2
+features[user_permission][] = administer boxes
+features[user_permission][] = edit boxes

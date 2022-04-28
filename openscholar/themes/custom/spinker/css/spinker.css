@@ -1,0 +1,354 @@
+/* D6 retro css for older themes */
+#columns {padding:0 10px;}
+
+@font-face {
+	font-family: 'GoudyTrajanRegular';
+	src: url('fonts/GoudyTrajan-Regular.eot');
+	src: local('fonts/Goudy Trajan Regular'), local('fonts/GoudyTrajan-Regular'), url('fonts/GoudyTrajan-Regular.woff') format('woff'), url('fonts/GoudyTrajan-Regular.otf') format('opentype'), url('fonts/GoudyTrajan-Regular.svg#GoudyTrajan-Regular') format('svg');
+  }
+
+body,
+#header-container, 
+#footer,
+#page,
+#tinymce,
+body#tinymce
+ {
+  background: #000000;
+  color:#ccffcc;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  }
+
+.sidebar {
+  color: #ddd;
+  }
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+  color:#FFFFFF;
+  text-decoration: none;
+  }
+
+a:hover {
+  color: #00ff00;
+	text-decoration: none;
+  }
+
+h1, h2, h3, h4 {
+  margin-bottom: 0;
+  margin-top: 0;
+  font-weight:normal;
+  font-style: italic;
+  }
+
+h1#page-title {
+  margin-top: 0;
+  margin-bottom: 1em;
+	font-weight: bold;
+  color: #F26C4F;	
+  font-size: 1.2em;
+  }
+
+.links li {
+  font-size: .8em;
+  }
+
+.region-sidebar-second {
+  color: #999;
+  }
+
+.region-sidebar-second h2.block-title,
+.region-sidebar-first h2.block-title,
+.region-sidebar-first #block-os-primary-menu li a {
+  color: #087af8;
+  font: .9em/normal "Lucida Grande","Lucida Sans Unicode",Arial,Verdana,sans-serif;
+  font-weight: normal;
+  text-transform:uppercase;
+  letter-spacing: .5px;
+  border-bottom:1px solid #c6c7c2;
+  }
+
+.region-sidebar-second li a,
+.region-sidebar-first li a {
+  color: #bbb;
+  font-weight:normal;
+  }
+  
+.region-sidebar-first .block {
+	border-right: 5px solid #F26C4F;
+  border-top: 5px solid #F26C4F;
+  text-align: right;
+  padding-right: 5px;
+  padding-bottom: 30px;
+}
+
+.region-sidebar-first .block:first-child {
+	border-top: 0;
+}
+
+p.copy {
+  margin-top: 0;
+  }
+
+
+.region-sidebar-second .block-boxes-os_sv_list_box li, .region-sidebar-first .block-boxes-os_sv_list_box li {
+	background: url('../images/blueBullet.gif') no-repeat;
+	padding-left:12px;
+	background-position:left top; 
+}
+
+
+/* LAYOUT ELEMENTS */
+
+#page {
+  margin: 0 auto;
+  }
+
+.region-sidebar-first,
+.region-sidebar-second {
+  font-size: .8em;
+  line-height: 1.1em;
+  padding:30px 0;
+  }
+  
+.region-sidebar-first .block, .region-sidebar-second .block {
+	margin-bottom: 2.0em;
+}
+
+
+body.sidebar-second #columns .content-inner {
+  padding-left:10px;
+  }
+
+#footer {
+  padding-top: 14px;
+  padding-bottom: 45px;
+   }
+
+body.sidebar-first #page {
+  background-position: -708px 0;
+  }
+
+body.sidebar-second #page {
+  background-position: 708px 0;
+  }
+  
+#powered-by a {
+    background-position: -13px -546px;
+}
+
+/* SIDEBAR ELEMENTS */
+
+.region-sidebar-second,
+.region-sidebar-first {
+  font-size: 13px;
+  line-height: 1.2em;
+  }
+
+.region-sidebar-second a,
+.region-sidebar-second a:visited,
+.region-sidebar-first a,
+.region-sidebar-first a:visited {
+  color: #e3dfdf;
+  }
+
+.region-sidebar-second a:hover,
+.region-sidebar-first a:hover {
+	color: #00ff00;
+}
+
+/* HEADER ELEMENTS */
+
+
+.region-header-first,
+#boxes-box-site_logo {
+  width: 139px;
+  padding-left: 0;
+  }
+
+.region-header-first {
+  left: -169px;
+  }
+
+#header-container {
+  padding-bottom:5px;
+  }
+
+body.header-main #header-container,
+body.header-main-right #header-container {
+  padding-right:298px;
+  }
+
+body.header-main .region-header-second, 
+body.header-main-right .region-header-second {
+  padding-left: 0;
+  }
+
+.block-boxes-os_boxes_site_logo {
+  display:table-cell;
+  vertical-align:middle;
+  }
+
+#header-container h1, #header-container h2, #header-container p {
+    font-size: 23px;
+    line-height: 28px;
+    font-weight:normal;
+    color:#087af8;
+    margin: 0;
+    }
+    
+#header-container h1 {
+	text-transform: uppercase;
+  font-size: 2em;
+  margin-bottom: 5px;
+  font-style:normal;
+}
+
+#header-container h2 {
+  font-size: 1em;
+  line-height: 18px;
+  font-style:normal;
+  }
+
+#header-container p {
+  font-size: 13px;
+  line-height: 18px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  }
+
+#header-container a, #header-container a:visited {
+	color: #087af8;
+}
+#header-container a:hover {
+    color:#00ff00;
+    text-decoration: none;
+    }
+
+ul.primary li a {
+color: #444;
+}
+
+#menu-bar {
+  width: auto;
+  background: #F26C4F;
+  padding: 0;
+  }
+
+.sidebar ul.menu {
+text-align: right;
+}
+
+#menu-bar li {
+    display: inline-block;
+    padding-right: 1px;
+    line-height: 48px;
+    }
+
+#menu-bar #block-os-primary-menu li a,
+#menu-bar #block-os-primary-menu li a:visited {
+  line-height: 20px;
+  text-transform:lowercase;
+  color: #cfc;
+  font-weight:normal;
+  font-size: 13px;
+  display:block;
+  padding: 5px;
+  }
+
+#menu-bar #block-os-primary-menu li a:active,
+#menu-bar #block-os-primary-menu li a:hover,
+#menu-bar #block-os-primary-menu li a.active,
+#menu-bar #block-os-primary-menu li.active-trail a {
+  text-decoration:none;
+  color: #087af8;
+  }
+
+ul.nice-menu ul {
+    top: 2.5em;
+}
+
+ul.nice-menu li {
+    background: none;
+}
+
+ul.nice-menu ul li {
+    background: none repeat scroll 0 0 #F26C4F;
+    border: 1px solid #F26C4F;
+}
+
+ul.nice-menu-down li.menuparent:hover {
+    background: none;
+}
+
+.region-sidebar-first #block-os-primary-menu li a,
+.region-sidebar-first #block-os-primary-menu li a:visited {
+  color: #7e9f06;
+  border: none;
+  display:block;
+  padding-bottom: 2px;
+  padding-top: 2px;
+  }
+
+.region-sidebar-first #block-os-primary-menu li a:hover {
+  text-decoration:none;
+  background: #485616;
+  color:#fff;
+  }
+
+#scholar-shield {
+  margin-right:0;
+  }
+
+/* MAIN CONTENT AREA */
+
+.submitted {
+  color: #a1b1b1;
+  border-bottom: 1px solid #a1b1b1;
+  display:block;
+  }
+  
+
+#search-block-form .container-inline .form-item .form-text {
+ background: #000000;
+  color: #ccffcc;
+}
+
+
+
+td {
+	color: inherit;
+}
+
+.node, .biblio-entry {
+	margin-bottom: 0.875em;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+.image-link {
+    color:#087af8;
+}
+
+.views-row {
+	margin-bottom: .7em;
+}
+
+p, 
+div.messages, 
+#content-column .views-row, 
+.node .content ul, 
+.node .content ol, 
+.taxonomy-term-description, 
+.node-type-presentation.node-teaser {
+	margin: 0;
+}
+
+.biblio-separator-bar {
+	color: #ccffcc;
+}
+
+#block-os-powered-by span a, .os-powered-link a.os-poweredby {
+background-position: 0 -27px;
+}

@@ -1,0 +1,214 @@
+.page-cp-appearance #cp-content {
+    overflow: auto;
+}
+#content-column .content-inner #cp-settings-theme form#cp-appearance-theme-picker-form,
+#content-column .content-inner #cp-settings-theme form#cp-appearance-theme-picker-form fieldset {
+    margin: 0;
+    padding: 0;
+}
+.page-cp-settings-theme .help {
+    position: absolute;
+}
+ul.theme-picker {
+    width: 95%;
+    padding: 4px 0;
+    margin: 0 0 30px 70px;
+}
+ul.theme-picker li.item-theme-picker {
+    padding: 0;
+    margin: 3px 20px 30px 3px;
+    display: inline-block;
+    vertical-align: top;
+    width: 300px;
+    height: 300px;
+    position: relative;
+    -moz-box-shadow: 0 0 7px #888;
+    -webkit-box-shadow: 0 0 7px #888;
+    box-shadow: 0 0 7px #888;
+    color: #fff;
+    -webkit-transition: all .250s;
+    transition: all .250s;
+}
+ul.theme-picker img.screenshot {
+    width: 300px;
+    height: 300px;
+}
+ul.theme-picker li.current {
+    border: 3px solid #93b16b;
+}
+ul.theme-picker li.current .theme-info:before {
+    position: absolute;
+    content: ' Current Theme';
+    top: 5px;
+    font-weight: bold;
+}
+ul.theme-picker li.checked .theme-info,
+ul.theme-picker li.checked.item-theme-picker:hover .theme-info,
+ul.theme-picker li.item-theme-picker.current:hover .theme-info,
+ul.theme-picker li.item-theme-picker:hover .theme-info,
+ul.theme-picker li.current .theme-info,
+ul.theme-picker li.item-theme-picker:hover .theme-info {
+    padding: 22px 12px 8px;
+}
+ul.theme-picker li.current .theme-info {
+    background: #93b16b;
+}
+ul.theme-picker li.item-theme-picker:hover .theme-info {
+    padding: 22px 12px 8px;
+}
+ul.theme-picker li.item-theme-picker:hover .theme-info {
+    padding: 15px 12px;
+}
+ul.theme-picker li .theme-info {
+    position: absolute;
+    background: #888;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 12px;
+    height: 15px;
+    transition: all .250s;
+    /* font-weight: bold; */
+}
+ul.theme-picker li.checked .theme-info {
+    background: #444;
+}
+ul.theme-picker li.checked .theme-info:before {
+    position: absolute;
+    content: '✓ New Theme Selected';
+    top: 5px;
+    font-weight: bold;
+}
+.page-cp-appearance h1#page-title {
+    margin: 5px 0 20px 0;
+}
+.theme-picker h3,
+ul.theme-picker li p,
+.item-theme-picker .form-item {
+    font-size: 15px;
+    line-height: 16px;
+    margin-bottom: 0;
+}
+.theme-picker h3,
+ul.theme-picker li p {
+    float: left;
+}
+.section-cp .item-theme-picker .form-item {
+    margin-left: 4px;
+    float: right;
+    width: 30%;
+}
+.item-theme-picker .form-item label {
+    position: absolute;
+    top: -9999em;
+}
+ul.theme-picker li p {
+    display: block;
+    clear: left;
+}
+ul.theme-picker li.checked h3,
+.item-theme-picker li.checked .form-item {
+    margin-top: 0;
+}
+#cp-appearance-theme-picker-form {
+    padding-top: 1px !important;
+    margin: 0 !important;
+}
+.theme_subnav {
+    padding-top: 4px;
+    background: #eaebe9;
+    height: 27px;
+    padding-left: 30px;
+}
+.theme_subnav h3,
+.theme_subnav ul,
+.theme_subnav li,
+#next,
+#prev {
+    display: inline-block;
+    margin-right: 10px;
+}
+.theme_subnav h3 {
+    margin-right: 40px;
+}
+.theme_subnav li {
+    cursor: pointer;
+    margin: 0;
+    font-size: 1.2em;
+}
+.theme_subnav li:hover {
+    background: #fff;
+}
+.theme_subnav li.active {
+  background: #f80000;
+  color: #fff;
+  }
+.page-cp-appearance .form-item-os-appearance-hwpi-modern-flavor option[value="default"], 
+.page-cp-appearance option[value="default"],
+.page-cp-appearance option[value="modern_saffron_accents"],
+.page-cp-appearance option[value="modern-monument"],
+.page-cp-appearance option[value="classic_cabot"],
+.page-cp-appearance option[value="classic_red_raven"],
+.page-cp-appearance option[value="classic_indigo"] {
+display:none;
+}
+
+form#cp-appearance-theme-picker-form div.form-radios {
+    display: none;
+}
+#cp-appearance-theme-picker-form {
+    clear: both;
+}
+#cp-appearance-theme-picker-form #edit-reset,
+#cp-appearance-theme-picker-form #edit-submit {
+    float: left;
+    display: inline;
+    margin-right: 15px;
+}
+
+
+#themeButtons {
+    bottom: 42px;
+    width: 100%;
+    background: url('images/themePickerSubButtsBg.png') repeat-x;
+    position: fixed;
+    z-index: 10;
+    padding-left: 55px;
+}
+#cp-appearance-theme-picker-form .theme-info .form-item.form-type-select {
+    float: right;
+    margin: -7px 0 0 4px;
+    width: 30%;
+}
+.cp-appearance-flavor-list {
+    text-align: right;
+}
+.false-item {
+    list-style-image: none;
+    overflow: auto;
+    margin-bottom: 1em;
+}
+.delete-subtheme,
+.git-pull-button,
+.zip-pull-button {
+    float: right;
+    margin-left: 12px;
+}
+.delete-subtheme a,
+.git-pull-button a,
+.zip-pull-button a {
+    color: white;
+    font-size: 11px;
+}
+.delete-subtheme a {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0 -606px no-repeat;
+    padding-left: 17px;
+}
+.zip-pull-button a {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0 -620px no-repeat #0a4476;
+    padding: 15px 7px 8px 22px;
+}
+.git-pull-button a {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0 -651px no-repeat #0a4476;
+    padding: 15px 7px 8px 22px;
+}

@@ -1,0 +1,136 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * 
+ * OS Reports module file
+ */
+
+
+/**
+ * Implement hook_permission().
+ */
+function os_reports_permission() {
+  return array(
+    'access os reports' => array(
+      'title' => t('View OS Reports'),
+      'description' => t('Access the OS reports.'),
+      'restrict access' => TRUE,
+    ),
+/*
+    'administer os reports' => array(
+      'title' => t('Administer OS Reports'),
+      'description' => t('Change the OS reports settings.'),
+      'restrict access' => TRUE,
+    ),
+*/
+  );
+}
+
+/**
+ * Implement hook_menu().
+ */
+function os_reports_menu() {
+  $items = array();
+  $items['admin/reports/os/site'] = array(
+    'title' => 'Sites Report',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_reports_site_form'),
+    'access arguments' => array('access os reports'),
+    'description' => 'Report on various aspects of all the sites hosted by OpenScholar.',
+    'file' => 'os_reports.admin.inc',
+  );
+/*
+  $items['admin/reports/os/user'] = array(
+    'title' => 'Users Report',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_reports_user_form'),
+    'access arguments' => array('access os reports'),
+    'description' => 'Report on various aspects of all the users associated with OpenScholar sites.',
+    'file' => 'os_reports.admin.inc',
+  );
+*/
+  $items['admin/config/openscholar/os_reports'] = array(
+    'title' => 'OpenScholar Reports',
+    'description' => 'Change the back-end report settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('administer_os_reports_form'),
+    'access arguments' => array('administer os reports'),
+    'file' => 'os_reports.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Start file contents with headers
+ */
+function os_reports_assemble_header_row($headers, &$context) {
+  $header_array = array();
+  foreach ($headers as $header) {
+    $header_array[] = _make_csv_safe(str_replace("_", " ", $header));
+  }
+  $context['results'] = array(implode(",", $header_array));
+}
+
+/**
+ * Batch process to convert report results into string
+ */
+function os_reports_assemble_file_rows($rows, &$context) {
+  $headers = array_keys($rows[0]);
+  foreach ($rows as $row) {
+    $row_array = array();
+    foreach ($headers as $header) {
+      $row_array[] = _make_csv_safe($row[$header]);
+    }
+    $row_string = implode(",", $row_array);
+
+    $context['results'][] = $row_string;
+  }
+}
+
+/**
+ * Print out headers and file contents for download
+ */
+function os_reports_print_file(&$context) {
+  global $base_url;
+  $filename = str_replace("http://", "", $base_url) . "-site-report.csv";
+  drupal_add_http_header("Content-Type", "application/octet-stream");
+  drupal_add_http_header("Cache-Control", "o-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+  drupal_add_http_header("Content-Disposition", "attachment; filename=\"$filename\";" );
+  drupal_add_http_header("Content-Transfer-Encoding", "binary");
+  foreach ($context['results'] as $row) {
+    print $row . "\n";
+  }
+  drupal_exit();
+  $context['finished'] = 1;
+}
+
+/**
+ * replace quotes with single quotes, take out line returns and enclose in quotes if value contains a comma
+ */
+function _make_csv_safe ($value) {
+  $value = preg_replace('/ (\S+)="([^"]+)"/', " $1='$2'", preg_replace('/[\n\r]/', '', $value));
+  $value = preg_replace('/"/', '&quot;', $value);
+  if ($value && strpos($value, ",") !== FALSE) {
+    return '"' . trim($value) . '"';
+  }
+  elseif ($value) {
+    return trim($value);
+  }
+  else {
+    return '""';
+  }
+}
+
+/**
+ * Move angular to the top of the list scripts list.
+ * We need it to load before jQuery because the version in Drupal is too old.
+ */
+function os_reports_process_html(&$vars) {
+  $search = '<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.js"></script>';
+  $style = str_replace($search, '', $vars['scripts'], $count);
+  if ($count) {
+    $vars['scripts'] = $search . "\n" . $style;
+  }
+}

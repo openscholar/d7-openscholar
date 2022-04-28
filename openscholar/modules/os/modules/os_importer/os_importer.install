@@ -1,0 +1,37 @@
+<?php
+
+/**
+ * Enable the entity validate module.
+ */
+function os_importer_update_7000() {
+  module_enable(array('entity_validator'));
+}
+
+/**
+ * Adding timezone adjustment feeds tamper to all feeds.
+ */
+function os_importer_update_7001(&$sandbox) {
+  $features = array(
+    'os_biocv',
+    'os_blog',
+    'os_classes',
+    'os_events',
+    'os_faq',
+    'os_links',
+    'os_news',
+    'os_pages',
+    'os_profiles',
+    'os_reader',
+    'os_software',
+  );
+
+  foreach ($features as $feature) {
+    features_revert($feature, array('feeds_tamper'));
+  }
+}
+/**
+ * Increase the feeds processing limit to 100
+ */
+function os_importer_update_7002() {
+  variable_set('feeds_process_limit', 100);
+}

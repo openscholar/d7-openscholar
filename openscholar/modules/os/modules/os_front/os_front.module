@@ -1,0 +1,314 @@
+<?php
+
+/**
+ * @file
+ * Modifies layout and markup for OpenScholar sitewide front page.
+ */
+
+/**
+ * Implements hook_context_default_contexts_alter().
+ */
+function os_front_context_default_contexts_alter($contexts) {
+  // Only continues if context `os_sitewide_front` can be altered.
+  if (!isset($contexts['os_sitewide_front'])) {
+    return;
+  }
+  $blocks = &$contexts['os_sitewide_front']->reactions['block']['blocks'];
+
+  $blocks['os_front-os_front_header'] = array(
+    'module' => 'os_front',
+    'delta' => 'os_front_header',
+    'weight' => 0,
+    'region' => 'header_second',
+  );
+
+  $blocks['boxes-os_front_main_support'] = array(
+    'module' => 'boxes',
+    'delta' => 'os_front_main_support',
+    'weight' => 0,
+    'region' => 'content_first',
+  );
+
+  $blocks['boxes-os_front_main_configure'] = array(
+    'module' => 'boxes',
+    'delta' => 'os_front_main_configure',
+    'weight' => 0,
+    'region' => 'content_second',
+  );
+
+  // Positions existing SOLR and drupal search widget.
+  $blocks['os_search_db-site-search']['region'] = 'footer';
+  $blocks['os_search_db-site-search']['weight'] = 0;
+
+  // Modifies existing "Get your site now" block.
+  $blocks['vsite_register-get_your_site_block']['weight'] = 2;
+  $blocks['vsite_register-get_your_site_block']['region'] = 'header_second';
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function os_front_block_info() {
+  $blocks = array();
+
+  $blocks['os_front_header'] = array(
+    'info' => 'Front Page Header',
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function os_front_block_view($delta) {
+  switch($delta) {
+    case 'os_front_header':
+      $output = array(
+        'banner' => array(
+          '#type' => 'container',
+          '#attributes' => array(
+            'class' => array(
+              'os-align-center',
+            ),
+          ),
+          'image' => array(
+            '#theme' => 'image',
+            '#path' => drupal_get_path('theme', 'os_default')."/images/osfrontpg_logo.gif",
+            '#alt' => t('OpenScholar'),
+            '#title' => t('OpenScholar'),
+            '#attributes' => array(
+              'class' => array(
+                'os-title-image',
+              ),
+            ),
+          ),
+          'text' => array(
+            '#prefix' => '<span class="os-title-text">',
+            '#suffix' => '</span>',
+            'text-anon' => array(
+              '#markup' => variable_get('os_front_site_title', 'Change Me'),
+              '#access' => !user_access('administer nodes'),
+            ),
+            'text-auth' => array(
+              '#markup' => l(variable_get('os_front_site_title', 'Change Me'), 'admin/config/openscholar/site-title'),
+              '#access' => user_access('administer nodes'),
+            )
+          )
+        ),
+      );
+
+      $block = array(
+        'subject' => NULL,
+        'content' => $output,
+      );
+
+      return $block;
+    break;
+  }
+}
+
+/**
+ * Implements hook_form_os_settings_form_alter().
+ */
+function os_front_form_os_settings_form_alter(&$form, &$form_state) {
+  $form['front-page'] = array(
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => empty($form_state['build_info']['args']) || $form_state['build_info']['args'][0] != 'site-title',
+    '#title' => t('Front Page'),
+    'os_front_site_title' => array(
+      '#type' => 'textfield',
+      '#title' => t('Title of Site'),
+      '#description' => t('Appears on the default front page'),
+      '#default_value' => variable_get('os_front_site_title', 'Change Me')
+    )
+  );
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for html.tpl.php.
+ */
+function os_front_preprocess_html(&$vars) {
+  if ($vars['is_front'] && !(module_exists('vsite') && vsite_get_vsite())) {
+    $vars['classes_array'][] = 'sitewide-front';
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function os_front_theme() {
+  return array(
+    'os_front_boxcontent_sample' => array(
+      'variables' => array(
+        'header' => NULL,
+        'images' => NULL,
+      ),
+    ),
+  );
+}
+
+/**
+ * Theme function, returns an optional header and list of images.
+ */
+function theme_os_front_boxcontent_sample($variables) {
+  $build = array();
+
+  if (isset($variables['header'])) {
+    $header = $variables['header'];
+    $build['header'] = array(
+      '#markup' => "<h2>{$header}</h2>",
+    );
+  }
+
+  $images = $variables['images'];
+  $items = array();
+  foreach ($images as $image) {
+    $items[] = array(
+      'data' => theme('image', $image),
+    );
+  }
+  $build['list'] = array(
+    '#theme' => 'item_list',
+    '#items' => $items,
+  );
+
+  $output = drupal_render($build);
+  return $output;
+}
+
+
+/**
+ * Implements hook_default_box().
+ */
+function os_front_default_box() {
+  $export = array();
+  $path = drupal_get_path('theme', 'os_default');
+  $build = array(
+    'banner' => array(
+      '#type' => 'container',
+      '#attributes' => array(
+        'class' => array(
+          'os-align-center',
+        ),
+      ),
+      'image' => array(
+        '#theme' => 'image',
+        '#path' => "$path/images/osfrontpg_logo.gif",
+        '#alt' => t('OpenScholar'),
+        '#title' => t('OpenScholar'),
+        '#attributes' => array(
+          'class' => array(
+            'os-title-image',
+          ),
+        ),
+      ),
+    ),
+    'tagline' => array(
+      '#markup' => '<strong>' . t('The easiest way to manage all your institution\'s sites') . '</strong>',
+    ),
+  );
+  $value = drupal_render($build);
+
+  $box = new stdClass();
+  $box->disabled = FALSE; /* Edit this to true to make a default box disabled initially */
+  $box->api_version = 1;
+  $box->delta = 'os_front_header';
+  $box->plugin_key = 'os_boxes_html';
+  $box->title = '';
+  $box->description = 'Front Page Header Text';
+  $box->options = array(
+    'text' => array(
+      'value' => $value,
+      'format' => 'filtered_html',
+    ),
+    'additional_classes' => '',
+  );
+  $export['os_front_header'] = $box;
+
+  $value = '';
+  if (!user_is_anonymous()) {
+    $build = array(
+      'banner' => array(
+        '#type' => 'container',
+        '#attributes' => array(
+          'class' => array(
+            'os-align-center',
+          ),
+        ),
+      ),
+      'intro' => array(
+        '#markup' => '<p>' . t('<strong>Welcome!</strong> You have successfully installed OpenScholar. This application makes it possible for you to create and manage multiple websites, or allow your users to create their own websites. Here are some things you can do right away:') . '</p>',
+      ),
+      'list' => array(
+        '#theme' => 'item_list',
+        '#type' => 'ul',
+        '#items' => array(
+          0 => l(t('Create a website.'), 'site/register'),
+          1 => t('Configure who will have access to create websites in this installation of OpenScholar.'),
+          2 => t('<a href="@url">Customize what type of sites can be created</a> (personal / projects/ departments).', array('@url' => url('admin/config/openscholar/vsite_register'))),
+          3 => t('Customize this front page.  (examples:  <a href="http://openscholar.harard.edu">http://openscholar.harard.edu</a>, <a href="http://scholar.harvard.edu">http://scholar.harvard.edu</a>).'),
+          4 => t('Other configuration settings.'),
+          5 => t('To provide your end-users with additional site-building guides and documentation, feel free to refer to OpenScholar @ Harvard\'s <a href="http://support.openscholar.harvard.edu">Help Center</a> and <a href="http://community.openscholar.harvard.edu">Community forum</a>.'),
+          6 => t('For questions about administering and configuring your new OpenScholar installation, search and/or post to our <a href="https://github.com/openscholar/openscholar/issues">GitHub issue queue</a>.'),
+        ),
+      ),
+    );
+    $value = drupal_render($build);
+  }
+  $box = new stdClass();
+  $box->disabled = FALSE; /* Edit this to true to make a default box disabled initially */
+  $box->api_version = 1;
+  $box->delta = 'os_front_main_support';
+  $box->plugin_key = 'os_boxes_html';
+  $box->title = 'Getting Started';
+  $box->description = 'Getting Started';
+  $box->options = array(
+    'text' => array(
+      'value' => $value,
+      'format' => 'filtered_html',
+    ),
+    'additional_classes' => '',
+  );
+  $export['os_front_main_support'] = $box;
+
+  $variables = array(
+    'header' => t('Sample Websites'),
+    'images' => array(
+      0 => array(
+        'path' => "$path/images/osfrontpg_samplesite1.png",
+        'alt' => t('Sample site A'),
+        'title' => t('Sample site A'),
+      ),
+      1 => array(
+        'path' => "$path/images/osfrontpg_samplesite2.png",
+        'alt' => t('Sample site B'),
+        'title' => t('Sample site B'),
+      ),
+      2 => array(
+        'path' => "$path/images/osfrontpg_samplesite3.png",
+        'alt' => t('Sample site C'),
+        'title' => t('Sample site C'),
+      ),
+    ),
+  );
+  $box = new stdClass();
+  $box->disabled = FALSE; /* Edit this to true to make a default box disabled initially */
+  $box->api_version = 1;
+  $box->delta = 'os_front_sample';
+  $box->plugin_key = 'os_boxes_html';
+  $box->title = '';
+  $box->description = t('List example site screenshots');
+  $box->options = array(
+    'text' => array(
+      'value' => theme('os_front_boxcontent_sample', $variables),
+      'format' => 'filtered_html',
+    ),
+    'additional_classes' => '',
+  );
+  $export['os_front_sample'] = $box;
+  
+  return $export;
+}

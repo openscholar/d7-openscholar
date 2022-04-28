@@ -1,0 +1,293 @@
+<?php
+
+require_once dirname(__FILE__) . '/media_browser.field.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function media_browser_menu() {
+  $items['media/browser/rest'] = array(
+    'title' => 'Media Browser REST',
+    'page callback' => 'media_browser_media_browser',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_library().
+ */
+function media_browser_library() {
+  $info = array();
+
+  $info['media_browser_field'] = array(
+    'title' => 'Media Browser: Field',
+    'version' => '1.0',
+    'description' => 'Provides a field that can be embedded in a form to call the media browser.',
+    'js' => array(
+      drupal_get_path('module', 'media_browser') . '/misc/MediaBrowserField.js' => array(),
+    ),
+    'dependencies' => array(
+      array('media', 'media_browser'),
+      array('os_common', 'FileEditorModal'),
+      array('os_common', 'DependencyManager'),
+      array('os_common', 'angular-ui-sortable'),
+    )
+  );
+
+  return $info;
+}
+
+/**
+ * Implements hook_library_alter().
+ *
+ * Replaces the old media browser code with our own
+ */
+function media_browser_library_alter(&$libs) {
+  if (isset($libs['media_browser'])) {
+
+    $disable = array('alias' => TRUE);
+    $path = drupal_get_path('module', 'media_browser');
+
+    include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
+    $mapping = file_mimetype_mapping();
+    $types = file_type_get_enabled_types();
+    $map = array();
+    foreach ($types as $t => $info) {
+      $map[$t] = _os_files_extensions_from_type($t);
+    }
+
+    // Start with post_max_size.
+    $max_size = media_browser_get_max_size();
+    $max_size_inline = variable_get('os_files_max_inline_filesize', '128 MB');
+    $max_size_raw = parse_size($max_size);
+    $max_inline_raw = parse_size($max_size_inline);
+
+    if ($max_inline_raw < $max_size_raw) {
+      $max_size = $max_size_inline;
+      $max_size_raw = $max_inline_raw;
+    }
+
+    $max_size = preg_replace('/^([\d]+)([^\d\s]).*/', '$1 $2B', $max_size);
+
+    $libs['media_browser']['js'] += array(
+      $path . '/misc/MediaBrowserFilters.js' => array(),
+      $path . '/misc/MediaBrowserModule.js' => array(),
+      array(
+        'data' => array(
+          'paths' => array(
+            'moduleRoot' => url(drupal_get_path('module', 'media_browser'), $disable),
+          ),
+          'version' => array(
+            'mediaBrowser' => '1.0.5'
+          ),
+          'extensionMap' => $map,
+          'maximumFileSize' => $max_size,
+          'maximumFileSizeRaw' => $max_size_raw,
+        ),
+        'type' => 'setting',
+      )
+    );
+
+    $libs['media_browser']['dependencies'] = array_merge($libs['media_browser']['dependencies'], array(
+      array('os_common', 'JSPager'),
+      array('os_common', 'EntityService'),
+      array('os_common', 'FileEditor'),
+      array('os_common', 'ng-file-upload'),
+      array('os_common', 'auth'),
+      array('os_common', 'angular-modal-service'),
+      array('os_common', 'locationFix'),
+      array('os_common', 'angularSlideables')
+    ));
+
+    $libs['media_browser']['css'] = array(
+      $path . '/misc/media_browser.mediaBrowser.css',
+    );
+  }
+  elseif (isset($libs['formElement'])) {
+    $libs['formElement']['dependencies'][] = array('media_browser', 'media_browser_field');
+  }
+}
+
+function media_browser_get_max_size() {
+  $post_max = ini_get('post_max_size');
+  $post_raw = parse_size($post_max);
+  $upload_max = ini_get('upload_max_filesize');
+  $upload_max_raw = parse_size($upload_max);
+  if ($upload_max_raw > 0) {
+    if ($upload_max_raw < $post_raw) {
+      return $post_max;
+    }
+    else {
+      return $upload_max;
+    }
+  }
+  return $post_max;
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function media_browser_element_info_alter(&$elements) {
+  $elements['media']['#process'][] = 'media_browser_element_process';
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function media_browser_field_widget_media_generic_form_alter(&$elements, &$forms_state, $context) {
+  if ($size = $elements['#media_options']['global']['max_filesize']) {
+    $size = preg_replace('/^([\d]+)([^\d\s]).*/', '$1 $2B', $size);
+    $elements['#media_options']['global']['max_filesize_raw'] = parse_size($size);
+  }
+  else {
+    $size = media_browser_get_max_size();
+    $size = preg_replace('/^([\d]+)([^\d\s]).*/', '$1 $2B', $size);
+    $elements['#media_options']['global']['max_filesize'] = $size;
+    $elements['#media_options']['global']['max_filesize_raw'] = parse_size($size);
+  }
+}
+
+/**
+ * Replaces the original media element's launcher buttons with our directive
+ */
+function media_browser_element_process($elem, $form_state, $form) {
+  $elem['#attached']['library'][] = array('os_common', 'FileEditorModal');
+
+  if (isset($elem['edit'])) {
+    $elem['edit']['#attributes']['class'] = array_diff($elem['edit']['#attributes']['class'], array('ctools-use-modal', 'use-ajax'));
+    $elem['edit']['#attributes']['file-editor-modal'] = 'file-editor-modal';
+    $elem['edit']['#attributes']['fid'] = $elem['fid']['#value'];
+  }
+
+  return $elem;
+}
+
+/**
+ * Implements hook_wysiwyg_include_directory().
+ */
+function media_browser_wysiwyg_include_directory($type) {
+  switch ($type) {
+    case 'plugins':
+      return 'wysiwyg_plugins';
+  }
+}
+
+/**
+ * Deprecated
+ */
+function media_browser_restws_response_alter(&$response, $function) {
+  switch ($function ) {
+    case 'queryResource':
+      foreach ($response['list'] as $k => $f) {
+        $response['list'][$k] = _media_browser_modify_response_row($f);
+      }
+      break;
+    case 'viewResource':
+        $response = _media_browser_modify_response_row($response);
+      break;
+  }
+}
+
+/**
+ * Deprecated
+ */
+function _media_browser_modify_response_row($file) {
+  $blacklist = array(
+    'og_group_ref' => TRUE,
+    'og_membership' => TRUE,
+    'og_membership__1' => TRUE,
+    'og_membership__2' => TRUE,
+    'og_membership__3' => TRUE,
+    'og_group_ref__og_membership' => TRUE,
+    'og_group_ref__og_membership__1' => TRUE,
+    'og_group_ref__og_membership__2' => TRUE,
+    'og_group_ref__og_membership__3' => TRUE,
+  );
+
+  $filtered = array_diff_key($file, $blacklist);
+
+  $f = file_load($file['fid']);
+  $filtered['orig'] = $f->origname;
+  $filtered['preview'] = drupal_render(file_view_file($f, 'preview'));
+  switch ($filtered['type']) {
+    case 'image':
+      $filtered['form'] = 'file_edit_image';
+      break;
+    default:
+      $filtered['form'] = 'file_edit_default';
+  }
+  entity_get_controller('file')->resetCache();
+
+  return $filtered;
+}
+
+/**
+ * Media Browser callback
+ */
+function media_browser_media_browser() {
+  $root = $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'media_browser') . '/templates/';
+  $misc_patch =  drupal_get_path('module', 'media_browser') . '/misc/';
+
+  $browser = array(
+    '#prefix' => '<div ng-app="mediaBrowser"><div ng-include="\'' . $root . 'browser.html'.'\'" ng-controller="BrowserCtrl">',
+    '#suffix' => '</div></div>',
+    '#attached' => array(
+      'js' => array(
+        array(
+          'data' => array(
+            'osRestModulePath' => $GLOBALS['base_url'] . '/' . drupal_get_path('module', 'media_browser'),
+            'restBasePath' => url('api'),
+          ),
+          'type' => 'setting',
+        ),
+        array (
+          'data' => $misc_patch . 'MediaBrowserFilters.js',
+          'type' => 'file',
+          'scope' => 'footer',
+        ),
+        array (
+          'data' => $misc_patch . 'MediaBrowserDirectives.js',
+          'type' => 'file',
+          'scope' => 'footer',
+        ),
+        array (
+          'data' => $misc_patch . 'MediaBrowserServices.js',
+          'type' => 'file',
+          'scope' => 'footer',
+        ),
+        array (
+          'data' => $misc_patch . 'MediaBrowserModule.js',
+          'type' => 'file',
+          'scope' => 'footer',
+        )
+      ),
+      'css' => array(
+        $misc_patch . 'media_browser.mediaBrowser.css',
+      ),
+      'library' => array(
+        array('os_common', 'JSPager'),
+        array('os_common', 'EntityService'),
+        array('media_browser', 'ng-file-upload'),
+        array('os_common', 'auth'),
+        array('os_common', 'angular-modal-service')
+      )
+    )
+  );
+
+  return $browser;
+}
+
+/**
+ * Move angular to the top of the list scripts list.
+ * We need it to load before jQuery because the version in Drupal is too old.
+ */
+function media_browser_process_html(&$vars) {
+  $search = '<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.js"></script>';
+  $style = str_replace($search, '', $vars['scripts'], $count);
+  if ($count) {
+    $vars['scripts'] = $search . "\n" . $style;
+  }
+}

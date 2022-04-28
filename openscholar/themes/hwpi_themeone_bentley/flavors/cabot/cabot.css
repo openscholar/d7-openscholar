@@ -1,0 +1,170 @@
+@import url(https://fonts.googleapis.com/css?family=Noto+Serif);
+
+body, #page-title, 
+.node-title, 
+.page-search .title a, 
+#content-column .block.block-boxes-os_boxes_manual_list .links.inline a, 
+.more-link, 
+.links a, 
+#footer ul.menu a, 
+.boxes-box-content h2, 
+.section-nav a, 
+#content-column h2,
+ #content-column h3,
+  #content-column h4, 
+  .block-boxes-os_taxonomy_fbt.navigation, 
+  .block-boxes-os_boxes_facetapi_vocabulary.navigation,
+  #footer ul.menu li ul li a, 
+  #layout_16_9_side .slide-copy h2, 
+  #layout_3_1_overlay .slide-copy h2,
+   #layout_16_9_below .slide-copy h2, 
+   #layout_16_9_overlay .slide-copy h2, 
+   h2.block-title, 
+   .region-header-third ul.nice-menu a,
+   .cke_editable * {
+	font-family: 'Noto Serif', Georgia, serif !important;
+}
+
+.section-nav .menu-depth-1 > a, 
+#footer, #header {
+	background: #FFDB6D !important;
+}
+
+.section-nav .menu-depth-1 > a {
+	color: #000 !important;
+}
+
+#menu-bar {
+	background: #4E84C4;
+}
+
+#menu-bar ul.nice-menu ul {
+	background: #4E84C4;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover, 
+#menu-bar ul.nice-menu a {
+	color: #fff;
+}
+
+#menu-bar ul.nice-menu .menuparent a:before {
+	background-position: 0 -566px; /* White Arrow */
+}
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit, 
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+	background: url("/profiles/openscholar/themes/hwpi_basetheme/images/hwpi_basesprite.png") no-repeat scroll -7px -61px transparent;
+	height: 30px;
+	width: 30px;
+	-webkit-border-radius: 44px;
+	-moz-border-radius: 44px;
+	-ms-border-radius: 44px;
+	-o-border-radius: 44px;
+	border-radius: 150px;
+}
+
+.event-start .event-start {
+	width: 55px;
+	height: 55px;
+	background: #BAC5C6;
+	border-radius: 140px;
+	-webkit-border-radius: 140px;
+	-moz-border-radius: 140px;
+}
+
+.event-start .event-start span {
+	font-weight: normal;
+}
+
+.event-start-month {
+	color: #000;
+
+}
+.event-start .event-year {
+    padding: 8px 0 0;
+}
+.search-block-form .container-inline .form-item .form-text,
+#search-block-form .container-inline .form-item .form-text {
+	background-color: #dedede;
+	border-radius: 30px;
+	-webkit-border-radius: 30px;
+	-moz-border-radius: 30px;
+  	padding: 0 35px 0 8px !important;
+}
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit, 
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+	margin: 1px 0 0 -30px !important;
+}
+
+.sidebar .block, 
+.front #content-column .block, 
+#content-column .block.block-boxes-os_boxes_columns .block, 
+.node-person .block-inner, 
+.comment-wrapper {
+	border-top: 2px dotted #C4961A;
+}
+
+.sidebar .block, 
+.front #content-column .block.block-boxes-os_slideshow_box, 
+#content-column .block.block-boxes-os_boxes_columns .block, 
+.node-person .block-inner, 
+.comment-wrapper {
+	border-top: none;
+}
+
+.section-nav ul.menu li a {
+	border-bottom: 1px solid #FFDB6D;
+}
+
+#boxes-box-os_pages_section_nav {
+	border: 1px solid #FFDB6D;
+}
+
+.section-nav .expanded.menu-depth-2 > a:hover ,
+.section-nav .expanded.menu-depth-2 > a {
+	background-color: #BAC5C6 !important;
+	color: #222;
+}
+
+#footer a, 
+.region-header-third ul.nice-menu a {
+	font: bold 14px arial, sans-serif;
+	text-transform: none;
+	color: #1b4977;
+}
+
+#footer ul.menu li a {
+	text-transform: none;
+}
+
+#footer ul.menu li a.menu-heading {
+	text-transform: uppercase;
+}
+
+a.rslides_nav {
+	border-radius: 140px;
+	-webkit-border-radius: 140px;
+	-moz-border-radius: 140px;
+	width: 6px;
+}
+
+.rslides_tabs li:last-child,
+.rslides_tabs li:first-child {
+ background:transparent !important;
+}
+
+
+a.rslides_nav.prev {
+	background-position: -19px -25px;
+	margin-right:8px;
+}
+
+a.rslides_nav.next {
+	background-position: -50px -25px;
+	margin-left:8px;
+}

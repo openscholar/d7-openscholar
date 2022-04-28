@@ -1,0 +1,21 @@
+diff --git a/profiles/openscholar/modules/contrib/biblio/biblio.install b/profiles/openscholar/modules/contrib/biblio/biblio.install
+index de089db..9174188 100644
+--- a/profiles/openscholar/modules/contrib/biblio/biblio.install
++++ b/profiles/openscholar/modules/contrib/biblio/biblio.install
+@@ -1498,12 +1498,14 @@ function _add_db_field_data_XML() {
+   return $result;
+ }
+ 
+-function _add_db_field_data() {
++function _add_db_field_data($csv_file = NULL) {
+   if (db_driver() == 'mysql' or db_driver() == 'mysqli') {
+     db_query("/*!40000 ALTER TABLE {biblio_field_type_data} DISABLE KEYS */;");
+     db_query("/*!40000 ALTER TABLE {biblio_fields} DISABLE KEYS */;");
+   }
+-  $csv_file = drupal_get_path('module', 'biblio') . '/misc/biblio.field.link.data.csv';
++  if (!is_file($csv_file)) {
++    $csv_file = drupal_get_path('module', 'biblio') . '/misc/biblio.field.link.data.csv';
++  }
+ 
+   if ($handle = fopen($csv_file, "r")) {
+     $header = fgetcsv($handle, 10000, ","); // the first line has the field names

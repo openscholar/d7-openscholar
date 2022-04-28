@@ -1,0 +1,464 @@
+<div id="site-creation-container">
+	<form name="siteCreationform">
+		<!-- Screen 1 Start -->
+		<div id="page-1" ng-show="page1">
+			<div id="header-container-page-1">
+				<div id="header-container-group-1">
+					<div class="step-container center">
+						<span class="step enable">1</span>
+					</div>
+					<div class="step-container center">
+						<span class="step disable">2</span>
+					</div>
+					<div class="step-container center">
+						<span class="step disable">3</span>
+					</div>
+				</div>
+
+				<div id="header-container-group-2">
+					<div class="step-container center">
+						Type of Site
+					</div>
+					<div class="step-container center">
+						Starter Content Options
+					</div>
+					<div class="step-container center">
+						Theme and Finish
+					</div>
+				</div>
+
+				<div id="header-container-group-3">
+					<div class="center">
+						<h1> What type of site would you like to create? </h1>
+					</div>
+
+				</div>
+			</div>
+
+			<div id="body-container">
+				<div id="body-container-group-1">
+					<div class="site-type center individual" ng-show="canBeCreated('personal')">
+						<div class="site-type-button">
+							<a class="button" ng-click="display = 'individualScholar'" title="Individual Scholar">Individual Scholar</a>
+						</div>
+						<div id="individual-scholar-wrapper" class="popup site-type_nameurl" ng-show="display == 'individualScholar'">
+							<div>
+								<b>Choose the URL of the Website</b>
+							</div>
+
+							<div class="url-selector">
+								<span>{{baseURL}}</span>
+								<span>
+									<input type="text" name="individualScholar" ng-model="individualScholar" formcheck-directive ng-keyup="clearRest('individualScholar');" id="individual-scholar" class="form-text">
+								</span>
+							</div>
+							<div ng-messages="siteCreationform.individualScholar.$error">
+								<div class="message error" ng-message="permission">
+									You don't have permission to create site
+								</div>
+								<div class="message error" ng-message="isinvalid">
+									Url must be 3 or more characters, and only contain lowercase alphanumerics and hyphens.
+								</div>
+								<div class="message error" ng-message="sitename">
+									Site name is already taken
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="site-type center group" ng-show="canBeCreated('project')">
+						<div class="site-type-button">
+							<a class="button" ng-click="display = 'projectLabSmallGroup'">Project/Lab/Small Group</a>
+						</div>
+						<div id="project-lab-small-group-wrapper" class="popup site-type_nameurl" ng-show="display == 'projectLabSmallGroup'">
+							<div>
+								<b>Choose the URL of the Website</b>
+							</div>
+
+							<div class="url-selector">
+								<span>{{baseURL}}</span>
+								<span>
+									<input type="text" name="projectLabSmallGroup" ng-model="projectLabSmallGroup" formcheck-directive ng-keyup="clearRest('projectLabSmallGroup');" id="project-lab-small-group" class="form-text">
+								</span>
+							</div>
+							<div ng-messages="siteCreationform.projectLabSmallGroup.$error">
+								<div class="message error" ng-message="permission">
+									You don't have permission to create site
+								</div>
+								<div class="message error" ng-message="isinvalid">
+									Url must be 3 or more characters, and only contain lowercase alphanumerics and hyphens.
+								</div>
+								<div class="message error" ng-message="sitename">
+									Site name is already taken
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="site-type center department" ng-show="canBeCreated('department')">
+						<div class="site-type-button">
+							<a class="button" ng-click="display = 'departmentSchool'">Department/School</a>
+						</div>
+						<div id="department-school-wrapper" class="popup site-type_nameurl" ng-show="display == 'departmentSchool'">
+							<div>
+								<b>Choose the URL of the Website</b>
+							</div>
+
+							<div class="url-selector">
+								<span>{{baseURL}}</span>
+								<span>
+									<input type="text" name="departmentSchool" ng-model="departmentSchool" formcheck-directive ng-keyup="clearRest('departmentSchool');" id="department-school" class="form-text">
+								</span>
+							</div>
+							<div ng-messages="siteCreationform.departmentSchool.$error">
+								<div class="message error" ng-message="permission">
+									You don't have permission to create site
+								</div>
+								<div class="message error" ng-message="isinvalid">
+									Url must be 3 or more characters, and only contain lowercase alphanumerics and hyphens.
+								</div>
+								<div class="message error" ng-message="sitename">
+									Site name is already taken
+								</div>
+							</div>
+						</div>
+					</div>
+					
+				</div>
+<div class="help-link">
+						<a href="https://docs.openscholar.harvard.edu/kinds-of-sites" target="_blank">Learn more about site types </a>
+					</div>
+				<div id="body-container-group-2">
+					<div class="visibility">
+						<div>
+							<span class="enlarged-text">Choose who can view your site: <b ng-bind-html="privacyLevels[vsite_private.value]"></b> </span>
+							<a ng-click="toggleFunc()">Change</a>
+						</div>
+						<div ng-show="showAll" class="site-vis-radios">
+							<div ng-repeat="(key, level) in privacyLevels" class="form-item form-type-radio">
+								<input id="privacy-level-{{key}}" type="radio" ng-model="vsite_private.value" value="{{key}}">
+								<label class="option" for="privacy-level-{{key}}" ng-bind-html="trustAsHtml(level)"></label>
+							</div>
+							<div class="help-link">
+								<a href="https://docs.openscholar.harvard.edu/global-site-settings#site-visibility" target="_blank">Learn more about site visibility</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div id="body-container-group-3" ng-show="vicariousUser">
+					<div class = "popup">
+						<div class = "popup">
+							<div><b>Desired user name</b></div>
+							<div><input type="text" ng-model="userName" class="form-text form-text-mini" ng-blur="checkUserName()"></div>
+							<div class="message error" ng-show="showUserError" ng-bind-html="userErrorMsg"></div>
+							<div>Spaces are allowed; punctuation is not allowed except for periods, hyphens, and underscores.</div>
+						</div>
+						<div class = "popup">
+							<div><b>First name</b></div>
+							<div><input type="text" ng-model="fname" class="form-text form-text-mini"></div>
+						</div>
+						<div class = "popup">
+							<div><b>Last name</b></div>
+							<div><input type="text" ng-model="lname" class="form-text form-text-mini"></div>
+						</div>
+						<div class = "popup">
+							<div><b>Email address</b></div>
+							<span><input type="text" ng-model="email" class="form-text form-text-mini" ng-blur="checkEmail()"></span>
+							<div class="message error" ng-show="showEmailError" ng-bind-html="emailErrorMsg"></div>
+							<div>A valid e-mail address is required. All e-mails from OpenScholar will be sent to this address.</div>
+						</div>
+						<div class = "popup">
+							<div><b>Password</b></div>
+							<div class="form-text-mini">
+								<input type="password" ng-model="password" class="form-text form-text-micro" autocomplete="off" ng-blur="checkPwd()">
+								<div class="message error" ng-show="showPwdError" ng-bind-html="pwdErrorMsg"></div>
+								<div class="password-strength-text">
+									<div>Password compliance: {{strength}}</div>
+									<div><meter value="{{score()}}" min="0" max="4" class="password-indicator"></meter></div>
+								</div>
+							</div>
+						</div>
+						<div class = "popup">
+							<div><b>Confirm password</b></div>
+							<div class="form-text-mini"><input type="password" ng-model="confirmPwd" class="form-text form-text-micro" autocomplete="off"><div class="password-strength-text">Password match : {{pwdMatch()}}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div id="tos" ng-show="tos">
+					<input type="checkbox" ng-model="tosChecked" id="tos-checkbox" required><label for="tos-checkbox">I agree to the <a href="{{tos}}" target="_blank">{{tos_label}}</a></label>
+				</div>
+
+			</div>
+
+			<div id ="footer-container">
+				<div id="pre">
+					&nbsp;
+				</div>
+				<div id="nxt">
+					<input type="button" class="preNxt stepnav" value="Next ►" ng-disabled="validateForms()" ng-click="navigatePage('page1','page2');">
+				</div>
+			</div>
+		</div>
+
+		<!-- Screen 2 Start -->
+		<div id="page-2" ng-show="page2">
+			<div id="header-container-page2">
+				<div id="header-container-group-1-page2">
+					<div class="step-container center">
+						<span class="step disable">1</span>
+					</div>
+					<div class="step-container center">
+						<span class="step enable">2</span>
+					</div>
+					<div class="step-container center">
+						<span class="step disable">3</span>
+					</div>
+				</div>
+
+				<div id="header-container-group-2-page2">
+					<div class="step-container center">
+						Type of Site
+					</div>
+					<div class="step-container center">
+						Starter Content Options
+					</div>
+					<div class="step-container center">
+						Theme and Finish
+					</div>
+				</div>
+
+				<div id="header-container-group-3-page-2">
+					<div class="center">
+						<h1>Choose a starter content option </h1>
+					</div>
+				</div>
+			</div>
+
+			<div id="body-container-page2">
+				<div id="body-container-group-page-2">
+					<div class="visibility">
+						
+
+							<div ng-hide="!departmentSchool" class="starter-content three">
+								<div ng-repeat="preset in presets('department')" class="form-item form-type-radio">
+									<h2 ng-bind-html="preset.title"></h2>
+									<div ng-bind-html="preset.description"></div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" ng-value="preset.name">
+										<span></span>
+									</label>
+								</div>
+								<!--<div class="form-item form-type-radio">-->
+									<!--<h2>Minimal</h2>-->
+									<!--<div>Blank site with no pre-set menu links or pages.</div>-->
+									<!--<label class="option">-->
+										<!--<input type="radio" ng-model="contentOption.value" value="os_department_minimal">-->
+										<!--<span></span></label>-->
+								<!--</div>-->
+								<!--<div class="form-item form-type-radio">-->
+									<!--<h2>Academic</h2>-->
+									<!--<div>Pre-set menu links and pages: Academics, Research, Activities, People, Resources, News &amp; Events, About</div>-->
+									<!--<label class="option">-->
+										<!--<input type="radio" ng-model="contentOption.value" value="os_department">-->
+										<!--<span></span></label>-->
+								<!--</div>-->
+								<!--<div class="form-item form-type-radio">-->
+									<!--<h2>Administrative</h2>-->
+									<!--<div>Pre-set menu links and pages: Services, Activities, People, Resources, News &amp; Events, About</div>-->
+									<!--<label class="option">-->
+										<!--<input type="radio" ng-model="contentOption.value" value="hwp_administrative">-->
+										<!--<span></span></label>-->
+								<!--</div>-->
+							</div>
+							
+
+							<div ng-hide="!individualScholar" class="starter-content two">
+								<div ng-repeat="preset in presets('personal')" class="form-item form-type-radio">
+									<h2 ng-bind-html="preset.title"></h2>
+									<div ng-bind-html="preset.description"></div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" ng-value="preset.name">
+										<span></span>
+									</label>
+								</div>
+								<!--<div class="form-item form-type-radio">
+									<h2>Minimal</h2>
+									<div>Blank site with no pre-set menu links or pages.</div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" value="os_scholar">
+										<span></span></label>
+								</div>
+								<div class="form-item form-type-radio">
+									<h2>Personal</h2>
+									<div>Pre-set menu links and pages: Bio, Classes, Publications</div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" value="hwp_personal">
+										<span></span></label>
+								</div>-->
+
+							</div>
+						
+
+							<div ng-hide="!projectLabSmallGroup" class="starter-content four">
+								<div ng-repeat="preset in presets('project')" class="form-item form-type-radio">
+									<h2 ng-bind-html="preset.title"></h2>
+									<div ng-bind-html="preset.description"></div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" ng-value="preset.name">
+										<span></span>
+									</label>
+								</div>
+								<!--<div class="form-item form-type-radio">
+									<h2>Minimal</h2>
+									<div>Blank site with no pre-set menu links or pages.</div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" value="os_project">
+										<span></span></label>
+								</div>
+								<div class="form-item form-type-radio">
+									<h2>Event/Conference</h2>
+									<div>Pre-set menu links and pages: Program, Speakers, Register, Logistics, About</div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" value="hwp_event_conference">
+										<span></span></label>
+								</div>
+								<div class="form-item form-type-radio">
+									<h2>Lab/Research Group</h2>
+									<div>Pre-set menu links and pages: Research, Publications, People, Resources, News &amp; Events, About</div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" value="hwp_lab_research_group">
+										<span></span></label>
+								</div>
+								<div class="form-item form-type-radio">
+									<h2>Project</h2>
+									<div>Pre-set menu links and pages: Overview, Activities, People, Resources, News &amp; Events, About</div>
+									<label class="option">
+										<input type="radio" ng-model="contentOption.value" value="hwp_project">
+										<span></span></label>
+								</div>-->
+							</div>
+
+					
+						<div class="visibility right">
+							<div class="help-link">
+								<a href="https://docs.openscholar.harvard.edu/set-up-your-site" target="_blank">Learn more about starter content options</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="footer-container">
+				<div id="pre">
+					<button type="button" class="preNxt stepnav" value="Back" ng-disabled="btnDisable == true"  ng-click="navigatePage('page2','page1');">◄ Back</button>
+				</div>
+				<div id="nxt">
+				<input type="button" class="preNxt stepnav" value=" Next ►" ng-disabled="btnDisable == true" ng-click="navigatePage('page2','page3');">
+				</div>
+			</div>
+		</div>
+
+		<!-- Screen 3 Start -->
+		<div id="page-3" ng-show="page3">
+			<div id="header-container-page3">
+				<div id="header-container-group-1-page3">
+					<div class="step-container center">
+						<span class="step disable">1</span>
+					</div>
+					<div class="step-container center">
+						<span class="step disable">2</span>
+					</div>
+					<div class="step-container center">
+						<span class="step enable">3</span>
+					</div>
+				</div>
+
+				<div id="header-container-group-2-page3">
+					<div class="step-container center">
+						Type of Site
+					</div>
+					<div class="step-container center">
+						Starter Content Options
+					</div>
+					<div class="step-container center">
+						Theme and Finish
+					</div>
+				</div>
+
+				<div id="header-container-group-3-page-3">
+					<div class="center">
+						<h1>Select a Theme, and Finish </h1>
+					</div>
+				</div>
+			</div>
+
+			<div id="body-container-page3">
+				<div id="body-container-group-page-3">
+					<div class="visibility">
+						<div ng-if="themes.single.length > 0" class="os-themes onepage-themes">
+							<h2>One page / horizontal homepage layout themes</h2>
+							<h3>Mobile-friendly themes with horizontal homepage regions. <a href="http://docs.openscholar.harvard.edu/one-page-themes">How to use these themes.</a>.</h3>
+							<ul>
+							<li ng-repeat="theme in themes.single" ng-class="{even: $even, odd: $odd, selected: selected == theme.themeKey + '-os_featured_flavor-' + theme.flavorKey}" class="cp-themes {{theme.themeKey}}" ng-click="setTheme(theme.themeKey, theme.flavorKey)">
+								<img ng-src="{{theme.screenshot}}" class="screenshot">
+								<div class="theme-info">
+									<span>{{theme.name}}</span>
+									<div ng-if="theme.flavorOptions.length > 0" class="cp-appearance-flavor-list">
+										Flavors
+										<div class="form-item form-type-select">
+											<select name="flavorSelect" ng-options="option.name for option in theme.flavorOptions track by option.key" ng-model="selectedOption" ng-change="changeSubTheme(selectedOption, theme.themeKey)"></select>
+										</div>
+									</div>
+								</div>
+							</li>
+						</ul>
+						</div>
+						<div ng-if="themes.featured.length > 0" class="os-themes featured-themes">
+							<h2 class="featured-scrolltop">Featured themes</h2>
+							<h3>Mobile-friendly themes using Harvard color palettes.</h3>
+							<ul>
+							<li ng-repeat="theme in themes.featured" ng-class="{even: $even, odd: $odd, selected: selected == theme.themeKey + '-os_featured_flavor-' + theme.flavorKey}" class="cp-themes {{theme.themeKey}}" ng-click="setTheme(theme.themeKey, theme.flavorKey)">
+								<img ng-src="{{theme.screenshot}}" class="screenshot">
+								<div class="theme-info">
+									<span>{{theme.name}}</span>
+									<div ng-if="theme.flavorOptions.length > 0" class="cp-appearance-flavor-list">
+										Flavors
+										<div class="form-item form-type-select">
+											<select name="flavorSelect" ng-options="option.name for option in theme.flavorOptions track by option.key" ng-model="selectedOption" ng-change="changeSubTheme(selectedOption, theme.themeKey)"></select>
+										</div>
+									</div>
+								</div>
+							</li>
+						</ul>
+						</div>
+						<div ng-if="themes.others.length > 0" class="os-themes others-themes">
+							<h2>Other themes</h2>
+							<ul>
+							<li ng-repeat="theme in themes.others" ng-class="{even: $even, odd: $odd, selected: selected == theme.themeKey + '-os_featured_flavor-' + theme.flavorKey}" class="cp-themes {{theme.themeKey}}" ng-click="setTheme(theme.themeKey, theme.flavorKey)">
+								<img ng-src="{{theme.screenshot}}" class="screenshot">
+								<div class="theme-info">
+									<span>{{theme.name}}</span>
+									<div ng-if="theme.flavorOptions.length > 0" class="cp-appearance-flavor-list">
+										Flavors
+										<div class="form-item form-type-select">
+											<select name="flavorSelect" ng-options="option.name for option in theme.flavorOptions track by option.key" ng-model="selectedOption" ng-change="changeSubTheme(selectedOption, theme.themeKey)"></select>
+										</div>
+									</div>
+								</div>
+							</li>
+						</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div id="footer-container">
+				<div id="pre">
+					<input type="button" class="preNxt stepnav" value="◄ Back" ng-disabled="btnDisable == true"  ng-click="navigatePage('page3','page2');">
+				</div>
+				<div id="nxt">
+					<button type="button" class="preNxt" ng-show="siteCreated == false" ng-click="saveAllValues();" button-spinner="site_creation_form" spinning-text="Saving">Finish</button>
+					<input type="button" class="preNxt" value="Take me to my site" ng-show="siteCreated == true"  ng-click="navigateToSite();">
+				</div>
+			</div>
+		</div>
+		<form>
+</div>

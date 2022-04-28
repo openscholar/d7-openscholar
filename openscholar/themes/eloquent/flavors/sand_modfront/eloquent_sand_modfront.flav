@@ -1,0 +1,5 @@
+name = Sand Modified Front
+description = A beige Version of with a modified front
+screenshot = screenshot.png
+
+css[] = sand_modfront.css

@@ -1,0 +1,176 @@
+@import url(https://fonts.googleapis.com/css?family=News+Cycle);
+
+body {
+	font-family:arial;color: #444;
+}
+
+h1,h2,h3,h4,
+h1 a,h2 a,h3 a,h4 a,
+#boxes-box-site_info a, 
+h1.page-title, 
+ h1#page-title {
+	font-family:'News Cycle',arial !important;
+}
+
+.not-front #content-column p,
+#content-column p,
+#content-column li,
+.cke_editable * {
+	font-family:georgia;
+}
+
+#boxes-box-site_info {
+	color: #777;
+}
+
+#boxes-box-site_info h1 a {
+	font-weight:bold;
+	font-size:30px;
+	color: #D16103;
+}
+
+#boxes-box-site_info h1 + h2 {
+margin-bottom: 0;
+}
+
+#boxes-box-site_info p {
+margin-bottom: 20px;
+font-family:arial;
+font-size: 15px;
+}
+
+#boxes-box-site_info p a {
+color:#215990;
+}
+
+h1#page-title {
+	color:#D16103;
+	font-size: 27px;
+}
+
+#menu-bar {
+  background: #D16103;
+}
+
+
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover {
+  background: #F3F3F1;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active {
+    background-color: #F3F3F1;
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+  background-position: -12px -566px; /* Blue Arrow */
+}
+
+#menu-bar ul.nice-menu ul {
+  background:#F3F3F1;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a.active,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover,
+#menu-bar ul.nice-menu .menuparent ul li a,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover, 
+#menu-bar ul.nice-menu .menuparent a.active {
+  color: #215990;
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover {
+  color: #4E84C4;
+}
+
+#header {
+  background: #F3F3F1;
+}
+
+.region-header-third ul.nice-menu a {
+  color: #215990;
+}
+
+
+#footer {
+background: #434343;
+color:#FFF;
+border-top: 6px solid #777;
+}
+
+
+#footer a {
+color:#FFF;
+}
+
+
+.section-nav .menu-depth-1 > a {
+background-color: #8996A0 !important;
+}
+
+.section-nav .expanded.menu-depth-2 > a {
+background-color: #999;
+}
+
+.section-nav .expanded.menu-depth-2 > a:hover {
+background-color: #777 !important;
+}
+
+
+div.tweets-pulled-listing div.tweet-divider,
+.front #content-column .block, 
+.node-person .block-inner, 
+.comment-wrapper,
+#content-column .block.block-boxes-os_boxes_manual_list {
+border-top: 1px dotted #999;
+
+}
+
+#footer ul.menu li a.menu-heading,
+h2.block-title {
+font-size: 1.14em;
+}
+
+.node-type-person #content-column .node-person h2.block-title, 
+.sidebar .block h2.block-title {
+background: #F3F3F1;
+color: #000;
+font-size: 1.14em;
+line-height: 18px;
+}
+
+
+.search-block-form .form-item label,
+#search-block-form .form-item label {
+color: #3d3d3d;
+}
+
+a.rslides_nav {
+background-color: #D16103;
+}
+
+a.node-readmore {font-weight:normal !important;}
+
+
+#footer .footer-login {
+background: none;
+border-left: none;
+color: #57ACFF;
+text-shadow: none;
+padding: 0;
+font-size: 13px;
+}
+
+.ui-tabs ul.ui-tabs-nav li.ui-tabs-active {
+background: #D16103 !important;
+}
+.search-block-form input.form-submit, .search-block-form #edit-submit,
+#search-block-form input.form-submit, #search-block-form #edit-submit, #search-form #edit-submit {
+  background-position: 2px -440px;
+  background-color: #D16103;
+}

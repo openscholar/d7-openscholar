@@ -1,0 +1,5 @@
+name = Fall Day
+description = Version of the scholor-theme-12 theme showing a fall day
+screenshot = screenshot.png
+
+css[] = fall-day.css

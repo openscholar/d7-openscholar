@@ -1,0 +1,34 @@
+default:
+  context:
+    parameters:
+      drupal_users:
+        admin:
+          'admin'
+        john:
+          'jfk'
+        michelle:
+          'FourMoreYears'
+        bill:
+          'clinton'
+        alexander:
+          'bell'
+        demo:
+          'demo'
+        bruce:
+          'bruce'
+        klark:
+          'klark'
+      # the node ID of the group
+      vsite:
+        2
+
+  extensions:
+    Behat\MinkExtension\Extension:
+      base_url:  http://localhost
+      files_path: "/var/www/html/openscholar/behat/features/files"
+    Drupal\DrupalExtension\Extension:
+      drupal:
+        drupal_root: "/var/www/html/www"
+      api_driver: "drupal"
+      drush:
+        alias: self

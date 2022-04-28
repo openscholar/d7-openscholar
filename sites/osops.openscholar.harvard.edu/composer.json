@@ -1,0 +1,16 @@
+{
+  "name": "osops",
+  "require": {
+    "openscholar/osops" : "1.4.1"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@bitbucket.org:openscholar/osops.git"
+    }
+  ],
+  "config": {
+    "vendor-dir": "~/src/amazon/web/sites/osops.openscholar.harvard.edu/modules",
+    "discard-changes": true
+  }
+}

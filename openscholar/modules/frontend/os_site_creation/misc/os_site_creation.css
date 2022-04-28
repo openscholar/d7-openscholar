@@ -1,0 +1,375 @@
+
+site-creation-form.ng-isolate-scope {
+    cursor: pointer;
+}
+
+#site-creation-container .preNx {
+    -webkit-transition: all .125s linear;
+    -moz-transition: all .125s linear;
+    -o-transition: all .125s linear;
+    transition: all .125s linear;
+}
+.help-link {
+    display: block;
+    text-align: right;
+    clear: both;
+    padding: 17px 0 5px 0;
+}
+#site-creation-container {
+
+    line-height: 1.4;
+    margin: auto;
+    width: 60%;
+    padding: 20px;
+}
+#site-creation-container h1 {
+    font-size: 2em;
+}
+#site-creation-container h2 {
+    font-size: 1.4em;
+    line-height: 1.1em;
+}
+.visibility {
+    width: 100%;
+}
+#site-creation-container h2,
+#site-creation-container,
+#site-creation-container a:hover.button,
+#site-creation-container a.button,
+#site-creation-container .popup.site-type_nameurl,
+.starter-content .form-type-radio,
+.os-themes ul{
+	margin: 0;
+	
+}
+h1,
+h2,
+h3 {
+    font-weight: normal;
+}
+#site-creation-container a,
+#site-creation-container .preNxt {
+    color: #215990;
+}
+#body-container-group-2 {
+    margin-top: -25px;
+}
+#site-creation-container #header-container-page-1,
+#site-creation-container #header-container-page2,
+#site-creation-container #header-container-page3 {
+    padding: 5px;
+}
+.site-type-button {
+    padding-bottom: 20px;
+}
+
+
+#site-creation-container #header-container-group-3-page-3,
+#site-creation-container #header-container-group-3-page-2,
+#site-creation-container #header-container-group-3 {
+    margin: 100px 5px 20px;
+}
+
+.stepnav,
+.site-vis-radios,
+.starter-content .form-type-radio,
+#site-creation-container .step.disable,
+#site-creation-container .site-type,
+#site-creation-container #body-container-group-3 {
+    background-color: #f5f5f5;
+}
+.os-themes,
+#site-creation-container #footer-container div#pre,
+#site-creation-container .step-container,
+#site-creation-container .left,
+.os-themes .cp-themes {
+    float: left;
+}
+.os-themes .theme-info .form-type-select,
+.os-themes .theme-info .cp-appearance-flavor-list,
+#site-creation-container .right {
+    float: right;
+}
+.starter-content .form-type-radio {
+    position: relative;
+}
+.starter-content .form-type-radio {
+
+    margin-right: 25px;
+    padding: 15px;
+    height: 150px;
+
+}
+.starter-content.four .form-type-radio {
+    height: 190px;
+}
+.site-vis-radios {
+    width: 63%;
+    padding: 1px 10px 7px;
+  
+}
+#site-creation-container .site-type:last-child,
+.starter-content .form-type-radio:last-child {
+    margin-right: 0;
+}
+.starter-content.four .form-type-radio {
+    width: 25%;
+}
+.starter-content.two .form-type-radio {
+    width: 50%;
+}
+.starter-content.three .form-type-radio {
+    width: 30%;
+}
+.starter-content label {
+    background-color: #EFEFEF;
+    border-radius: 2px;
+    position: absolute;
+    bottom: 20px;
+}
+.starter-content label span {
+    text-align: center;
+    padding: 8px 16px;
+    display: block;
+}
+.starter-content label input {
+    position: absolute;
+    top: -1000px;
+}
+.starter-content input ~ span {
+    background-color: #888;
+    color: #fff;
+    border-radius: 2px;
+  
+}
+.starter-content input ~ span:hover,
+.starter-content input:checked ~ span {
+    background-color: #444;
+    color: #FFF;
+}
+.starter-content input ~ span:after {
+    content: 'Select';
+}
+.starter-content input:checked ~ span:after {
+    content: '✓ Selected';
+}
+#site-creation-container .step-container {
+    padding: 3px 10px;
+    width: 30%;
+    font-size: 1.2em;
+}
+#footer-container,
+#site-creation-container .clear {
+    clear: both;
+}
+#site-creation-contajiner .preNxt, #site-creation-container .step, #site-creation-container a.button, #site-creation-container a:hover.button, #site-creation-container .center {
+    text-align: center;
+}
+
+#site-creation-container .preNxt, #site-creation-container .step, #site-creation-container a:hover.button, #site-creation-container a.button, #site-creation-container .site-type {
+    display: inline-block;
+}
+.starter-content {
+	display: -webkit-flex;
+    display: flex;
+}
+#site-creation-container #body-container-group-3 {
+    margin: 5px;
+}
+.stepnav,
+#site-creation-container .step,
+#site-creation-container a:hover.button,
+#site-creation-container a,
+#site-creation-container a:visited,
+#site-creation-container a.button {
+    text-decoration: none;
+}
+#site-creation-container a:hover.button,
+#site-creation-container a.button {
+    background: none;
+}
+
+#site-creation-container #body-container-group-1 {
+    display: flex;
+}
+
+#site-creation-container .site-type {
+    padding: 75px 0 0 0;
+    flex: 1 1 0;
+    margin: 0 25px 0 0;
+    background-repeat: no-repeat;
+    background-position: 50% -3px;
+    background-size: 86px;
+
+}
+#site-creation-container .site-type.individual {
+    background-image:url('images/individual.svg');
+}
+#site-creation-container .site-type.group {
+    background-image:url('images/group.svg');
+}
+#site-creation-container .site-type.department {
+    background-image: url('images/building.svg');
+    background-size: 75.25px;
+    background-position: 50% 1px;
+}
+#site-creation-container .popup.site-type_nameurl {
+    border-top: 2px solid #fff;
+}
+#site-creation-container .url-selector span:first-child {
+    padding: 7px;
+}
+
+#site-creation-container .url-selector span:last-child {
+    display: block;
+    overflow: hidden;
+}
+
+#site-creation-container .site-type input.form-text {
+    width: 90%;
+}
+#site-creation-container a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+#site-creation-container a.button {
+
+    background-color: #888;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+ 
+}
+#site-creation-container a:hover.button {
+
+    background-color: #444;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+}
+#site-creation-container #footer-container div#pre {
+    padding: 10px 0 0;
+    width: 200px;
+}
+#site-creation-container #footer-container div#nxt {
+    padding: 10px 0 0;
+    /* width: 100px; */
+    text-align: right;
+}
+#site-creation-container .popup {
+    margin: 0px 5px;
+    padding: 8px;
+    text-align: left;
+}
+#site-creation-container .error-msg {
+    color: red;
+    padding: 5px;
+}
+#site-creation-container .step {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    height: 50px;
+    width: 50px;
+    font-size: 18px;
+    line-height: 50px;
+}
+#site-creation-container .step.enable {
+    background-color: #4CAF50;
+}
+#site-creation-container .step.disable {
+    color: #333;
+}
+#site-creation-container .preNxt {
+    border: none;
+    padding: 10px 16px;
+}
+
+#footer-container #nxt {
+    float: right;
+}
+#site-creation-container .preNxt:disabled {
+    color: #8c8c8c;
+}
+#site-creation-container p {
+    margin: 1em 0;
+    padding: 0;
+}
+#site-creation-container #body-container-page3 {
+    overflow: scroll;
+    height: 500px;
+}
+
+#site-creation-container .visibility span b *{
+    display: none;
+}
+
+.os-themes .cp-themes {
+    padding: 0;
+    margin: 3px 20px 20px 3px;
+    display: inline-block;
+    vertical-align: top;
+    width: 250px;
+    height: 250px;
+    position: relative;
+    -moz-box-shadow: 0 0 7px #888;
+    -webkit-box-shadow: 0 0 7px #888;
+    box-shadow: 0 0 7px #888;
+    color: #fff;
+}
+.os-themes .cp-themes.selected {
+     border: 3px solid #93b16b;
+     margin: 0px 17px 17px 0px;
+}
+.os-themes .theme-info {
+    position: absolute;
+    background: #888;
+
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 12px;
+ 
+}
+
+.os-themes .cp-themes.selected  .theme-info {
+    position: absolute;
+    background: #93b16b;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 17px 12px 0px;
+}
+
+.os-themes .cp-themes.selected .theme-info:before {
+    position: absolute;
+    content: 'Selected Theme';
+    top: 3px;
+    font-weight: bold;
+}
+
+.cp-themes .screenshot {
+    width: 250px;
+}
+
+.os-themes .theme-info .cp-appearance-flavor-list {
+    text-align: right;
+}
+.os-themes .theme-info .form-type-select {
+    margin: -4px 0 0 10px;
+    width: 60%;
+    padding: 2px 0;
+}
+.os-themes .theme-info .form-type-select select {
+    max-width: 90px;
+}
+.ui-dialog .ui-dialog-titlebar button.ui-dialog-titlebar-close {
+    margin: -8px 15px 0;
+}
+
+#site-creation-container #tos input + label {
+    display: inline-block;
+    padding-left: 5px;
+}

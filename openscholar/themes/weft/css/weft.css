@@ -1,0 +1,218 @@
+/* D6 retro css for older themes */
+#columns {padding:0 10px;}
+
+
+html,body, #page {
+  height:100%;
+  }
+
+body {
+  background:#3C240C;
+  color:#282828;
+
+  }
+
+#columns {
+  background: #FCF5E5;
+  padding-bottom: 30px;
+  }
+
+#extradiv {
+  background: url('../images/fabric-strip.jpg') repeat-y 50% 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 134px;
+  left:50%;
+  margin-left:-609px;
+  -webkit-box-shadow: 0 0 20px #000;
+  -moz-box-shadow: 0 0 20px #000;
+  box-shadow: 0 0 20px #000;
+  }
+
+#header-container,  #block-os-primary-menu, #columns, #footer {
+    padding: 0 0 0 30px;
+    margin: 0 auto;
+    }
+    
+.sidebar #block-os-primary-menu {
+    padding: 0 0 0 1px;
+    }   
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+    color:#B8690B;
+    text-decoration: none;
+    }
+
+a:hover {
+    color:#000;
+    }
+
+h1,.title,
+#menu-bar li {
+  font: 25px/normal georgia, serif;
+  text-transform:uppercase;
+  font-weight:normal;
+  }
+
+h1 a,
+h1 a:visited {
+  color: #FBF3E6;
+  }
+  
+h1.node-title a {
+	color: #B8690B;
+    text-decoration: none;
+     font-size: 0.9em;
+}
+
+h2,
+h3,
+.region-sidebar-second a,
+#menu-bar,
+#header-container {
+    font-weight: normal;
+    }
+
+h3 a,
+.region-sidebar-second a {
+    font-style: bold;
+    }
+
+h2,
+h3,
+h4 {
+  margin-bottom: 0;
+  margin-top: 1em;
+  }
+
+h1#page-title,
+h2.block-title {
+  margin-bottom: 1em;
+  color: #444;
+  font-size: 1.2em;
+  letter-spacing:0;
+  }
+
+h2.block-title {
+  font-size: 1em;
+  color: #444444;
+  font-family:none;
+  text-transform:uppercase;
+  }
+  
+
+.node-inner .title strong a {
+font-size:12px;
+}
+
+/* LAYOUT ELEMENTS */
+
+
+#boxes-box-site_logo img {
+  width: 120px;
+  }
+
+
+.region-sidebar-second .region-inner {
+    border-left: 1px solid #ccc;
+ 
+    }
+
+
+#powered-by a {
+    background-position:-14px -546px ;
+ 
+}
+
+/* HEADER ELEMENTS */
+
+#header-container {
+  padding: 0 0 10px 10px;
+  }
+
+#header-container, 
+#header-container h1,
+#header-container h2,
+#header-container h3,
+#header-container a,
+#header-container a:visited {
+  color:#fff;
+  text-transform: uppercase;
+  line-height: normal;
+  }
+
+#header-container p a,
+#header-container p a:visited {
+  text-decoration: none;
+  font-size: 12px;
+  }
+
+#header-container h2 {
+  font-size: 14px;
+  margin-top:0;
+  }
+
+#menu-bar {
+  min-height: 41px;
+  background: url('../images/menu-strip.png') repeat-x 0 0 #D29E20;
+  padding:0;
+  }
+
+#scholar-shield {
+  width: 65px;
+  }
+
+#menu-bar #block-os-primary-menu {
+  padding:0;
+  }
+
+#menu-bar li {
+    font-size: 14px;
+    line-height: 24px;
+    float:left;
+    margin-top:13px;
+    }
+
+#menu-bar li a,
+#menu-bar li a:visited {
+    color: #523507;
+    border: none;
+    display: block;
+    padding: 3px 10px 0 10px;
+    font-weight: normal;
+    }
+
+#menu-bar ul li:hover,
+#menu-bar ul ul li:hover,
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar .active-trail a {
+    color:#fff;
+    background: #b8690c;
+    text-decoration: none;
+    }
+
+/* NICE MENUS */
+ul.nice-menu ul {
+    top: 2em;
+    border-top:none;
+    background: #b8690c;
+}
+
+#menu-bar ul.nice-menu ul li {
+    line-height: auto;
+    margin-top:auto;
+    }
+
+
+ul.nice-menu li a {
+    color:#FFF;
+}
+
+.sidebar ul.menu li a {
+    color:#B8690B;
+}
+
+

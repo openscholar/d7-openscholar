@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * Implements hook_enable()
+ */
+function os_landing_page_enable(){
+  //Change default frontpage
+  $value = 'os/frontpage';
+  variable_set('site_frontpage', $value);
+  //All variables below this line contains dummy values, please update them with real values before switching to production
+  variable_set('landing_page_path_to_logo', 'https://theopenscholar.com/files/theoscom/files/os-website-logo.png');
+  variable_set('landing_page_school_primary_color', '#000000');
+  variable_set('landing_page_name_of_school', 'OpenScholar');
+  variable_set('landing_page_university_base_url', 'https://theopenscholar.com/');
+  variable_set('landing_page_university_name', 'OpenScholar');
+  variable_set('landing_page_copyright_infring', '');
+  variable_set('landing_page_site_access', '');
+  variable_set('landing_page_site_privacy', '');
+}
+
+/**
+ * Implements hook_disable()
+ */
+function os_landing_page_disable(){
+  //Change default frontpage
+  $value = 'home';
+  variable_set('site_frontpage', $value);
+  variable_del('landing_page_path_to_logo');
+  variable_del('landing_page_school_primary_color');
+  variable_del('landing_page_name_of_school');
+  variable_del('landing_page_university_base_url');
+  variable_del('landing_page_university_name');
+  variable_del('landing_page_copyright_infring');
+  variable_del('landing_page_site_access');
+  variable_del('landing_page_site_privacy');
+}

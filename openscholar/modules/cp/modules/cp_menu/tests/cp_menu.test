@@ -1,0 +1,128 @@
+<?php
+/**
+ * Basic tests for OS Pages.
+ */
+class CPMenuTestCase extends OSProfileTestCase {
+  protected $user1;
+  protected $node1;
+
+  public static function getInfo(){
+    return array(
+        'name' => t('CP Menu'),
+        'description' => t('Test CP Menu form.'),
+        'group' => t('Control Panel')
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp() {
+    parent::setUp('spaces', 'og', 'spaces_og', 'vsite', 'ctools', 'cp_menu');
+
+
+    // Create a user with access to add a link
+    $this->user1 = $this->drupalCreateUser();
+
+    //Create A Group Node
+    $node1 = array(
+        'title' => 'My Test Page',
+        'type' => 'page',
+        'uid' => $this->user1->uid,
+    );
+    $this->node1 = $this->drupalCreateNode($node1);
+  }
+
+  /**
+   * Check that cp_menu wizard cache stores, retrieves, and clears its cache.
+   */
+  public function testCache() {
+    require_once(drupal_get_path('module', 'cp_menu') . '/cp_menu.wizard.inc');
+    $id = 'cp_menu_test_cache';
+    $data = array('a', 'b', 'c', '1', '2', '3');
+
+    $cached = cp_menu_cache_get($id);
+    $this->assertEqual($cached, array(), 'Empty cache is empty');
+
+    unset($cached);
+    cp_menu_cache_set($id, $data);
+    $cached = cp_menu_cache_get($id);
+    $this->assertEqual($cached, $data, 'Cache stores data');
+
+    unset($cached);
+    cp_menu_cache_clear($id);
+    $cached = cp_menu_cache_get($id);
+    $this->assertEqual($cached, array(), 'Cache can be cleared between sessions');
+  }
+
+  public function testFormInternalUrlValidation() {
+    drupal_get_messages('error'); //clear the errors array
+    $form = null;
+
+
+    $state = array('values'=>array('url'=>'node'));
+    cp_menu_url_validate(&$form, &$state);
+    $errors = drupal_get_messages('error');
+    $this->assertEqual($errors, array(), 'Real local url does validate.');
+
+    $state = array('values'=>array('url'=>'this_url_is_fake'));
+    cp_menu_url_validate(&$form, &$state);
+    $errors = drupal_get_messages('error');
+    $this->assertNotEqual($errors, array(), 'Fake local url does not validate.');
+
+  }
+
+  public function testFormExternalUrlValidation() {
+    drupal_get_messages('error'); //clear the errors array
+    $form = null;
+
+    $state = array('values'=>array('url'=>'http://asdfjklzxckjvhzlkxcvhjzkxcjhvzkxjcvh.mil'));
+    cp_menu_url_validate(&$form, &$state);
+    $errors = drupal_get_messages('error');
+    $this->assertNotEqual($errors, array(), 'Fake external url does not validate.');
+
+    $state = array('values'=>array('url'=>'http://google.com'));
+    cp_menu_url_validate(&$form, &$state);
+    $errors = drupal_get_messages('error');
+    $this->assertEqual($errors, array(), 'Real external url does validate.');
+  }
+
+  public function testNodeMenu() {
+
+    $node = $this->node1;
+    $node->os_menu = array(
+      'enabled' => 1,
+      'parent' => 'primary-menu',
+      'link_title' => 'foo',
+    );
+
+    //check that node insert creates path
+    cp_menu_node_insert($node);
+    $path = os_menu_load_link_path('node/' . $node->nid);
+    $inserted = (count($path) && $path['menu_name'] == 'primary-menu');
+    $this->assertTrue($inserted, 'cp_menu added node link to primary menu');
+
+    //node update should move path
+    $node->os_menu['parent'] = 'secondary-menu';
+    $node->os_menu['dirty'] = $node->os_menu['delete'] = TRUE;
+    cp_menu_node_update($node);
+    $path = os_menu_load_link_path('node/' . $node->nid);
+    $inserted = (count($path) && $path['menu_name'] == 'secondary-menu');
+    $this->assertTrue($inserted, 'cp_menu moved link from primary to secondary menu');
+
+    //disabling the menu deletes the link
+    $node->os_menu['dirty'] = TRUE;
+    $node->os_menu['enabled'] = 0;
+    cp_menu_node_update($node);
+    $path = os_menu_load_link_path('node/' . $node->nid);
+    $this->assertFalse($path, 'cp_menu deleted link path');
+
+    //as does deleting the node
+    $node->os_menu['enabled'] = 1;
+    $node->os_menu['dirty'] = TRUE;
+    cp_menu_node_update($node);
+    cp_menu_node_delete($node);
+    $path = os_menu_load_link_path('node/' . $node->nid);
+    $this->assertFalse($path, 'cp_menu deleted link path on node deletion');
+  }
+}

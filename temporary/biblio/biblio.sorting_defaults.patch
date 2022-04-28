@@ -1,0 +1,50 @@
+diff --git a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+index c326b86..0e8cc9e 100644
+--- a/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
++++ b/profiles/openscholar/modules/contrib/biblio/includes/biblio.pages.inc
+@@ -216,9 +216,9 @@ function biblio_page_content($nids = array(), $extras = array()) {
+   $content['pager']['#markup'] = theme(variable_get('biblio_pager, 'pager'));
+   if ($count == 0) {
+     $content['message']['#markup'] = "<h3>" . t("No items found") . "</h3>";
+-    if (strstr($content, "Filters:")) {
+-      $content['message']['#markup'] .= t('!modify_link or !remove_link your filters and try again.', array('!modify_link' => l(t('Modify'), "$base/filter"), '!remove_link' => l(t('remove'), "$base/filter/clear")));
+-    }
++    //if (strstr($content, "Filters:")) {
++    //  $content['message']['#markup'] .= t('!modify_link or !remove_link your filters and try again.', array('!modify_link' => l(t('Modify'), "$base/filter"), '!remove_link' => l(t('remove'), "$base/filter/clear")));
++    //}
+   }
+   return $content;
+ }
+@@ -282,7 +282,7 @@ function biblio_entry($node) {
+     );
+   }
+ 
+-  drupal_alter('biblio_entry', $entry);
++  drupal_alter('biblio_entry', $entry, $node);
+ 
+   return $entry;
+ }
+@@ -557,6 +557,13 @@ function _biblio_sort_tabs() {
+   $uri['path'] = variable_get('biblio_base', 'biblio');
+   if (substr($uri['path'], 0, 1) == '/') $uri['path'] = substr($uri['path'], 1);
+ 
++  $default = array(
++    'author' => 'asc',
++    'title' => 'asc',
++    'type' => 'asc',
++    'year' => 'desc',
++    'keyword' => 'asc',
++  );
++
+   if (isset($uri['query']['s'])) {
+     $sort = $uri['query']['s'];
+   }
+@@ -595,7 +602,7 @@ function _biblio_sort_tabs() {
+     }
+     elseif ($key === $title ) {
+       $uri['query']['s'] = $title;
+-      $uri['query']['o'] = $order;
++      $uri['query']['o'] = $default[$title];
+       $uri['active'] = FALSE;
+       $uri['pfx'] = ' ';
+       $uri['sfx'] = ' ';

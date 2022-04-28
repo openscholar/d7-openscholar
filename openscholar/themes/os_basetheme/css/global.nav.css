@@ -1,0 +1,934 @@
+/**
+ * @file
+ * Navigation Styling
+ */
+
+a {} a:link {} a:visited {} a:hover {} a:active {} a.active {}
+/* Global focus style for links. */
+
+a:active,
+a:focus {}
+/*
+ * Primary, Secondary and Menu Bar region menus
+ * Use one of the following id's for granular control:
+ * #menu-bar (menu bar region)
+ * #primary-menu (main menu)
+ * #secondary-menu (secondary/user menu)
+ * You can target all of these with .nav or div[id$="menu-bar"]
+ */
+
+.nav {
+    clear: both;
+    margin: 0;
+}
+.nav ul.menu {
+    margin: 0;
+}
+.nav li,
+.nav .menu li {
+    display: inline;
+    float: left;
+    list-style: none;
+}
+.nav li a,
+.nav .menu li a {
+    display: block;
+    white-space: nowrap;
+    padding: 0 10px;
+}
+.lt-ie9 .nav li a,
+.lt-ie9 .nav .menu li a {
+    white-space: normal;
+}
+.nav ul,
+.nav ul.menu,
+.nav ul.menu li {
+    margin: 0;
+    padding: 0;
+}
+/* Menu bar block */
+
+.nav .block {
+    margin-bottom: 0;
+}
+/*
+ * Superfish
+ */
+
+ul.sf-menu {
+    margin-bottom: 0;
+}
+ul.sf-menu a {
+    border-left: 0;
+    border-top: 0;
+    padding: 0 10px;
+    text-decoration: none;
+    height: 2.5em;
+    line-height: 2.5em;
+}
+ul.sf-menu a:link,
+ul.sf-menu a:visited {} ul.sf-menu li:hover,
+ul.sf-menu li.sfHover,
+ul.sf-menu a:focus,
+ul.sf-menu a:hover,
+ul.sf-menu a:active {
+    outline: 0;
+}
+/* Prevent momentary display of sub menus
+ul.sf-vertical li ul,
+ul.sf-horizontal li ul,
+ul.sf-navbar li ul ul {
+  display: none;
+}
+*/
+/* Superfish blocks */
+
+.block-superfish .block-inner,
+.block-superfish .block-inner .content {} .block-superfish ul,
+.block-superfish ul ul,
+.block-superfish ul ul ul,
+.block-superfish ul ul ul ul,
+.block-superfish li {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* Vertical style */
+
+.sf-vertical,
+.sf-vertical li {
+    width: 100%;
+}
+.sf-vertical li {} .sf-vertical li.last {} .sf-vertical li:hover ul,
+.sf-vertical li.sfHover ul {
+    left: 100%;
+    /* match ul width */
+    
+    top: 0;
+    margin: 0;
+    padding: 0;
+}
+.sf-vertical li a {
+    padding: 0 10px;
+}
+/* Navbar style */
+
+.sf-navbar {
+    padding-bottom: 0 !important;
+}
+/* Sensible padding for the default style */
+
+.sf-menu.sf-style-default a {
+    padding: 0 10px;
+}
+/*
+ * Menus
+ */
+
+ul.menu {
+    margin-left: 15px;
+}
+.sidebar ul.menu {
+    margin-left: 0;
+}
+ul.menu ul,
+ul.menu ul ul,
+ul.menu ul ul ul {
+    /* margin-left: 15px;*/
+}
+.sidebar ul.menu ul,
+.sidebar ul.menu ul ul,
+.sidebar ul.menu ul ul ul {
+    margin-left: 0;
+}
+ul.menu li {
+    margin: 0;
+}
+ul.menu li.collapsed {} ul.menu li.expanded {} .sidebar ul li.collapsed,
+.sidebar ul li.leaf {
+    list-style-image: none;
+    list-style-type: none;
+}
+ul.menu li a:link,
+ul.menu li a:visited {} ul.menu li a:hover,
+ul.menu li a:focus,
+ul.menu li a:active {} ul.menu li.active a {} ul.menu li.active-trail a {} ul.menu li.first {} ul.menu li.last {} .block .menu li.content {
+    padding: 0;
+    /* this class (if it exists) could be a problem so reset the padding */
+}
+
+/* Breadcrumbs as an ordered list */
+
+.breadcrumb {
+    margin: 15px 0 0 15px;
+}
+.node-type-page .breadcrumb {
+    margin: 15px 0 12px;
+}
+#breadcrumb {
+    padding-bottom: 1em;
+}
+#breadcrumb ol {
+    margin: 0;
+    padding: 0;
+}
+#breadcrumb li {
+    list-style: none;
+    display: inline;
+}
+#breadcrumb a {} #breadcrumb a:link,
+#breadcrumb a:visited {} #breadcrumb a:hover,
+#breadcrumb a:focus,
+#breadcrumb a:active {}
+/* Pager */
+
+.view-content ~ .item-list ul.pager {
+    margin-top: 30px !important;
+    letter-spacing: -1em;
+}
+.view-content ~ .item-list ul.pager li.pager-current,
+.view-content ~ .item-list ul.pager li:hover {
+    background-color: #efefef;
+}
+.view-content ~ .item-list ul.pager li a:hover {
+    text-decoration: none;
+}
+li.pager-previous + li.pager-ellipsis {
+    display: none;
+}
+.view-content ~ .item-list ul.pager li {
+    border-left: 1px solid #dededc;
+    border-top: 1px solid #dededc;
+    border-bottom: 1px solid #dededc;
+    letter-spacing: normal;
+    padding: 0.7em;
+}
+.pager.mini-pager,
+.view-content ~ .item-list ul.pager.mini-pager li {
+    border-left: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+
+}
+.view-content ~ .item-list ul.pager li.pager-first {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+.view-content ~ .item-list ul.pager li.pager-last {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-right: 1px solid #dededc;
+}
+.view-content ~ .item-list ul.pager li.pager-next,
+.view-content ~ .item-list ul.pager li.pager-previous {
+	font-weight: bold;
+	}
+
+ul.mini-pager > li {
+    border: none !important;
+}
+ul.mini-pager li.pager-next,
+ul.mini-pager li.pager-previous {
+    font-weight: normal !important;
+}
+ul.mini-pager li.pager-current, 
+ul.mini-pager li:hover {
+    background-color: transparent !important;
+}
+
+ul.mini-pager li.pager-next,
+ul.mini-pager li.pager-previous {
+	padding:0 !important;
+}
+
+/* Throbber */
+
+.ajax-progress {
+    float: left;
+    /* LTR */
+}
+.ajax-progress .throbber {
+    background: transparent url('../images/throbber.gif') no-repeat 0px 0;
+    float: left;
+    /* LTR */
+    
+    height: 11px;
+    margin: 4px 2px;
+    width: 16px;
+}
+.sidebar .ajax-progress .throbber {
+    margin: 4px -17px -11px 2px;
+}
+tr .ajax-progress .throbber {
+    margin: 0 2px;
+}
+.ajax-progress-bar {
+    width: 16em;
+}
+/* Theme the various states of pager links. */
+
+ul.pager li a:link,
+ul.pager li a:visited {} ul.pager li a:hover,
+ul.pager li a:focus,
+ul.pager li a:active {} .item-list .pager li {
+    padding: 0.3em;
+}
+/* Note: .pager-current is for the current page. */
+
+ul.pager li.pager-current {
+    font-weight: bold;
+}
+.view-publication-contributors ul.pager li.pager-next a,
+.view-publication-contributors ul.pager li.pager-previous a,
+.view-id-publication_types ul.pager li.pager-next a,
+.view-id-publication_types ul.pager li.pager-previous a,
+.view-id-publication_years ul.pager li.pager-next a,
+.view-id-publication_years ul.pager li.pager-previous a {
+    font-size: 1.5em;
+    text-decoration: none !important;
+}
+/* Skip Navigation */
+
+#skip-link {
+    left: 50%;
+    margin-left: -6.5em;
+    margin-top: 0;
+    padding: 0 0.5em;
+    position: absolute;
+    width: 12em;
+    z-index: 50;
+}
+#skip-link a,
+#skip-link a:link,
+#skip-link a:visited {
+    background: #444;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    display: block;
+    line-height: 2;
+    padding: 0;
+    text-align: center;
+    text-decoration: none;
+}
+
+/* Tabs */
+
+#tasks {
+    margin-bottom: 1em;
+}
+ul.primary {
+    border-bottom-color: #ccc;
+    margin: 1.5em 0 0;
+    padding: 0 0 .2em .3em;
+}
+ul.primary li a {
+    background-color: #f5f5f5;
+    margin-right: .08em;
+    border-color: #ccc;
+    padding: .1em 10px .2em;
+}
+/* Calendar tabs styling  */
+
+ul.tabs.primary {
+    border-bottom: none;
+    margin: 0;
+    padding: 0;
+}
+ul.tabs.primary li:first-child a {
+    border-radius: 4px 0px 0px 4px;
+    -moz-border-radius: 4px 0px 0px 4px;
+    -webkit-border-radius: 4px 0px 0px 4px;
+}
+ul.tabs.primary li:last-child a {
+    border-radius: 0px 4px 4px 0px;
+    -moz-border-radius: 0px 4px 4px 0px;
+    -webkit-border-radius: 0px 4px 4px 0px;
+}
+ul.tabs.primary li a {
+    margin-right: -5px;
+    padding: 5px 8px;
+    border-bottom: 1px solid #e4e4e4;
+}
+ul.tabs.primary li.active a {
+    border: 1px solid #e4e4e4;
+}
+.local-tasks ul.primary li a:hover {
+    background-color: #f7f7f7;
+    border-color: #ddd;
+}
+.local-tasks ul.primary li.active a {
+    background-color: #fff;
+    border-bottom-color: #fff;
+}
+ul.secondary {
+    border-bottom: 1px solid #ccc;
+    margin: 1em 0 0;
+    padding: 0 .3em 1em;
+}
+ul.secondary li {
+    border-right: 0;
+    list-style: none;
+    padding: 0 10px 0 0;
+}
+ul.secondary li a:hover,
+ul.secondary li a.active {
+    border-bottom: none;
+    text-decoration: underline;
+}
+/* Action links */
+
+ul.action-links {
+    margin-left: 0;
+    margin-right: 0;
+    list-style: none;
+}
+/** CONTEXTUAL DROPDOWN LINKS **/
+
+div.contextual-links-wrapper {
+    z-index: 500;
+}
+a.contextual-links-trigger {
+    padding: 0 2px !important;
+    background-image: url('../images/scholarbase-sprite.png');
+    background-position: -44px -204px;
+}
+a.contextual-links-trigger:hover {
+    background-position: -44px -186px;
+}
+div.contextual-links-wrapper ul.contextual-links {
+    -moz-border-radius: 0;
+    /* LTR */
+    
+    -webkit-border-bottom-left-radius: 0;
+    -webkit-border-bottom-right-radius: 0;
+    -webkit-border-top-right-radius: 0;
+    /* LTR */
+    
+    -webkit-border-top-left-radius: 0;
+    /* LTR */
+    
+    border-radius: 0;
+    /* LTR */
+    
+    padding: 0 !important;
+}
+ul.contextual-links li,
+.sidebar ul.contextual-links li {
+    line-height: 12px !important;
+    list-style: none !important;
+    clear: both;
+    background: none !important;
+    border-top: none;
+    margin-bottom: 0 !important;
+}
+ul.contextual-links li a {
+    padding: 0.5em .75em 0.5em 0.75em !important;
+    font-family: helvetica;
+    font-size: 11px !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    text-decoration: none !important;
+    text-transform: none !important;
+    background: none !important;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 12px !important;
+    height: auto !important;
+    border-bottom: none !important;
+    text-shadow: none !important;
+    border: none !important;
+    margin-left: 0;
+}
+ul.contextual-links li a:hover {
+    background-color: #52854C !important;
+    color: #FFF !important;
+}
+/** CONTEXTUAL ADD NEW AND CONFIG DROPDOWN LINK CONTROLS **/
+
+.contextual-controls-wrapper {
+    margin: 15px 0 10px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    z-index: 18;
+}
+#content-column div.contextual-links-wrapper.contextual-links-processed {
+    /*right: -15px;*/
+    
+    right: 0;
+    z-index: 19;
+}
+.contextual-links-region .block-inner > .contextual-links-wrapper {
+    right: 35px !important;
+    top: 0px !important;
+}
+.node-type-page #content-column div.contextual-links-wrapper.contextual-links-processed {
+    top: 16px;
+}
+#content-column .block .block-content.content ~ .contextual-links-wrapper.contextual-links-processed {
+    top: -8px;
+}
+.contextual-controls-wrapper a {
+    color: #293352;
+    font-family: helvetica;
+    font-style: normal;
+}
+.contextual-controls-wrapper a:hover {
+    color: #293352;
+    text-decoration: none;
+}
+.contextual-controls-wrapper .add_new,
+.block-boxes-os_slideshow_box .add_new {
+    line-height: 15px !important;
+    display: inline-block;
+    padding: 5px 10px;
+    border: none;
+    font-size: 13px;
+    font-weight: bold;
+    color: #FFF !important;
+    text-shadow: 0px -1px 0px rgba(30, 30, 30, 0.25);
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    background: rgb(61, 155, 19);
+    text-decoration: none !important;
+    top: 0px;
+    z-index: 3;
+}
+.contextual-controls-wrapper .add_new:hover {
+    color: rgb(230, 230, 230);
+}
+/**
+ * Fixes case where the contextual link gear will cover the 'next month' button on a calendar.
+ */
+
+#block-views-os-events-block-1 .contextual-links-wrapper {
+    right: 35px;
+}
+html.js div.ctools-dropdown a.ctools-dropdown-text-link {
+    background: none;
+    padding-left: 0;
+}
+html.js div.ctools-dropdown a.ctools-dropdown-text-link {
+    color: #FFF;
+}
+html.js .biblio-export div.ctools-dropdown a.ctools-dropdown-text-link {
+    color: inherit !important;
+}
+html.js #citation-wrapper div.ctools-dropdown a.ctools-dropdown-text-link {
+    font-size: 11px;
+    color: #293352 !important;
+}
+.ctools-dropdown.section_links {
+    float: right;
+    display: inline;
+    margin-left: 25px;
+}
+.ctools-dropdown.registration_links a {
+    color: #215990 !important;
+}
+.contextual-controls-wrapper div.ctools-dropdown.section_links a.ctools-dropdown-text-link {
+    float: right;
+    background: url('../images/scholarbase-sprite.png') no-repeat 0px -331px !important;
+    width: 23px;
+    height: 23px;
+    text-indent: -9999px;
+    margin-left: -20px;
+}
+.contextual-controls-wrapper div.ctools-dropdown.section_links a.ctools-dropdown-text-link:hover {
+    float: right;
+    background: url('../images/scholarbase-sprite.png') no-repeat 0px -355px !important;
+    width: 23px;
+    height: 23px;
+    text-indent: -9999px;
+    margin-left: -20px;
+}
+html.js div.ctools-dropdown div.ctools-dropdown-container {
+    background: none repeat scroll 0 0 #FFFFFF !important;
+    border: 1px solid #A8BED8;
+    box-shadow: 0 2px 5px #777777;
+    color: #293352 !important;
+    opacity: 0.93;
+    width: auto;
+}
+html.js div.ctools-dropdown.add_new div.ctools-dropdown-container {
+    right: 25px;
+}
+html.js div.ctools-dropdown div.ctools-dropdown-container ul li a {
+    color: #293352 !important;
+    padding: 5px !important;
+    text-decoration: none !important;
+    font-weight: normal;
+    font-size: 13px;
+    font-style: normal;
+}
+html.js div.ctools-dropdown.section_links div.ctools-dropdown-container {
+    margin: 24px 1px 0 0;
+    right: 1px;
+}
+html.js div.ctools-dropdown div.ctools-dropdown-container ul li span {
+    padding: 5px !important;
+    font-family: helvetica;
+}
+html.js div.ctools-dropdown div.ctools-dropdown-container ul li span:not([id*="os-importer"]) {
+    background: #777;
+    color: #FFF;
+}
+html.js div.ctools-dropdown div.ctools-dropdown-container ul li span[id*="os-importer"] {
+    font-weight: normal;
+    cursor: pointer;
+}
+/** NICE MENU OVERRIDES **/
+
+ul.nice-menu {
+    margin-left: 0;
+}
+ul.nice-menu li {
+    border: none !important;
+    background-color: none !important;
+    background: none !important;
+}
+ul.nice-menu a {
+    color: #293352;
+    text-decoration: none !important;
+    background: none;
+}
+ul.nice-menu ul {
+    top: 2.9em;
+    z-index: 20;
+}
+ul.nice-menu ul li {
+    border: 1px solid #CCC;
+    background: #EEE;
+    min-width: 12em;
+    width: auto;
+}
+ul.nice-menu ul li a {
+    border: none !important;
+}
+ul.nice-menu-left a,
+ul.nice-menu-left ul a {
+    padding-left: 0;
+}
+.sidebar ul.menu ul {
+    border-top: none !important;
+}
+.sidebar #block-os-primary-menu ul.menu li ul.menu,
+.sidebar #block-os-secondary-menu ul.menu li ul.menu {
+    margin: 0 0 0 10px;
+}
+ul.nice-menu-left li.menuparent,
+ul.nice-menu-right li.menuparent,
+ul.nice-menu-left li.menuparent:hover,
+ul.nice-menu-right li.menuparent:hover {
+    background: none !important;
+}
+ul.nice-menu-right,
+ul.nice-menu-left,
+ul.nice-menu-right li,
+ul.nice-menu-left li {
+    width: 100%;
+}
+/******************************
+ HORIZONTAL (down) menus
+******************************/
+
+ul.nice-menu-down {
+    float: left;
+    /* LTR */
+    
+    border: 0 !important;
+    z-index: 101;
+}
+ul.nice-menu-down li {
+    border-top: none !important;
+}
+ul.nice-menu-down li li {
+    border-top: 0 !important;
+}
+ul.nice-menu-down ul {
+    left: 0;
+    /* LTR */
+}
+ul.nice-menu-down ul li {
+    clear: both;
+}
+ul.nice-menu-down li ul li ul {
+    left: 13.2em;
+    /* LTR */
+    
+    top: 0;
+}
+ul.nice-menu-down .menuparent a {
+    padding-right: 10px;
+    /* LTR */
+}
+ul.nice-menu-down li.menuparent {
+    background: none !important;
+    /* LTR */
+}
+ul.nice-menu-down li.menuparent:hover {
+    background: none !important;
+    /* LTR */
+}
+ul.nice-menu-down li li.menuparent {
+    background: none !important;
+    /* LTR */
+}
+ul.nice-menu-down li li.menuparent:hover {
+    background: none !important;
+    /* LTR */
+}
+/******************************
+ Lists when Naviation is selected
+******************************/
+
+#content-column .book-menu ul,
+.navigation ul,
+.navigation ul.menu {
+    border-left: solid 1px #ccc;
+    border-right: solid 1px #ccc;
+    border-bottom: solid 1px #ccc;
+}
+#content-column .book-menu ul ul,
+.sidebar .navigation ul.menu ul.menu,
+.sidebar .navigation ul ul {
+    border: none;
+    margin: 0;
+}
+#content-column .book-menu ul li,
+.navigation ul li,
+.navigation ul.menu li {
+    list-style: none !important;
+    background-color: #EEE;
+    border-top: solid 1px #ccc;
+    text-align: left;
+    margin: 0;
+    margin-bottom: 0;
+    list-style-image: none !important;
+}
+#content-column .book-menu ul li ul li,
+#content-column .book-menu ul li ul li ul li {
+    background-color: #FFF;
+}
+#content-column .book-menu ul li a,
+.navigation ul.menu li a,
+.navigation ul li a {
+    display: block;
+    text-decoration: none !important;
+    padding: .5em;
+    color: inherit;
+}
+#content-column .book-menu ul li a:hover,
+.navigation ul li a:hover {
+    background-color: #FFF;
+}
+#content-column .book-menu ul li ul li a,
+.navigation ul.menu li li a,
+.navigation ul li li a {
+    padding-left: 19px;
+}
+#content-column .book-menu ul li ul li li a,
+.navigation ul.menu li li li a,
+.navigation ul li li li a {
+    padding: 0.5em .5em 0.5em 28px;
+}
+.navigation ul.menu li li li li a,
+.navigation ul li li li li a {
+    padding-left: 37px;
+}
+.navigation ul.menu li li li li li a,
+.navigation ul li li li li li a {
+    padding-left: 46px;
+}
+#content-column .book-menu a,
+.navigation a:link,
+.navigation a:visited {
+    color: inherit;
+    border-bottom: none !important;
+}
+.navigation a:hover,
+.navigation a:active {
+    color: inherit;
+    border-bottom: none !important;
+}
+/* Section Nav */
+
+/* To hide facet taxonomy count */
+.hide-count .facetapi-count {
+    display: none;
+}
+
+#boxes-box-os_pages_section_nav {
+    border: 1px solid #ebe3df;
+    border-bottom: none;
+}
+.section-nav li.expanded,
+.section-nav li.collapsed,
+.section-nav li.leaf {
+    padding: 0;
+}
+.section-nav ul.menu {
+    margin-bottom: 0;
+}
+.section-nav ul.menu li {
+    list-style: none;
+    background-color: #fff;
+    text-align: left;
+}
+.lt-ie9 .section-nav ul.menu li {
+    margin: 0;
+}
+.section-nav a:hover {
+    background-color: #bfc2c4 !important;
+}
+.section-nav a.active {
+    color: #333;
+}
+/* Section Nav - Section Heading */
+
+.section-nav .menu-depth-1 > a {
+    background: none !important;
+    background-color: #444 !important;
+    color: #fff;
+    text-transform: uppercase;
+}
+.section-nav .collapsed > a {
+    background: url('images/arrow-right.png') no-repeat left center;
+}
+/* Section Nav */
+
+#boxes-box-os_pages_section_nav {
+    border: 1px solid #ebe3df;
+    border-bottom: none;
+}
+.section-nav li.expanded,
+.section-nav li.collapsed,
+.section-nav li.leaf {
+    padding: 0;
+}
+.section-nav ul.menu {
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+}
+.section-nav ul.menu li {
+    list-style: none;
+    background-color: #fff;
+    text-align: left;
+}
+.section-nav ul.menu li a {
+    display: block;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-bottom: 1px solid #ebe3df;
+    position: relative;
+}
+.section-nav a:link,
+.section-nav a:visited {
+    /*color: #4384C4;*/
+    
+    text-decoration: none !important;
+}
+.section-nav a:hover {
+    background-color: #e3e3e1 !important;
+}
+.section-nav a.active {
+    color: #1e1e1e;
+}
+/* Section Nav - Section Heading */
+
+.section-nav .menu-depth-1 > a {
+    background-color: #777 !important;
+    color: #fff;
+    text-transform: uppercase;
+    color: #FFF !important;
+}
+/* Apply the arrow to links with children */
+
+.section-nav .menu-depth-1 .collapsed > a:before {
+    background: url('../images/scholarbase-sprite.png') no-repeat -34px -756px;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 12px;
+    height: 15px;
+    width: 15px;
+}
+.section-nav .menu-depth-1 .expanded > a:before {
+    background: url('../images/scholarbase-sprite.png') no-repeat -16px -756px;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 12px;
+    height: 15px;
+    width: 15px;
+}
+.section-nav .expanded.menu-depth-2 > a {
+    background-color: #999;
+    color: #fff;
+}
+.section-nav .expanded.menu-depth-2 > a:hover {
+    background-color: #777 !important;
+}
+/* Add background color to links with children */
+
+.section-nav .expanded.menu-depth-2 li > a {
+    background-color: #f3f3f1;
+}
+/* Remove it from leaf links */
+
+.section-nav .expanded.menu-depth-2 .leaf > a {
+    background: none;
+}
+/* Position deeper children farther to the right */
+
+.section-nav .expanded.menu-depth-2 .menu-depth-3 > a {
+    padding-left: 25px;
+}
+.section-nav .expanded.menu-depth-2 .menu-depth-3 > a:before {
+    left: 10px;
+}
+.section-nav .expanded.menu-depth-2 .menu-depth-4 > a {
+    padding-left: 35px;
+}
+.section-nav .expanded.menu-depth-2 .menu-depth-4 > a:before {
+    left: 20px;
+}
+.section-nav .expanded.menu-depth-2 .menu-depth-5 > a {
+    padding-left: 45px;
+}
+.section-nav .expanded.menu-depth-2 .menu-depth-5 > a:before {
+    left: 30px;
+}
+.section-nav .expanded.menu-depth-2 .menu-depth-6 > a {
+    padding-left: 55px;
+}
+/** MENU WHEN IN FOOTER **/
+
+#footer ul.menu,
+#footer ul {
+    margin-left: 0;
+}
+ul li.leaf {
+    list-style-image: none;
+    list-style-type: none;
+}
+#footer ul.menu li.expanded {
+    clear: none;
+    display: inline;
+    float: left;
+    font-size: 12px;
+    margin-right: 20px;
+    word-wrap: break-word;
+}
+#footer ul li a {
+    font-weight: bold;
+}
+#footer ul li li a {
+    font-weight: normal;
+    word-wrap: break-word;
+}
+iframe:focus,
+.accordion h3:focus {
+    outline: thin dotted;
+}

@@ -1,0 +1,12 @@
+#os-dataverse-data {
+  width: 100%;
+  height: 800px;
+}
+
+#os-dataverse-data iframe {
+  border: none;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width:100%;
+}

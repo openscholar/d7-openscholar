@@ -1,0 +1,14 @@
+diff --git a/modules/pubmed/biblio_pm.module b/modules/pubmed/biblio_pm.module
+index 7950c04..318e4ba 100644
+--- a/modules/pubmed/biblio_pm.module
++++ b/modules/pubmed/biblio_pm.module
+@@ -101,7 +101,8 @@ function biblio_pm_biblio_import($file, $terms = array(), $batch = FALSE, $sessi
+ 
+ function biblio_pm_xml_biblio_import($file, $terms = array(), $batch = FALSE, $session_id = NULL) {
+   libxml_use_internal_errors(true);
+-  $xml = @simplexml_load_file($file->uri);
++  $tempxml = iconv(mb_detect_encoding(file_get_contents($file->uri), mb_detect_order(), true), "UTF-8", file_get_contents($file->uri));
++  $xml = simplexml_load_string($tempxml);
+   if(empty($xml) || isset($xml->body->pre->ERROR)) {
+     drupal_set_message("Could not parse file as PubMed XML", 'error');
+     return;

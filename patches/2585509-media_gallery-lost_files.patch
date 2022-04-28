@@ -1,0 +1,13 @@
+diff --git a/media_gallery.pages.inc b/media_gallery.pages.inc
+index 452c5ac..aa673f4 100644
+--- a/media_gallery.pages.inc
++++ b/media_gallery.pages.inc
+@@ -245,7 +245,7 @@ function media_gallery_reorder_gallery($gallery, $order) {
+   }
+ 
+   foreach ($order as $new_delta => $old_delta) {
+-    $gallery->media_gallery_file[LANGUAGE_NONE][$new_delta + $offset] = $media_field[$old_delta + $offset];
++    $gallery->media_gallery_file[LANGUAGE_NONE][$new_delta + $offset] = $media_field[$old_delta];
+   }
+   node_save($gallery);
+   return TRUE;

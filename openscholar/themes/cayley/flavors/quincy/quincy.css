@@ -1,0 +1,118 @@
+body {
+	font:0.9em/1.5em Helvetica Neue,Helvetica,Arial,sans-serif;
+	background: #909d9c;
+	}
+
+.biblio-title a, .biblio-title-chicago a,
+a, a:visited {
+	color:#0C54B3;
+	}
+
+h2, h3, h4 {
+	font-style:normal;
+	}
+	
+#page {
+	box-shadow: 0 0 30px #555555;
+    margin: 0 auto 30px auto;
+    padding: 1px 0 0;
+    background: #fff;
+}
+
+
+#footer {
+	background:none !important;
+}
+
+	
+#menu-bar {
+	background: none repeat scroll 0 0 #FFFFFF;
+	border-bottom-color: #D17033;
+    border-top: 0 none;
+    padding-left: 17px;
+}
+
+#menu-bar #block-os-primary-menu {
+    background: none repeat scroll 0 0;
+    height: 26px;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#menu-bar li {
+	padding-top: 2px;
+	padding-left: 1px;
+	border-right: 1px solid #BBBBBB;
+	}
+
+#menu-bar li a {
+	color: #544F4F;
+    font-size: 11px;
+    font-weight: normal;
+    padding: 6px 15px 5px;
+    text-transform: uppercase;
+    line-height: 14px;
+	display:block;
+	}
+
+#menu-bar li a:hover,
+#menu-bar li a.active,
+#menu-bar li.active-trail a {
+	background: #C55B28;
+	color: #fff;
+	}
+	
+  /** NICE MENUS **/
+ 	
+#menu-bar ul.nice-menu ul {
+	 margin-top: -5px;
+	border:none;
+	}
+	
+#menu-bar ul.nice-menu ul ul {
+	margin-top:0;
+}
+
+#menu-bar ul.nice-menu ul ul li {
+	margin-bottom:0;
+}
+	
+#menu-bar ul.nice-menu ul li {
+	margin-top:0;
+	background:#252A2B;
+	border:none;
+}
+	
+#menu-bar ul.nice-menu ul li a {
+	color:#333;
+	background:#eee;
+}
+
+
+#menu-bar ul.nice-menu ul li a:hover {
+	color:#fff;
+	background:#C55B28;
+
+}  
+	
+	
+#columns {
+	background: #FFF;
+	padding:0;
+	}
+
+
+.region-sidebar-first,
+.region-sidebar-second {
+	background: #EEE;
+}
+
+#content-column .content-inner {
+	background: #FFF;
+}
+
+#footer {
+    background: #FFFFFF;
+    border-top: 1px solid #DDDDDD;
+}
+

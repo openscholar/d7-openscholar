@@ -1,0 +1,11 @@
+#page {
+ background: #225176;
+}
+
+#menu-bar {margin-top:-100px;}
+
+#header-container {width:540px;display:inline;clear:none;float: left;}
+
+.view .date-nav-wrapper .date-heading h3 {
+    font-size: 1em;
+}

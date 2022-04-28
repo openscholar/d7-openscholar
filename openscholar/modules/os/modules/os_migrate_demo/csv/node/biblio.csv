@@ -1,0 +1,12 @@
+ID,Title,Publisher,Year,Publish location,Biblio type name,Biblio type,Secondary title,Site,Terms,UID,Created
+biblio1,The Little Prince,Antoine de Saint-Exupéry,1943,United States,Book,100,,personal1,ScienceTerm1|ScienceTerm2|ScienceTerm3,user2,
+biblio2,Adventures of Huckleberry Finn,Mark Twain,1885,United States,Book,100,,project1,,user2,
+biblio3,John F. Kennedy: A Biography,Michael O'Brien,2005,United States,Book,100,,personal1,ScienceTerm2,user2,
+biblio4,Philosophers Stone,J K Rowling,1997,United Kingdom,Book,100,,personal1,,user2,3600
+biblio5,Chamber of Secrets,J K Rowling,1997,United Kingdom,Book,100,,personal1,,user2,7200
+biblio6,Prisoner of Azkaban,J K Rowling,1997,United Kingdom,Book,100,,personal1,,user2,10800
+biblio7,Goblet of Fire,J K Rowling,1997,United Kingdom,Book,100,,personal1,,user2,14400
+biblio8,ConfPapers tests,No One,2014,United States,Conference Paper,103,,personal1,,user2
+biblio9,"Journal article title","No One",2014,"United States","Journal Article",102,"Journal of publications",personal1,,user2,
+biblio10,"Reevaluation of China's CO<sub>2</sub> Emissions","No One",2014,"United States","Journal Article",102,"Journal of publications",personal1,,user2,
+biblio11,"bilsi's test title","Bilsi",2014,"United States","Journal Article",102,"Journal of publications",personal1,,user2,

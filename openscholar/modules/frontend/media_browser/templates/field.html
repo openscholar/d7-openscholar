@@ -1,0 +1,35 @@
+<label ng-if="title">{{title}}</label>
+<div class="description" ng-bind-html="description"></div>
+<div id="edit-{{field_name}}-und-drop" class="form-managed-file">
+    <div class="media-browser-drop-box" ng-file-drop ng-file-change="sendToBrowser($files, $event)" class="droppable"
+         drag-over-class="media-browser-drag-over" ng-multiple="true" allow-dir="true"
+         hide-on-drop-not-available="true" ng-accept="validate($file)" ng-hide="fieldIsFull()">
+        <span id="drag-text">{{droppable_text}}<span class="help_icon" ng-mouseenter="showHelp = true" ng-mouseleave="showHelp = false" ng-hide="hideHelpicon">?</span></span>
+
+        <a href="#" mb-open-modal panes="{{panes.join(',')}}" types="{{types}}" on-select="addFile($inserted)">{{upload_text}}</a>
+        <div class="help" ng-show="showHelp"><strong>Allowed file types:</strong><br /> {{extensionsFull.join(' ')}}<br /><br />
+               <strong>Max file size:</strong> {{maxFilesize}}.
+        </div>
+    </div>
+    <div ui-sortable="sortableOptions" ng-model="selectedFiles">
+        <div class="file-list-single form-wrapper" ng-repeat="file in selectedFiles" ng-class="{even: $even, odd: $odd, highlight: file.highlight}">
+            <input type="hidden" name="{{field_name}}[und][{{$index}}][fid]" value="{{file.id}}">
+            <a href="#" class="tabledrag-handle" title="Drag to re-order" ng-show="selectedFiles.length > 1"><div class="handle">&nbsp;</div></a>
+            <span  title="{{file.label}}">
+                <img class="file-icon" alt="" src="{{file.icon}}">
+                {{file.label}} ({{file.filename}})
+            </span>
+            <ul>
+                <li class="replace first">
+                    <a href="" mb-open-modal replace="file" panes="{{panes.join(',')}}" types="{{types}}" on-select="replaceFile($inserted, $index)">Replace</a>
+                </li>
+                <li class="edit">
+                    <a href="" file-editor-modal fid="{{file.id}}">Edit</a>
+                </li>
+                <li class="remove last">
+                    <a href="" ng-click="removeFile($index)">Remove</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

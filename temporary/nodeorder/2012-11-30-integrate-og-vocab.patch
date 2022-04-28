@@ -1,0 +1,508 @@
+From 6eed1a084f9576a9fac02d14bd5bf3e5d808203a Mon Sep 17 00:00:00 2001
+From: oren <oren_robinson@harvard.edu>
+Date: Fri, 30 Nov 2012 13:37:29 -0500
+Subject: [PATCH 8/8] 2012-11-30 integrate og vocab
+
+---
+ nodeorder.module |  261 ++++++++++++++++++++++++++++++-----------------------
+ 1 files changed, 148 insertions(+), 113 deletions(-)
+
+diff --git a/nodeorder.module b/nodeorder.module
+index cbceeb6..333f79c 100644
+--- a/nodeorder.module
++++ b/nodeorder.module
+@@ -42,7 +42,8 @@ function nodeorder_form_alter(&$form, $form_state, $form_id) {
+       '#type' => 'checkbox',
+       '#title' => t('Orderable'),
+       '#description' => t('If enabled, nodes may be ordered within this vocabulary.'),
+-      '#weight' => 0.0075, // Try to have this show up after the 'Required' checkbox
++      // Try to have this show up after the 'Required' checkbox
++      '#weight' => 0.0075,
+       '#default_value' => $is_orderable,
+     );
+ 
+@@ -83,12 +84,12 @@ function nodeorder_taxonomy_form_vocabulary_submit($form, &$form_state) {
+       if (count($tids) > 0) {
+         $order = 'n.sticky DESC, tn0.weight';
+         // $sql_max = "SELECT MAX(weight) FROM {taxonomy_index} WHERE tid = %d";
++
+         /**
+          * @var SelectQuery
+          */
+         $tid = 0;
+-        $query_max = db_select('taxonomy_index', 'ti')
+-          ->condition('tid', $tid);
++        $query_max = db_select('taxonomy_index', 'ti')->condition('tid', $tid);
+         $query_max->addExpression('MAX(weight)', 'mweight');
+         $sql_update = "UPDATE {taxonomy_index} SET weight = %d WHERE tid = %d AND nid = %d";
+ 
+@@ -99,20 +100,16 @@ function nodeorder_taxonomy_form_vocabulary_submit($form, &$form_state) {
+           foreach ($result as $node) {
+             $max = $query_max->execute()->fetchField();
+             $max = (int)$max + 1;
+-            db_update('taxonomy_index')
+-              ->condition('nid', $node->nid)
+-              ->condition('tid', $tid)
+-              ->fields(array('weight' => $max))
+-              ->execute();
++            db_update('taxonomy_index')->condition('nid', $node->nid)->condition('tid', $tid)->fields(array('weight' => $max))->execute();
+           }
+         }
+       }
+ 
+       // TODO Please review the conversion of this statement to the D7 database API syntax.
+       /* db_query("UPDATE {taxonomy_vocabulary} SET module = '%s' WHERE vid = %d", 'nodeorder', $vid) */
+-      db_update('taxonomy_vocabulary')->fields(array('module' => 'nodeorder',))
+-        ->condition('vid', $vid)
+-        ->execute();
++
++      db_update('taxonomy_vocabulary')->fields(array('module' => 'nodeorder',
++        ))->condition('vid', $vid)->execute();
+ 
+       drupal_set_message(t('You may now order nodes within this vocabulary.'));
+     }
+@@ -124,9 +121,9 @@ function nodeorder_taxonomy_form_vocabulary_submit($form, &$form_state) {
+ 
+       // TODO Please review the conversion of this statement to the D7 database API syntax.
+       /* db_query("UPDATE {taxonomy_vocabulary} SET module = '%s' WHERE vid = %d", 'taxonomy', $vid) */
+-      db_update('taxonomy_vocabulary')->fields(array('module' => 'taxonomy',))
+-        ->condition('vid', $vid)
+-        ->execute();
++
++      db_update('taxonomy_vocabulary')->fields(array('module' => 'taxonomy',
++        ))->condition('vid', $vid)->execute();
+ 
+       // Set weight to 0 for all rows in term_node where
+       // the tid is in this vocabulary...
+@@ -139,9 +136,7 @@ function nodeorder_taxonomy_form_vocabulary_submit($form, &$form_state) {
+       }
+ 
+       if (count($tids) > 0) {
+-        db_update('taxonomy_index')->fields(array('weight' => 0))
+-          ->condition('tid', $tids, 'IN')
+-          ->execute();
++        db_update('taxonomy_index')->fields(array('weight' => 0))->condition('tid', $tids, 'IN')->execute();
+       }
+ 
+       drupal_set_message(t('You may no longer order nodes within this vocabulary.'));
+@@ -164,11 +159,12 @@ function nodeorder_link($type, $node = 0, $main = 0) {
+         $vocabularies = taxonomy_get_vocabularies();
+ 
+         if (variable_get('nodeorder_show_links_on_node', 1) == 2
+-            && ((arg(0) == 'taxonomy' || arg(0) == 'nodeorder') && arg(1) == 'term')) {
++          && ((arg(0) == 'taxonomy' || arg(0) == 'nodeorder') && arg(1) == 'term')
++        ) {
+           $term = taxonomy_term_load(arg(2));
+           nodeorder_add_link($links, $vocabularies, $node, $term);
+         }
+-        else if (variable_get('nodeorder_show_links_on_node', 1) == 1) {
++        elseif (variable_get('nodeorder_show_links_on_node', 1) == 1) {
+           foreach ($node->taxonomy as $term) {
+             nodeorder_add_link($links, $vocabularies, $node, $term);
+           }
+@@ -243,11 +239,14 @@ function nodeorder_get_term_min_max($tid, $reset) {
+  */
+ function nodeorder_term_path($term) {
+   if (variable_get('nodeorder_replace_taxonomy_link', 1)
+-       || arg(0) == 'nodeorder') { //if nodeorder is being used to display term pages
++    // if nodeorder is being used to display term pages
++    || arg(0) == 'nodeorder'
++  ) {
+     return 'nodeorder/term/' . $term->tid;
+   }
+   else {
+-    return FALSE; //create regular taxonomy-links on taxonomy page
++    // create regular taxonomy-links on taxonomy page
++    return FALSE;
+   }
+ }
+ 
+@@ -289,7 +288,7 @@ function nodeorder_menu() {
+     'title' => 'View',
+     'type' => MENU_DEFAULT_LOCAL_TASK,
+   );
+-  
++
+ 
+   return $items;
+ }
+@@ -298,9 +297,7 @@ function nodeorder_menu() {
+  * Custom access function which determines whether or not the user is allowed to reorder nodes and if the link should be shown at all
+  */
+ function nodeorder_order_access($tid) {
+-  return user_access('order nodes within categories') 
+-    && variable_get('nodeorder_link_to_ordering_page', 1)
+-    && nodeorder_term_can_be_ordered($tid);
++  return user_access('order nodes within categories') && variable_get('nodeorder_link_to_ordering_page', 1) && nodeorder_term_can_be_ordered($tid);
+ }
+ 
+ /**
+@@ -322,7 +319,8 @@ function nodeorder_term_page($str_tids = '', $depth = 0, $op = 'page') {
+   if ($terms['tids']) {
+     // TODO Please convert this statement to the D7 database API syntax.
+     $result = db_query(db_rewrite_sql('SELECT t.tid, t.name FROM {taxonomy_term_data} t WHERE t.tid IN (' . db_placeholders($terms['tids']) . ')', 't', 'tid'), $terms['tids']);
+-    $tids = array(); // we rebuild the $tids-array so it only contains terms the user has access to.
++    // we rebuild the $tids-array so it only contains terms the user has access to.
++    $tids = array();
+     $names = array();
+     while ($term = db_fetch_object($result)) {
+       $tids[] = $term->tid;
+@@ -357,7 +355,8 @@ function nodeorder_term_page($str_tids = '', $depth = 0, $op = 'page') {
+           $breadcrumb = array_reverse($breadcrumb);
+           drupal_set_breadcrumb($breadcrumb);
+ 
+-          module_load_include('inc', 'taxonomy', 'taxonomy.pages'); //.inc files are not loaded automatically
++          // .inc files are not loaded automatically
++          module_load_include('inc', 'taxonomy', 'taxonomy.pages');
+           // TODO Please change this theme call to use an associative array for the $variables parameter.
+           $output = theme('taxonomy_term_page', $tids, nodeorder_select_nodes($tids, $terms['operator'], $depth, TRUE, $order));
+ 
+@@ -382,6 +381,7 @@ function nodeorder_term_page($str_tids = '', $depth = 0, $op = 'page') {
+ 
+           node_feed($items, $channel);
+           break;
++
+         default:
+           drupal_not_found();
+       }
+@@ -417,6 +417,7 @@ function nodeorder_term_page($str_tids = '', $depth = 0, $op = 'page') {
+  *   is FALSE, the total number of nodes to select; or -1 to use the
+  *   backward-compatible 'feed_default_items' variable setting; or 0 to
+  *   select all nodes.
++ *
+  * @return
+  *   A resource identifier pointing to the query results.
+  */
+@@ -428,22 +429,22 @@ function nodeorder_select_nodes($tids = array(), $operator = 'or', $depth = 0, $
+       $depth = NULL;
+     }
+     foreach ($tids as $index => $tid) {
+-      $term = taxonomy_term_load($tid);
+-      $tree = taxonomy_get_tree($term->vid, $tid, $depth);
++      $term              = taxonomy_term_load($tid);
++      $tree              = taxonomy_get_tree($term->vid, $tid, $depth);
+       $descendant_tids[] = array_merge(array($tid), array_map('_taxonomy_get_tid_from_term', $tree));
+     }
+ 
+     if ($operator == 'or') {
+-      $args = call_user_func_array('array_merge', $descendant_tids);
++      $args         = call_user_func_array('array_merge', $descendant_tids);
+       $placeholders = db_placeholders($args, 'int');
+-      $sql = 'SELECT DISTINCT(n.nid), n.sticky, n.title, n.created, tn.weight FROM {node} n INNER JOIN {taxonomy_index} tn ON n.vid = tn.vid WHERE tn.tid IN (' . $placeholders . ') AND n.status = 1 ORDER BY ' . $order;
+-      $sql_count = 'SELECT COUNT(DISTINCT(n.nid)) FROM {node} n INNER JOIN {taxonomy_index} tn ON n.vid = tn.vid WHERE tn.tid IN (' . $placeholders . ') AND n.status = 1';
++      $sql          = 'SELECT DISTINCT(n.nid), n.sticky, n.title, n.created, tn.weight FROM {node} n INNER JOIN {taxonomy_index} tn ON n.vid = tn.vid WHERE tn.tid IN (' . $placeholders . ') AND n.status = 1 ORDER BY ' . $order;
++      $sql_count    = 'SELECT COUNT(DISTINCT(n.nid)) FROM {node} n INNER JOIN {taxonomy_index} tn ON n.vid = tn.vid WHERE tn.tid IN (' . $placeholders . ') AND n.status = 1';
+     }
+     else {
+-      $joins = '';
++      $joins  = '';
+       $wheres = '';
+-      $args = array();
+-      $query = db_select('node', 'n');
++      $args   = array();
++      $query  = db_select('node', 'n');
+       $query->condition('status', 1);
+       foreach ($descendant_tids as $index => $tids) {
+         $query->join('taxonomy_index', "tn$index", "n.nid = tn{$index}.nid");
+@@ -487,8 +488,8 @@ function nodeorder_select_nodes($tids = array(), $operator = 'or', $depth = 0, $
+ function nodeorder_move_in_category($direction, $nid, $tid) {
+   // Note that it would be nice to wrap this in a transaction...
+ 
+-  $up = ($direction == 'moveup');
+-  $node = node_load($nid);
++  $up          = ($direction == 'moveup');
++  $node        = node_load($nid);
+   $destination = isset($_GET['destination']) ? $_GET['destination'] : $_GET['q'];
+ 
+   // Get the current weight for the node
+@@ -533,22 +534,16 @@ function nodeorder_move_in_category($direction, $nid, $tid) {
+ 
+   // TODO Please review the conversion of this statement to the D7 database API syntax.
+   /* db_query($sql, $node1->weight, $node2->nid, $tid) */
+-  db_update('taxonomy_term_node')
+-  ->fields(array(
+-    'weight' => $node1->weight,
+-  ))
+-  ->condition('nid', $node2->nid)
+-  ->condition('tid', $tid)
+-  ->execute();
++
++  db_update('taxonomy_term_node')->fields(array(
++      'weight' => $node1->weight,
++    ))->condition('nid', $node2->nid)->condition('tid', $tid)->execute();
+   // TODO Please review the conversion of this statement to the D7 database API syntax.
+   /* db_query($sql, $node2->weight, $node1->nid, $tid) */
+-  db_update('taxonomy_term_node')
+-  ->fields(array(
+-    'weight' => $node2->weight,
+-  ))
+-  ->condition('nid', $node1->nid)
+-  ->condition('tid', $tid)
+-  ->execute();
++
++  db_update('taxonomy_term_node')->fields(array(
++      'weight' => $node2->weight,
++    ))->condition('nid', $node1->nid)->condition('tid', $tid)->execute();
+ 
+   $term = taxonomy_term_load($tid);
+   drupal_set_message(t("<em>%title</em> was moved $direction in %category...", array('%title' => $node->title, '%category' => $term->name)));
+@@ -558,58 +553,101 @@ function nodeorder_move_in_category($direction, $nid, $tid) {
+ }
+ 
+ /**
+- * Returns TRUE if the node has terms in any orderable vocabulary...
++ * Returns TRUE if the node has terms in any orderable vocabulary.
+  */
+ function nodeorder_can_be_ordered($node) {
+   $cid = 'nodeorder:can_be_ordered:' . $node->type;
+ 
+-  if (($cache = cache_get($cid)) && !empty($cache->data)) {
+-    return $cache->data;
+-  }
+-  else {
+-    $can_be_ordered = FALSE;
+-    
+-    $fields = field_info_fields();
+-    $nodeorder_vocabularies = array();
+-    foreach ($fields as $field_name => $field) {
+-      if ($field['type'] != 'taxonomy_term_reference'
+-       || empty($field['bundles']['node'])
+-       || !in_array($node->type, $field['bundles']['node'])) {
+-        continue;
++  // Integrates with og_vocab module; caches on a per-group basis.
++  if (module_exists('og_vocab')) {
++    $group_cids = array();
++
++    if (og_is_group_content_type('node', $node->type)) {
++      $group_audience_field_items = field_get_items('node', $node, OG_AUDIENCE_FIELD, $node->language);
++
++      if ($group_audience_field_items) {
++        foreach ($group_audience_field_items as $item) {
++          $group_cids[] = $cid . ':og_group_ref_' . $item['target_id'];
++        }
+       }
++    }
++    elseif (og_is_group('node', $node)) {
++      $group_cids[] = $cid . ':og_group_ref_' . $node->nid;
++    }
+ 
+-      foreach ($field['settings']['allowed_values'] as $allowed_values) {
+-        $nodeorder_vocabularies[] = $allowed_values['vocabulary'];
++    foreach ($group_cids as $group_cid) {
++      if (($cache = cache_get($group_cid)) && !empty($cache->data)) {
++        return $cache->data;
+       }
+-    }   
+-    
+-    if (!empty($nodeorder_vocabularies)) {
+-      $result = db_select('taxonomy_vocabulary', 'v')
+-        ->condition('v.module', 'nodeorder')
+-        ->condition('v.vid', $nodeorder_vocabularies, 'IN')
+-        ->fields('v', array('vid'))
+-        ->execute()
+-        ->fetchColumn();
+-
+-      if ($result) {
+-        $can_be_ordered = TRUE;
++    }
++  }
++  else {
++    if (($cache = cache_get($cid)) && !empty($cache->data)) {
++      return $cache->data;
++    }
++  }
++
++  $can_be_ordered = FALSE;
++
++  $fields = field_info_fields();
++  $nodeorder_vocabularies = array();
++  foreach ($fields as $field_name => $field) {
++    // Integrates with og_vocab module; gets term data as entityreference.
++    if (module_exists('og_vocab')
++      && $field['field_name'] == OG_VOCAB_FIELD
++      && !empty($field['bundles']['node'])
++      && in_array($node->type, $field['bundles']['node'])
++    ) {
++
++      $items = field_get_items('node', $node, OG_VOCAB_FIELD, 'und');
++      if ($items) {
++        foreach ($items as $item) {
++          $term = taxonomy_term_load($item['target_id']);
++          $nodeorder_vocabularies[] = $term->vid;
++        }
+       }
+     }
+ 
+-    //permanently cache the value for easy reuse
+-    cache_set($cid, $can_be_ordered, 'cache');
++    if ($field['type'] != 'taxonomy_term_reference'
++      || empty($field['bundles']['node'])
++      || !in_array($node->type, $field['bundles']['node'])
++    ) {
++      continue;
++    }
+ 
+-    return $can_be_ordered;
++    foreach ($field['settings']['allowed_values'] as $allowed_values) {
++      $nodeorder_vocabularies[] = $allowed_values['vocabulary'];
++    }
+   }
++
++  if (!empty($nodeorder_vocabularies)) {
++    $result = db_select('taxonomy_vocabulary', 'v')->condition('v.module', 'nodeorder')->condition('v.vid', $nodeorder_vocabularies, 'IN')->fields('v', array('vid'))->execute()->fetchColumn();
++
++    if ($result) {
++      $can_be_ordered = TRUE;
++    }
++  }
++
++  // Caches the value permanently for easy reuse.
++  if (module_exists('og_vocab')) {
++    foreach ($group_cids as $group_cid) {
++      cache_set($group_cid, $can_be_ordered, 'cache');
++    }
++  }
++  else {
++    cache_set($cid, $can_be_ordered, 'cache');
++  }
++
++  return $can_be_ordered;
+ }
+ 
+ /**
+  * Returns an array of the node's tids that are in orderable vocabularies...
+  */
+ function nodeorder_orderable_tids($node) {
+-  $tids = array();
++  $tids           = array();
+   $orderable_tids = array();
+-  $cid = 'nodeorder:orderable_tids:' . $node->type;
++  $cid            = 'nodeorder:orderable_tids:' . $node->type;
+ 
+   if (($cache = cache_get($cid)) && !empty($cache->data)) {
+     $orderable_tids = $cache->data;
+@@ -652,15 +690,15 @@ function nodeorder_get_tids($key, $value) {
+         $tids = array_merge($tids, nodeorder_get_tids($vid, $names));
+       }
+     }
+-    else if (is_numeric($value)) {
++    elseif (is_numeric($value)) {
+       $tids[] = $value;
+     }
+-    else if (is_array($value)) {
++    elseif (is_array($value)) {
+       foreach ($value as $tid) {
+         $tids[] = $tid;
+       }
+     }
+-    else if (is_string($value)) {
++    elseif (is_string($value)) {
+       $values = drupal_explode_tags($value);
+       $get_tid_sql = "SELECT tid FROM {taxonomy_term_data} WHERE name = '%s' AND vid = %d";
+       foreach ($values as $term_name) {
+@@ -744,7 +782,8 @@ function nodeorder_node_delete($node) {
+ 
+     if (count($tids) > 0) {
+       foreach ($tids as $i => $tid) {
+-        nodeorder_get_term_min_max($tid, TRUE); // reinitialize the cache
++        // reinitialize the cache
++        nodeorder_get_term_min_max($tid, TRUE);
+       }
+     }
+   }
+@@ -784,19 +823,6 @@ function nodeorder_node_update($node) {
+     // @todo: switch on orderability check
+     // $tids = nodeorder_orderable_tids($node);
+     // if (count($tids) > 0) {
+-    
+-    if (TRUE) {
+-      $sql = "UPDATE {taxonomy_index} SET weight = %d WHERE tid = %d AND nid = %d";
+-
+-      foreach ($tids as $i => $tid) {
+-        db_lock_table('taxonomy_term_node');
+-        $weights = nodeorder_get_term_min_max($tid, FALSE); // get the cached weights
+-        // TODO Please convert this statement to the D7 database API syntax.
+-        db_query($sql, $weights["max"] + 1, $tid, $node->nid);
+-        nodeorder_get_term_min_max($tid, TRUE); // reinitialize the cache
+-        db_unlock_tables();
+-      }
+-    }
+ 
+     // New nodes won't have any saved weight values so this array will be empty...
+     if ($node->nodeorder) {
+@@ -876,31 +902,35 @@ function nodeorder_admin($form, &$form_state) {
+  */
+ function nodeorder_overview_terms($vid) {
+   if (!nodeorder_vocabulary_can_be_ordered($vid)) {
+-    return t('This vocabulary is not orderable.  If you would like it to be orderable, check the Orderable box ') .
+-      l(t('here'), 'admin/structure/taxonomy/edit/vocabulary' . $vid) . '.';
++    return t('This vocabulary is not orderable.  If you would like it to be orderable, check the Orderable box ') . l(t('here'), 'admin/structure/taxonomy/edit/vocabulary' . $vid) . '.';
+   }
+ 
+-  $header = array(t('Name'), t('Operations'));
++  $header       = array(t('Name'), t('Operations'));
+   $vocabularies = taxonomy_get_vocabularies();
+-  $vocabulary = $vocabularies[$vid];
++  $vocabulary   = $vocabularies[$vid];
+   if (!$vocabulary) {
+     return drupal_not_found();
+   }
+ 
+   drupal_set_title(t('Terms in %vocabulary', array('%vocabulary' => $vocabulary->name)), PASS_THROUGH);
+-  $start_from      = $_GET['page'] ? $_GET['page'] : 0;
+-  $total_entries   = 0; // total count for pager
+-  $page_increment  = 25; // number of tids per page
+-  $displayed_count = 0; // number of tids shown
++  $start_from = $_GET['page'] ? $_GET['page'] : 0;
++  // total count for pager
++  $total_entries = 0;
++  // number of tids per page
++  $page_increment = 25;
++  // number of tids shown
++  $displayed_count = 0;
+ 
+   $tree = taxonomy_get_tree($vocabulary->vid);
+   foreach ($tree as $term) {
+-    $total_entries++; // we're counting all-totals, not displayed
++    // we're counting all-totals, not displayed
++    $total_entries++;
+     if (($start_from && ($start_from * $page_increment) >= $total_entries) || ($displayed_count == $page_increment)) {
+       continue;
+     }
+     $rows[] = array((isset($term->depth) && $term->depth > 0 ? theme('indentation', array('size' => $term->depth)) : '') . l($term->name, "nodeorder/term/$term->tid"), l(t('order nodes'), "nodeorder/term/$term->tid/order"));
+-    $displayed_count++; // we're counting tids displayed
++    // we're counting tids displayed
++    $displayed_count++;
+   }
+ 
+   if (!$rows) {
+@@ -910,8 +940,10 @@ function nodeorder_overview_terms($vid) {
+       ));
+   }
+ 
+-  $GLOBALS['pager_page_array'][] = $start_from; // FIXME
+-  $GLOBALS['pager_total'][] = intval($total_entries / $page_increment) + 1; // FIXME
++  // FIXME
++  $GLOBALS['pager_page_array'][] = $start_from;
++  // FIXME
++  $GLOBALS['pager_total'][] = intval($total_entries / $page_increment) + 1;
+ 
+   if ($total_entries >= $page_increment) {
+     $rows[] = array(array(
+@@ -952,6 +984,7 @@ function nodeorder_help($path, $arg) {
+       $output = '<p>' . t('This page provides a drag-and-drop interface for ordering nodes. To change the order of a node, grab a drag-and-drop handle under the <em>Node title</em> column and drag the node to a new location in the list. (Grab a handle by clicking and holding the mouse while hovering over a handle icon.) Remember that your changes will not be saved until you click the <em>Save order</em> button at the bottom of the page.') . '</p>';
+ 
+       return $output;
++
+     case 'admin/structure/taxonomy/%/order':
+       $vocabulary = taxonomy_vocabulary_load($arg[3]);
+       $output = '<p>' . t('%capital_name is an orderable vocabulary. You may order the nodes associated with a term within this vocabulary by clicking the <em>order nodes</em> link next to the term.', array('%capital_name' => drupal_ucfirst($vocabulary->name)));
+@@ -959,3 +992,5 @@ function nodeorder_help($path, $arg) {
+       return $output;
+   }
+ }
++
++
+-- 
+1.7.4.4
+

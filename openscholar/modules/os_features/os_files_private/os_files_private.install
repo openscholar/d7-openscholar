@@ -1,0 +1,46 @@
+<?php
+
+/**
+ * @file
+ * Install file for the OS files private module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function os_files_private_requirements($phase) {
+  $status = REQUIREMENT_OK;
+  $description = t('The private files directory is defined properly.');
+  $private_directory = variable_get('file_private_path');
+
+  // This doesn't need to be defined when the module is installed.
+  // (Allow module to be enabled during OS installation without warning.)
+/*  if (!$private_directory) {
+    $status = REQUIREMENT_WARNING;
+    $description = t('The private files directory is undefined.');
+  }
+*/
+
+  return array(
+    'os_files_private' => array(
+      'title' => t('Open Scholar files private'),
+      'severity' => $status,
+      'description' => $description,
+      'value' => $private_directory,
+    ),
+  );
+}
+
+/**
+ * Revert view.
+ */
+function os_files_private_update_7001() {
+  features_revert(array('os_files_private' => array('views')));
+}
+
+/**
+ * Revert view.
+ */
+function os_files_private_update_7002() {
+  features_revert(array('os_files_private' => array('views_view')));
+}

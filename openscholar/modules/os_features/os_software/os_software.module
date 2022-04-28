@@ -1,0 +1,417 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code for the OS Software feature.
+ */
+
+include_once 'os_software.features.inc';
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_software_os_app_info() {
+  $apps = array();
+
+  $apps['os_software'] = array(
+    'path' => 'software',
+  	'nodetypes' => array(
+  	  'software_project',
+      'software_release',
+    ),
+    'views tabs' => array(
+      'os_software_projects' => array('page'),
+    ),
+    'importers' => array(
+      'software_project' => array(
+        'csv' => 'os_software',
+      ),
+    ),
+    'require_parent_node' => array(
+      'software_release'=> TRUE,
+    ),
+    'browse_pages' => array(
+      'software_project' => array(
+        'url' => 'browse/projects',
+        'title' => t('Software'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'software',
+      ),
+      'software_release' => array(
+        'url' => 'browse/releases',
+        'title' => t('Browse releases'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'software',
+      ),
+    ),
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_form_FORM_ID_form_alter() for software_project_node_form
+ *
+ * Hides the packaging method field if only one option exists.
+ */
+function os_software_form_software_project_node_form_alter(&$form, &$form_state, $form_id) {
+  $method_field_options = _os_software_packaging_method_options();
+  unset($form['field_software_method']);
+  unset($form['field_rbuild_short_name']);
+  unset($form['field_software_repo']);
+  $form['packaging'] = array(
+      '#markup' => '<div class="form-item form-type-textfield form-item-title"><label>Packaging Method <span class="form-required" title="This field is required.">*</span></lable><div class="no-bold">Manual upload</div></div>',
+  );
+  $form['actions']['submit']['#submit'][] = '_os_software_form_redirect';
+}
+
+/**
+ * Implements hook_node_insert()
+ *
+ * Enforces single recommended release per project constraint for "Software Release"
+ */
+function os_software_node_insert($node) {
+  if ($node->type !== 'software_release') {
+    return;
+  }
+
+  $field_items = field_get_items('node', $node, 'field_software_recommended');
+  $recommended_value = $field_items[0]['value'];
+  if ($recommended_value === 0) {
+    return;
+  }
+
+  _os_software_new_recommended_release($node);
+}
+
+/**
+ * Implements hook_node_update()
+ *
+ * Enforces single recommended release per project constraint for "Software Release"
+ */
+function os_software_node_update($node) {
+  if ($node->type !== 'software_release') {
+    return;
+  }
+
+  // Compares original and updated "Recommended" field value
+  $node_original = node_load($node->nid);
+  // Only compare values if an original node exists
+  if (isset($node_original->title)) {
+    $node_updated = $node;
+    $rec_field_item_original = field_get_items('node', $node_original, 'field_software_recommended');
+    $rec_field_item_updated = field_get_items('node', $node_updated, 'field_software_recommended');
+    $rec_value_original = $rec_field_item_original[0]['value'];
+    $rec_value_updated = $rec_field_item_updated[0]['value'];
+    if ($rec_value_updated === $rec_value_original) {
+      return;
+    }
+  }
+  // Only updates other Software Release nodes if this value has changed to "Recommended"
+  if ($rec_value_updated === 0) {
+    return;
+  }
+
+  _os_software_new_recommended_release($node);
+}
+
+/**
+ * Implements hook_node_presave().
+ *
+ * Generates the node title for Software Releases
+ */
+function os_software_node_presave($node) {
+  if ($node->type !== 'software_release') {
+    return;
+  }
+
+  // Sets the node title like "[project-node:title] [release-node:version]"
+  $title = _os_software_prepare_release_title($node);
+  $node->title = $title;
+}
+
+/**
+ * Implements hook_node_view()
+ */
+function os_software_node_view($node, $view_mode, $langcode) {
+  // Only customizes full node view for Manual upload Software nodes.
+  if (!($node->type == 'software_project' || $node->type == 'software_release') || $view_mode !== 'full' ) {
+    return;
+  }
+
+  // Gets the project node for the "Add new" link query.
+  if ($node->type == 'software_project') {
+    $project_node = $node;
+  }
+  else {
+    $items = field_get_items('node', $node, 'field_software_project');
+    $project_nid = $items[0]['target_id'];
+    if (!$project_nid || !is_numeric($project_nid)) {
+      return;
+    }
+    $project_node = node_load($project_nid);
+  }
+
+  // Does nothing if the project node is not manual upload.
+  $method_field_item = field_get_items('node', $project_node, 'field_software_method');
+  if ($method_field_item[0]['value'] !== 'Manual upload') {
+    return;
+  }
+
+  // Adds inline contextual links for "Add new > Software Release"
+  if (node_access('update', $node)) {
+    $node->content['add_release_link'] = array(
+      '#theme' => 'menu_local_action',
+      '#weight' => -1,
+      '#link' => array(
+        'title' => t('Add new software release'),
+        'href' => 'node/add/software-release',
+        'localized_options' => array(
+          'query' => array('field_software_project' => $project_node->nid),
+        ),
+      ),
+      '#prefix' => '<ul class="field action-links">',
+      '#suffix' => '</ul>',
+    );
+  }
+}
+
+/**
+ * Implements hook_process_HOOK for node.
+ */
+function os_software_process_node(&$vars) {
+  if (!in_array($vars['type'], array('software_project', 'software_release'))) {
+    return;
+  }
+  
+  if ($vars['type'] == 'software_release') {
+    if ($vars['view_mode'] == 'title') {
+      $vars['content'] = array_intersect_key($vars['content'], array('links' => TRUE));
+    }
+    return;
+  }
+  
+  switch ($vars['view_mode']) {
+    case 'full':
+      // Orders the EVA fields so that "Recommended" is above "Recent".
+      if (isset($vars['content']['os_software_releases_entity_view_2']['#weight']) && isset($vars['content']['os_software_releases_entity_view_1'])) {
+        $weight = $vars['content']['os_software_releases_entity_view_2']['#weight'];
+        $vars['content']['os_software_releases_entity_view_1']['#weight'] = $weight + 1;
+      }
+      break;
+      
+    case 'slide_teaser':
+    case 'teaser': 
+      // Hides EVA fields "Recommended Release" and "Recent Releases" on /software.
+      if (isset($vars['content']['os_software_releases_entity_view_1'])) {
+        unset($vars['content']['os_software_releases_entity_view_1']);
+      }
+      if (isset($vars['content']['os_software_releases_entity_view_2'])) {
+        unset($vars['content']['os_software_releases_entity_view_2']);
+      }
+      break;
+      
+    case 'title':
+      $vars['content'] = array_intersect_key($vars['content'], array('links' => TRUE));
+      break;
+  }
+}
+
+/**
+ * Implements hook_node_delete()
+ */
+function os_software_node_delete($node) {
+  if ($node->type !== 'software_project') {
+    return;
+  }
+
+  // Deletes all referencing software release nodes
+  _os_software_delete_child_releases($node);
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_software_vsite_og_node_type_info() {
+  return array(
+    'software_project' => 'group content',
+    'software_release' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_os_add_new_links_alter()
+ *
+ * Removes "Add new > Software Release" link from "Add new" contextual links
+ */
+function os_software_os_add_new_links_alter(&$links) {
+  if (isset($links['software_release'])) {
+    unset($links['software_release']);
+  }
+  if (isset($links['software_project'])) {
+    $request_path = request_path();
+    $links['software_project']['query'] = array('destination' => $request_path);
+  }
+}
+
+/**
+ * Implements hook_os_widget()
+ *
+ * Exposes blocks as OpenScholar widgets.
+ */
+function os_software_os_widget() {
+  $items = array();
+
+  $items['views-os_software_releases-block_1'] = array(
+    'module' => 'views',
+    'delta' => 'os_software_releases-block_1',
+    'region' => 'sidebar_second',
+    'weight' => '-10',
+    'info' => 'Recent Software Releases',
+  );
+
+  return $items;
+}
+
+//TODO: Remove with os_layout_get is refactored to handle widget titles better
+function os_software_os_widget_alter(&$widget) {
+  if ($widget['delta'] == 'os_software_releases-block_1') {
+    $widget['info'] = 'Recent Software Releases';
+  }
+}
+
+/**
+ * Provides default packaging method field option for Software Package nodes
+ */
+function os_software_os_packaging_method_option() {
+  $options = array(
+    'Manual upload' => t('Manual upload'),
+  );
+  return $options;
+}
+
+/**
+ * Finds other recommended releases, marks them "Not recommended"
+ */
+function _os_software_new_recommended_release($node) {
+  // If this release is set as 'not recommended', then no need to alter other releases.
+  if ($node->field_software_recommended[LANGUAGE_NONE][0]['value'] == 0) {
+    return;
+  }
+
+  // Retrieves the list of all other software releases for this node's parent
+  // Software Project node.
+  $field_name   = 'field_software_project';
+  $items        = field_get_items('node', $node, $field_name);
+  $project_nid  = $items[0]['target_id'];
+  $release_nids = _os_software_get_software_release_nids($project_nid);
+  if (sizeof($release_nids) < 1) {
+    return;
+  }
+
+  // Sets all sibling Software Release node's "recommended" field to '0'.
+  foreach ($release_nids as $nid) {
+    // Skips over the release that triggered this update.
+    if ((int) $nid === (int) $node->nid) {
+      continue;
+    }
+    $release_node = node_load($nid);
+    $language = isset($release_node->language) ? $release_node->language : LANGUAGE_NONE;
+    $release_node->field_software_recommended[$language][0]['value'] = 0;
+    node_save($release_node);
+  }
+}
+
+/**
+ * Finds all child Software Release nodes and deletes them
+ */
+function _os_software_delete_child_releases($node) {
+  $nids = _os_software_get_software_release_nids($node->nid);
+  if (count($nids) === 0) {
+    return;
+  }
+
+  $operations = array();
+  foreach ($nids as $nid) {
+    $operations[] = array('node_delete', array($nid));
+  }
+
+  $batch = array(
+    'title' => t('Removing orphaned Software Releases for ') . '<em>' . $node->title . '</em>',
+    'init_message' => t('Initializing...'),
+    'operations' => $operations,
+    'finished' => '_os_software_batch_finished',
+  );
+
+  batch_set($batch);
+  batch_process();
+}
+
+/**
+ * Returns an array of node IDs of child Software Release nodes of a Project.
+ *
+ * @param int $nid
+ *   A Software Project node ID
+ */
+function _os_software_get_software_release_nids($nid) {
+  ctools_include('node', 'os');
+  $query = new OSNodeFieldQuery('software_release');
+  $query->fieldCondition('field_software_project', 'target_id', $nid);
+  $result = $query->execute();
+
+  if (!isset($result['node'])) {
+    return array();
+  }
+
+  $nids = array_keys($result['node']);
+  return $nids;
+}
+
+/**
+ * Displays success/failure message after deleting a Project node with children.
+ */
+function _os_software_batch_finished($success, $results, $operations) {
+  if ($success) {
+    drupal_set_message(format_plural(count($results), '1 orphaned Software Release removed.', '@count orphaned Software Releases removed.'));
+  }
+  else {
+    drupal_set_message(t('Oops! Some orphaned Software Releases may need to be manually removed.'));
+  }
+}
+
+/**
+ * Prepares Software Release node title for presave and view
+ */
+function _os_software_prepare_release_title($node) {
+  $default_prefix = 'Project Release';
+
+  $project_field = field_get_items('node', $node, 'field_software_project');
+  $project_node  = node_load($project_field[0]['target_id']);
+  $project_title = (!empty($project_node->title)) ? $project_node->title : $default_prefix;
+
+  $version_field = field_get_items('node', $node, 'field_software_version');
+  $version = trim($version_field[0]['value']);
+
+  $title_parts = array(
+    $project_title,
+    $version,
+  );
+
+  return implode(' ', $title_parts);
+}
+
+/**
+ * Invokes hooks to provide packaging method field options
+ */
+function _os_software_packaging_method_options() {
+  $options = module_invoke_all('os_packaging_method_option');
+  return $options;
+}
+
+/**
+ * Redirects user to Links page, individual link nodes should not be viewed.
+ */
+function _os_software_form_redirect($form, &$form_state) {
+  $form_state['redirect'] = 'software';
+}

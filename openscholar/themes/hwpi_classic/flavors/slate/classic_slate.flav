@@ -1,0 +1,6 @@
+name = Slate
+description = Slate blue/grey header and menu bar version of the Classic theme
+screenshot = screenshot.png
+
+css[] = slate.css
+css[] = responsive.slate.css

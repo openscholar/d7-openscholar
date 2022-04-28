@@ -1,0 +1,410 @@
+<?php
+// $Id$
+
+
+/**
+ * Perform install-time configurations for events
+ */
+function os_events_install() {
+
+  //Don't store the 'last_viewed' date, This is annoying
+  variable_set('calendar_track_date', 0);
+
+  // Define the registration entity as a group content.
+  og_create_field(OG_AUDIENCE_FIELD, 'registration', 'event_signup_simple');
+
+  db_drop_primary_key('registration_entity');
+  db_add_field('registration_entity', 'repeating_event_date', array(
+      'type' => 'varchar',
+      'length' => 128,
+      'default' => '',
+      'not null' => TRUE,
+      'description' => 'A optional date when a repeating event occurs.',
+    ));
+  db_add_primary_key('registration_entity', array('entity_id', 'entity_type', 'repeating_event_date'));
+
+}
+
+function os_events_uninstall() {
+  db_drop_field('registration_entity', 'repeating_event_date');
+  _os_events_delete_variables();
+}
+
+// Implements hook_schema_alter().
+function os_events_schema_alter(&$schema) {
+  if (isset($schema['registration_entity'])) {
+    $schema['registration_entity']['fields']['repeating_event_date'] = array(
+      'type' => 'varchar',
+      'length' => 128,
+      'default' => '',
+      'not null' => TRUE,
+      'description' => 'A optional date when a repeating event occurs.',
+    );
+    $schema['registration_entity']['primary key'][] = 'repeating_event_date';
+  }
+}
+
+/**
+ * Helper function.
+ *
+ * Delete the orcid id.
+ */
+function _os_events_delete_variables() {
+
+  // Delete footer variable for email footer information.
+  variable_del('site_from_email');
+
+  // Delete footer variable for email footer information.
+  variable_del('site_physical_address');
+}
+
+/**
+ * Update the field data for events if it was not created correctly
+ */
+function os_events_update_7001() {
+
+  //Does the field already exist? if not do nothing.
+  if (!($db_field = field_info_field('field_date'))) {
+    return;
+  }
+
+  module_load_include('inc', 'features', 'features.export');
+  if ($def_fields = features_get_default('field', 'os_events')) {
+
+    //Get the default field in the features export
+    $def_field = $def_fields['node-event-field_date'];
+    $def_field_config = $def_field['field_config'];
+
+    //Are there any differences between the configs?
+    if ($def_field_config + $db_field != $db_field) {
+
+      //Get the db columns for the exported field
+      module_load_install($def_field_config['module']);
+      $def_schema = (array) module_invoke($def_field_config['module'], 'field_schema', $def_field_config);
+
+      $new_columns = array_diff_key($def_schema['columns'], $db_field['columns']);
+      if(count($new_columns)){
+
+        //Lets add the new columns needed for this field
+        foreach ($new_columns as $column_name => $attributes) {
+          $real_name = _field_sql_storage_columnname($def_field_config['field_name'], $column_name);
+          if(!db_field_exists("field_data_{$def_field_config['field_name']}", $real_name)){
+            db_add_field("field_data_{$def_field_config['field_name']}", $real_name, $attributes);
+          }
+          if(!db_field_exists("field_revision_{$def_field_config['field_name']}", $real_name)){
+            db_add_field("field_revision_{$def_field_config['field_name']}", $real_name, $attributes);
+          }
+        }
+      }
+
+      //Update the settings
+      $db_field['settings'] = $def_field_config['settings'];
+
+      // Write settings back to the database.
+      db_update('field_config')
+        ->fields(array('data' => serialize($db_field)))
+        ->condition('field_name', $def_field_config['field_name'])
+        ->execute();
+
+      // Clear caches
+      field_cache_clear(TRUE);
+
+      try{
+        //Apply any other non-field updates
+        field_update_field($def_field_config);
+      }catch (FieldUpdateForbiddenException $e){
+        return array('success' => FALSE, 'query' => 'field_date has failed to update it\'s configuration.');
+      }
+    }
+  }
+
+  return "field_date has been updated to it's exported configuration.";
+}
+
+/**
+ * Enabling the iCal module.
+ */
+function os_events_update_7002() {
+  module_enable(array('date_ical'));
+}
+
+/**
+ * Enable the registration module.
+ */
+function os_events_update_7004() {
+  module_enable(array('registration'));
+}
+
+/**
+ * Update the event registration UX.
+ */
+function os_events_update_7005() {
+  features_revert(array('os_events' => array('field')));
+}
+
+/**
+ * Revert fields to get new field weights on event full node view.
+ */
+function os_events_update_7006() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+
+/**
+ * Remove calendar_add_colorbox variable since we decided not to use colorbox.
+ */
+function os_events_update_7007() {
+  variable_del('calendar_add_colorbox');
+}
+
+/**
+ * Revert views to fix display of upcoming events.
+ */
+function os_events_update_7008() {
+  features_revert(array('os_events' => array('views_view')));
+}
+
+/**
+ * Remove the NID argument from the view for export events to ICS file.
+ */
+function os_events_update_7009() {
+  features_revert(array('os_events' => array('views_view')));
+}
+
+/**
+ * Remove the NID argument from the view for export events to ICS file.
+ */
+function os_events_update_7010() {
+  features_revert(array('os_events' => array('feeds_importer')));
+}
+
+/**
+ * Migrate the "Upcoming events" view to be a box instead.
+ */
+function os_events_update_7011() {
+  $overrides = db_select('spaces_overrides', 'so')
+    ->fields('so', array('object_id', 'value', 'id'))
+    ->condition('object_type', 'context')
+    ->condition('object_id', '%reaction:block', 'LIKE')
+    ->condition('value', '%views-os_events-block_2%', 'LIKE')
+    ->execute()
+    ->fetchAllAssoc('id');
+
+  foreach ($overrides as $override) {
+    $blocks = unserialize($override->value);
+
+    // In case the view is used, create a new block that will replace it.
+    if (isset($blocks['blocks']['views-os_events-block_2'])) {
+      $old_block = $blocks['blocks']['views-os_events-block_2'];
+      $blocks['blocks']['boxes-os_events_upcoming'] = array(
+        'module' => 'boxes',
+        'delta' => 'os_events_upcoming',
+        'region' => $old_block['region'],
+        'weight' => $old_block['weight'],
+      );
+      unset($blocks['blocks']['views-os_events-block_2']);
+      $override->value = serialize($blocks);
+    }
+
+    db_update('spaces_overrides')
+      ->fields(array('value' => $override->value))
+      ->condition('id', $override->id)
+      ->condition('object_type', 'context')
+      ->condition('object_id', $override->object_id)
+      ->execute();
+  }
+}
+
+/**
+ * Revert views to add the delta to event links.
+ */
+function os_events_update_7012() {
+  features_revert(array('os_events' => array('views_view')));
+}
+
+function os_events_update_7013() {
+  features_revert(array('os_events' => array('variable')));
+}
+
+function os_events_update_7014() {
+  features_revert(array('os_events' => array('variable')));
+}
+
+/**
+ * Reset date format variables
+ */
+function os_events_update_7015() {
+  features_revert(array('os_events' => array('variable')));
+}
+
+/**
+ * Create a single event export.
+ */
+function os_events_update_7016() {
+  features_revert(array('os_events' => array('views_view')));
+}
+
+/**
+ * Define the registration entity as a group content and revert the views
+ * component to display event attendees..
+ */
+function os_events_update_7017() {
+  og_create_field(OG_AUDIENCE_FIELD, 'registration', 'event_signup_simple');
+  features_revert(array('os_events' => array('views_view')));
+}
+
+/*
+ * When exporting events, export the last 40 and not the 30 days backwards.
+ */
+function os_events_update_7018() {
+  features_revert(array('os_events' => array('views_view')));
+}
+
+/**
+ * Add a date field to the registration entity table.
+ */
+function os_events_update_7019() {
+
+  $spec = array(
+      'type' => 'varchar',
+      'length' => 128,
+      'default' => '',
+      'not null' => TRUE,
+      'description' => 'A optional date when a repeating event occurs.',
+    );
+
+  if (!db_field_exists('registration_entity', 'repeating_event_date')) {
+    db_drop_primary_key('registration_entity');
+
+    db_add_field('registration_entity', 'repeating_event_date', $spec);
+
+    db_add_primary_key('registration_entity', array('entity_id', 'entity_type', 'repeating_event_date'));
+  }
+  features_revert(array('os_events' => array('field')));
+}
+
+/*
+ * Simple View for repeating events should only export the single date's event
+ */
+function os_events_update_7020() {
+  features_revert(array('os_events' => array('field','views_view')));
+}
+
+/*
+ * Add the repeating_signup field to registrations
+ */
+function os_events_update_7021() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+
+/*
+ * Alteration for registration display fields for event registrants details display
+ */
+function os_events_update_7022() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+/**
+ * Reverting OS events views.
+ */
+function os_events_update_7023() {
+  features_revert(array('os_events' => array('field_instance', 'views_view')));
+}
+
+/**
+ * Set registration field as required.
+ */
+function os_events_update_7024() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+
+/**
+ * Add indexes to date columns
+ */
+function os_events_update_7025() {
+  db_add_index('field_data_field_date', 'date_start', array('field_date_value'));
+  db_add_index('field_data_field_date', 'date_end', array('field_date_value2'));
+}
+
+
+/**
+ * Set registration field as visible in slide_teaser mode.
+ */
+function os_events_update_7026() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+
+/**
+ * Display links in the past events view.
+ */
+function os_events_update_7027() {
+  features_revert(array('os_events' => array('views_views')));
+}
+
+/**
+ * Change the formatter for events teaser.
+ */
+function os_events_update_7028() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+
+/**
+ * Adjusting vocabulary display position
+ */
+function os_events_update_7029() {
+  features_revert(array('os_events' => array('field_instance')));
+}
+
+/**
+ * Add feed_2_no_cache display
+ */
+function os_events_update_7030() {
+  features_revert(array('os_events' => array('views_view')));
+}
+
+/**
+ * Update RSS feed view mode and feed view displays.
+ */
+function os_events_update_7031() {
+  features_revert(array(
+    'os_events' => array(
+      'strongarm',
+      'field_instance',
+      'views_view',
+    ),
+  ));
+  $settings = field_bundle_settings('node', 'event');
+  $settings['view_modes']['rss']['custom_settings'] = TRUE;
+  field_bundle_settings('node', 'event', $settings);
+  system_rebuild_module_data();
+}
+
+/**
+ * Update Google Calendar View
+ */
+function os_events_update_7032() {
+  features_revert(array(
+    'os_events' => array(
+      'views_view'
+    )
+  ));
+}
+
+/**
+ * Update weights on fields
+ */
+function os_events_update_7033() {
+  features_revert(array(
+    'os_events' => array(
+      'field_instance'
+    )
+  ));
+}
+
+/**
+ * Update the permissions for registrations
+ */
+/*
+ * Simple View for repeating events should only export the single date's event
+ */
+function os_events_update_7034() {
+  features_revert(array('os_events' => array('user_permission')));
+}

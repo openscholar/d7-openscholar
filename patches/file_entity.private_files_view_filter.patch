@@ -1,0 +1,85 @@
+diff --git a/file_entity.info b/file_entity.info
+index ce95294..35830d9 100644
+--- a/file_entity.info
++++ b/file_entity.info
+@@ -12,6 +12,7 @@ files[] = views/views_handler_filter_file_type.inc
+ files[] = views/views_handler_field_file_link.inc
+ files[] = views/views_handler_field_file_link_edit.inc
+ files[] = views/views_handler_field_file_link_delete.inc
++files[] = views/views_handler_filter_scehma_type.inc
+ files[] = views/views_handler_field_file_link_download.inc
+ files[] = views/views_plugin_row_file_view.inc
+ files[] = tests/file_entity.test
+diff --git a/file_entity.views.inc b/file_entity.views.inc
+index b1a556a..fc2b1ed 100644
+--- a/file_entity.views.inc
++++ b/file_entity.views.inc
+@@ -80,6 +80,15 @@ function file_entity_views_data() {
+     ),
+   );
+ 
++    // File schema type.
++    $data['file_managed']['schema_type'] = array(
++      'title' => t('Schema type'),
++      'help' => t('Filter files by private/public schema.'),
++      'filter' => array(
++          'handler' => 'views_handler_filter_scehma_type',
++      ),
++    );
++
+   // Download link.
+   $data['file_managed']['download'] = array(
+     'title' => t('Download link'),
+diff --git a/views/views_handler_filter_scehma_type.inc b/views/views_handler_filter_scehma_type.inc
+new file mode 100644
+index 0000000..74701b8
+--- /dev/null
++++ b/views/views_handler_filter_scehma_type.inc
+@@ -0,0 +1,47 @@
++<?php
++/**
++ * @file
++ *
++ * Filter by the file schema type.
++ */
++
++class views_handler_filter_scehma_type extends views_handler_filter {
++
++  /**
++   * Set default field name to render.
++   */
++  function option_definition() {
++    $options = parent::option_definition();
++    $options['schema_type'] = array('default' => 'private');
++
++    return $options;
++  }
++
++  /**
++   * Define the file schema type.
++   */
++  public function options_form(&$form, &$form_state) {
++    parent::options_form($form, $form_state);
++
++    // Collect the available schema types.
++    $options = array();
++    foreach (file_get_stream_wrappers() as $type => $info) {
++      $options[$type] = $info['name'];
++    }
++
++    $form['schema_type'] = array(
++      '#type' => 'select',
++      '#title' => t('Schema type'),
++      '#description' => t('Display files by the Schema type.'),
++      '#default_value' => $this->options['schema_type'],
++      '#options' => $options,
++    );
++  }
++
++  /**
++   * Add to the query conditions the file schema type.
++   */
++  function query($group_by = FALSE) {
++    $this->query->add_where($group_by, 'uri', $this->options['schema_type'] . "://%", 'LIKE');
++  }
++}

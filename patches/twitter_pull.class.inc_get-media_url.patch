@@ -1,0 +1,20 @@
+--- a/twitter_pull.class.inc
++++ b/twitter_pull.class.inc
+@@ -142,6 +142,8 @@
+           $obj->text = filter_xss($item->retweeted_status->text);
+           //-- Convert date to unix timestamp so themer can easily work with it.
+           $obj->timestamp = strtotime($item->retweeted_status->created_at);
++
++          $obj->media_url = (isset($item->entities->media[0]->media_url) ? $item->entities->media[0]->media_url : null);
+         }
+         else {
+           $obj->id = check_plain($item->id_str);
+@@ -156,6 +158,8 @@
+           $obj->text = filter_xss($item->text);
+           //-- Convert date to unix timestamp so themer can easily work with it.
+           $obj->timestamp = strtotime($item->created_at);
++
++          $obj->media_url = (isset($item->entities->media[0]->media_url) ? $item->entities->media[0]->media_url : null);
+         }
+         $tweets[] = $obj;
+       }

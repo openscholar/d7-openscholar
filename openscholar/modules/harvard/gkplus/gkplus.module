@@ -1,0 +1,750 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Customizations for Gary King's website.
+ */
+
+/**
+ * Defines the site ID to enable these custom features on.
+ */
+define('GKPLUS_SID', 3633);
+
+/**
+ * Implements hook_menu().
+ */
+function gkplus_menu() {
+  $items = array();
+
+  $items['taxonomy/%ctools_js/nodeorder/%'] = array(
+    'title' => 'Order Taxonomy Nodes',
+    'page callback' => 'gkplus_nodeorder_form',
+    'page arguments' => array(1, 3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['gking_upload_filefield'] = array(
+    'title' => 'Upload Filefield',
+    'page callback' => 'gkplus_upload_filefield_page',
+    'page arguments' => array(),
+    'access callback' => '_gkplus_upload_filefield_access',
+    'access arguments' => array('af485c726a866b57f1a53519226107ef'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Page callback; provides nodeorder form for a given taxonomy term.
+ *
+ * @ingroup nodeorder
+ */
+function gkplus_nodeorder_form($js = NULL, $tid = NULL) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  // Gracefully degrades if $js is not set.
+  if (!$js) {
+    return drupal_get_form('gkplus_nodeorder_admin_display_form', $tid);
+  }
+
+  ctools_include('ajax');
+  ctools_include('modal');
+  require_once (drupal_get_path('module', 'nodeorder') . '/nodeorder.admin.inc');
+
+  $form_state = array(
+    'title' => t('Order Term Nodes'),
+    'ajax' => TRUE,
+    'build_info' => array(
+       'args' => array($tid),
+    ),
+  );
+
+  $output = ctools_modal_form_wrapper('gkplus_nodeorder_admin_display_form', $form_state);
+
+  if ($form_state['submitted'] && form_get_errors() == FALSE) {
+    $output = array();
+    $output[] = ctools_ajax_command_reload();
+  }
+  print ajax_render($output);
+  exit;
+}
+
+/**
+ * Generate main nodeorder administration form.
+ *
+ * @see nodeorder_admin_display_form
+ * This is a copy of the above form using custom OS ordering
+ */
+function gkplus_nodeorder_admin_display_form($form, &$form_state, $tid) {
+  global $pager_page_array, $pager_total, $pager_total_items;
+
+  $page            = isset($_GET['page']) ? $_GET['page'] : 0;
+  $page_increment  = variable_get('taxonomy_terms_per_page_admin', 100);  // Number of terms per page.
+  $page_entries    = 0;   // Elements shown on this page.
+  $before_entries  = 0;   // Elements at the root level before this page.
+  $after_entries   = 0;   // Elements at the root level after this page.
+  $root_entries    = 0;   // Elements at the root level on this page.
+
+  $term = taxonomy_term_load($tid);
+  // Build form tree
+  $form = array(
+    '#tree' => TRUE,
+    '#parent_fields' => FALSE,
+    '#term' => $term,
+  );
+  drupal_set_title(t('Order nodes for <em>%term_name</em>', array('%term_name' => $term->name)), PASS_THROUGH);
+
+  $bundles = os_taxonomy_og_vocabulary_bundles($term->vid, GKPLUS_SID);
+  $bundles = array_map(function($o) {return $o->bundle;}, $bundles);
+  $nodes_attached = os_taxonomy_list_attached_entities($tid, $bundles);
+  $nodes = array();
+  foreach ($nodes_attached as $info) {
+  	if($info['entity_type'] == 'node') {
+  	  $nodes[] = node_load($info['entity_id']);
+  	}
+  }
+  $node_count = count($nodes);
+
+  // Weights range from -delta to +delta, so delta should be at least half
+  // of the amount of blocks present. This makes sure all blocks in the same
+  // region get an unique weight.
+  $weight_delta = round($node_count / 2);
+
+  foreach ($nodes as $node) {
+    $form[$node->nid]['#node'] = $node;
+    $form[$node->nid]['title'] = array(
+      '#markup' => check_plain($node->title));
+    $form[$node->nid]['weight'] = array(
+      '#type' => 'weight',
+      '#title' => t('Weight for @title', array('@title' => $node->title)),
+      '#title_display' => 'invisible',
+      '#delta' => 10,
+      '#default_value' => $node->weight,
+    );
+  }
+
+  $form['#theme'] = 'nodeorder_admin_display_form';
+  $form['#submit'] = array('nodeorder_admin_display_form_submit');
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save order'),
+  );
+  return $form;
+}
+
+/**
+ * Page callback; accesses $_POST to upload file from a shell script (curl).
+ *
+ * 4-digit error codes indicate the validity of the 4 curl POST parameters.
+ *
+ * Form post variables may be one of:
+ *  - 0 : missing or invalid
+ *  - 1 : unknown or not yet checked
+ *  - 2 : valid
+ *
+ * The position of parameter in 3-digit code is filename, contents, auth.
+ */
+function gkplus_upload_filefield_page() {
+  print t("Processing upload...") . "\n";
+  if (!isset($_POST['filename']) || !isset($_POST['contents']) || !isset($_POST['auth'])) {
+    print t("Error: missing parameters.") . "\n";
+    print t("Error code ") . isset($_POST['filename']) ? '2' : 0 . isset($_POST['contents']) ? '2' : 0 . isset($_POST['auth']) ? '2' : 0 . '0\n';
+    exit();
+  }
+
+  $filename = $_POST['filename'];
+
+  $loc = 'public://gking/files/';
+  $exists_and_writable = file_prepare_directory($loc, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+  if ($exists_and_writable) {
+    // Write the file data.
+    if ($uri = file_unmanaged_save_data($_POST['contents'], $loc . $filename, FILE_EXISTS_REPLACE)) {
+      // Create a file object.
+      $file = new stdClass();
+      $file->fid = NULL;
+      $file->uri = $uri;
+      $file->filename = drupal_basename($uri);
+      $file->filemime = file_get_mimetype($file->uri);
+      $file->uid      = $user->uid;
+      $file->status   = FILE_STATUS_PERMANENT;
+      // When replacing an existing file re-use its database record.
+      $existing_files = file_load_multiple(array(), array('uri' => $uri));
+      if (count($existing_files)) {
+        $existing = reset($existing_files);
+        $file->fid = $existing->fid;
+        $file->filename = $existing->filename;
+        $file->origname = $existing->origname;
+      }
+      $file = file_save($file);
+    }
+    else {
+      print "Error: could not upload file. Debug info:<br/><br/>";
+      print print_r(var_dump($_POST));
+      exit();
+    }
+  }
+  else {
+    print t("Directory does not exist or is not writable.") . "\n";
+    exit();
+  }
+
+  $file->display = 1;
+  $filepath = file_stream_wrapper_get_instance_by_uri('public://')->getDirectoryPath() . '/gking/files/' . $_POST['filename'];
+  global $base_url;
+  print "Success: $filename uploaded.\n\n\tLink: $base_url/$filepath\n\n";
+  exit();
+}
+
+/**
+ * Access callback; checks that a $_POST variable matches an md5 hash.
+ */
+function _gkplus_upload_filefield_access($compare = 'af485c726a866b57f1a53519226107ef') {
+  // Verifies the correct backdoor post param exists.
+  if (!isset($_POST['auth']) || $_POST['auth'] != $compare) {
+    print t("Error: missing authentication.") . "\n";
+    print $_POST['auth'] . ':' . $compare . "\n";
+    exit();
+  }
+
+  // Verifies the filename exists in post parameters.
+  if (!isset($_POST['filename'])) {
+    print t('Error: missing filename.') . "\n";
+    exit();
+  }
+
+  // Looks for the file in the file_managed table.
+  $filename = $_POST['filename'];
+  $uri = db_select('file_managed', 'f')
+    ->fields('f', array('uri'))
+    ->condition('uri', '%' . db_like("gking/files/$filename"), 'LIKE')
+    ->range(0, 1)
+    ->orderBy('fid')
+    ->execute()
+    ->fetchField();
+
+  // Exits if a file with that name does not exist.
+  if (!$uri || strlen($uri) === 0) {
+    print t('Error: Existing file not found: ') . "$filename\n";
+    exit();
+  }
+
+  return TRUE;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function gkplus_menu_alter(&$items) {
+  // Alters default taxonomy term page access callback to possibly redirect.
+  if (isset($items['taxonomy/term/%taxonomy_term'])) {
+    $items['taxonomy/term/%taxonomy_term']['access callback'] = 'gkplus_term_access';
+    $items['taxonomy/term/%taxonomy_term']['access arguments'] = array(2);
+  }
+}
+
+/**
+ * Access callback for "taxonomy/term/%"; redirects child-less low-level terms.
+ *
+ * @return bool
+ *   TRUE or FALSE based on permission-- but if this is a term we want to
+ *   redirect from, then we will drupal_goto() before we ever return TRUE.
+ */
+function gkplus_term_access($term) {
+  if (!user_access('access content')) {
+    return FALSE;
+  }
+
+  // Checks for possible redirects on gking site only.
+  if (_gkplus_check_sid() && arg(3) !== 'edit') {
+    _gkplus_term_check_redirect($term);
+  }
+
+  return TRUE;
+}
+
+/**
+ * Redirects user to top-level parent for specific vocabulary.
+ *
+ * The following conditions must ALL be met for a redirect to occur:
+ *  - Requested term is on gking's site (checked before being called).
+ *  - Requested term is in a vocab named "Research Interests"
+ *  - Requested term has NO child terms
+ *  - Requested term had depth 2 or more.
+ *
+ * If all the conditions are met, then the user is redirected to the requested
+ * term's immediate parent term page instead.
+ *
+ * This check might appear recursive, but it actually can't run more than once
+ * on a pageload, since we only ever redirect to a parent term, and we explicitly
+ * display a term with any children.
+ */
+function _gkplus_term_check_redirect($term) {
+  // Displays original term if from a normal vocabulary.
+  $vocab = taxonomy_vocabulary_load($term->vid);
+  if ($vocab->name !== 'Research Interests') {
+    return;
+  }
+
+  // Displays original term if it has any children.
+  $term_children = taxonomy_get_tree($vocab->vid, $term->tid, NULL, TRUE);
+  if (count($term_children)) {
+    return;
+  }
+
+  // Checks original term for depth.
+  $all_children = taxonomy_get_tree($vocab->vid);
+  foreach ($all_children as $child) {
+    if ($child->tid !== $term->tid) {
+      continue;
+    }
+
+    // Displays original term if depth less than or equal to 1.
+    if ($child->depth <= 1) {
+      return;
+    }
+    // Otherwise, redirects to original term's parent term.
+    drupal_goto('taxonomy/term/'. current($child->parents));
+  }
+}
+
+/**
+ * Implements hook_strongarm().
+ *
+ * @ingroup nodeorder
+ */
+function gkplus_strongarm() {
+  $conf = array();
+
+  // Hide the nodeorder links on term nodes
+  $conf['nodeorder_show_links_on_node'] = 0;
+
+  return $conf;
+}
+
+/**
+ * Implements hook_init().
+ */
+function gkplus_init() {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  drupal_add_css(drupal_get_path('module', 'gkplus') . '/gkplus.css', array('every_page' => TRUE));
+}
+
+/**
+ * Implements hook_views_pre_build().
+ *
+ * Removes pager from the People page on Gary's website only.
+ */
+function gkplus_views_pre_build(&$view) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  if ($view->name !== 'os_profiles') {
+    return;
+  }
+  $pager = $view->display_handler->get_option('pager');
+  $pager['options']['items_per_page'] = 0;
+  $view->display_handler->set_option('pager', $pager);
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function gkplus_node_insert($node) {
+  if (!_gkplus_check_sid() || !$node->nid || !isset($node->gkplus_minitheme)) {
+    return;
+  }
+  _gkplus_entity_setting_update($node->nid, 'minitheme_nodes', $node->gkplus_minitheme);
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function gkplus_node_update($node) {
+  if (!_gkplus_check_sid() || !$node->nid || !isset($node->gkplus_minitheme)) {
+    return;
+  }
+  _gkplus_entity_setting_update($node->nid, 'minitheme_nodes', $node->gkplus_minitheme);
+}
+
+/**
+ * Implements hook_node_presave().
+ */
+function gkplus_node_presave($node) {
+  if (!_gkplus_check_sid() || $node->type !== 'page' || strlen($node->title) > 0) {
+    return;
+  }
+  $node->title = 'BLANK_TITLE';
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function gkplus_node_view($node, $view_mode, $langcode) {
+  if (!_gkplus_check_sid() || $node->type !== 'page' || $node->title !== 'BLANK_TITLE') {
+    return;
+  }
+  $node->title = '';
+}
+
+/**
+ * Implements hook_node_view_alter().
+ */
+function gkplus_node_view_alter(&$build, $type) {
+  if (!_gkplus_check_sid()) return;
+
+  if ($build['#node']->type == 'biblio' && isset($build['og_vocabulary'])) {
+    $i = 5;
+    $vocab = &$build['og_vocabulary'];
+    $parents = array();
+    foreach ($vocab['#items'] as $t) {
+      $ancestors = taxonomy_get_parents_all($t['target_id']);
+      // if there are more than 2 terms in the ancestors list, we want the 2nd to last
+      // if there's only, get that one
+      $offset = min(count($ancestors), 2);
+      $targ = $ancestors[count($ancestors)-$offset];
+      $parents[$targ->tid] = $targ;
+    }
+
+    $values = array();
+    foreach ($parents as $tid => $term) {
+      $url = entity_uri('taxonomy_term', $term);
+      $values[] = l($term->name, $url['path']);
+    }
+
+    $vocab[0] = array('#markup' => 'See also: '.implode(', ', $values));
+  }
+}
+
+/**
+ * Implements hook_node_prepare().
+ */
+function gkplus_node_prepare($node) {
+  if (!_gkplus_check_sid() || $node->type !== 'page' || $node->title !== 'BLANK_TITLE') {
+    return;
+  }
+  $node->title = '';
+}
+
+/**
+ * Implements hook_node_validate().
+ */
+function gkplus_node_validate($node, $form, $form_state) {
+  if (!_gkplus_check_sid() || $node->type !== 'page' || strlen($node->title) > 0) {
+    return;
+  }
+  $vocab_name = "Research Interests";
+  if (!_gkplus_node_in_vocab($node, $vocab_name)) {
+    form_set_error('title', t("Title is required for pages that are not in the <em>@vocab_name</em> taxonomy", array('@vocab_name' => $vocab_name)));
+  }
+}
+
+/**
+ * Node validate callback; only allows nodes with "Research Interests" term(s).
+ *
+ * @see gkplus_node_validate()
+ */
+function _gkplus_node_in_vocab($node, $vocab_name) {
+  $items = field_get_items('node', $node, 'og_vocabulary');
+  $taxonomy = array_shift($items);
+  if (!isset($taxonomy) || !is_array($taxonomy) || count($taxonomy) === 0) {
+    return FALSE;
+  }
+  foreach ($taxonomy as $vid => $terms) {
+    if (!is_numeric($vid) || !count($terms) || _gking_empty_terms($terms)) {
+      continue;
+    }
+    $vocab = taxonomy_vocabulary_load($vid);
+    if ($vocab && $vocab->name === $vocab_name) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Returns TRUE if no child items of an array have a numeric 'target_id'.
+ *
+ * In other words, returns FALSE if at least one numeric target_id is found.
+ *
+ * @see _gkplus_node_in_vocab()
+ */
+function _gking_empty_terms($terms) {
+  if (sizeof($terms) === 0) {
+    return TRUE;
+  }
+  foreach ($terms as $term) {
+    if (isset($term['target_id']) && is_numeric($term['target_id'])) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for taxonomy_form_term.
+ *
+ * @ingroup term_display_options
+ */
+function gkplus_form_taxonomy_form_term_alter(&$form, &$form_state, $form_id) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  $form['advanced']['gkplus'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Custom theme settings',
+    '#collapsible' => FALSE,
+    'gkplus_hidden_heading_terms' => array(
+      '#type' => 'checkbox',
+      '#default_value' => _gkplus_entity_setting($form['tid']['#value'], 'hidden_heading_terms'),
+      '#title' => t('Hidden heading'),
+      '#description' => t('Hide this term heading from displaying on taxonomy page'),
+    ),
+    'gkplus_child_indent_terms' => array(
+      '#type' => 'checkbox',
+      '#default_value' => _gkplus_entity_setting($form['tid']['#value'], 'child_indent_terms'),
+      '#title' => t('Child indent'),
+      '#description' => t('Indent this term when displayed as a child term on taxonomy parent term page.'),
+    ),
+  );
+  $form['#submit'][] = 'gkplus_form_taxonomy_form_term_submit';
+}
+
+/**
+ * Form submit callback; triggers term settings updates on term save.
+ *
+ * @see gkplus_form_taxonomy_form_term_alter()
+ */
+function gkplus_form_taxonomy_form_term_submit($form, &$form_state) {
+  if (!$form_state['values']['tid']) {
+    return;
+  }
+  $settings = array('hidden_heading_terms', 'child_indent_terms');
+  foreach ($settings as $setting) {
+    _gkplus_entity_setting_update($form_state['values']['tid'], $setting, $form_state['values']['gkplus_' . $setting]);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for taxonomy_form_vocabulary.
+ *
+ * @see gkplus_module_implements_alter()
+ *
+ * @ingroup nodeorder
+ */
+function gkplus_form_taxonomy_form_vocabulary_alter(&$form, &$form_state, $form_id) {
+  // Hides nodeorder's "Orderable" checkbox on the vocabulary edit form.
+  if (isset($form['settings']['orderable'])) {
+    $form['settings']['orderable']['#type'] = 'value';
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ */
+function gkplus_form_node_form_alter(&$form, &$form_state, $form_id) {
+  if (!_gkplus_check_sid() || ($form['#bundle'] == 'biblio' && !$form['biblio_type']['#default_value'])) {
+    return;
+  }
+  $default_value = (isset($form['#node']->nid)) ? _gkplus_entity_setting($form['#node']->nid, 'minitheme_nodes') : 0;
+  $form['gkplus'] = array(
+    '#type' => 'fieldset',
+    '#access' => TRUE,
+    '#title' => t('Custom theme settings'),
+    '#weight' => 98,
+    '#group' => 'additional_settings',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['gkplus']['gkplus_minitheme'] = array(
+    '#title' => t('Remove branding'),
+    '#type' => 'checkbox',
+    '#size' => 65,
+    '#default_value' => $default_value,
+    '#description' => t('Display this post using a minimalist theme without branding.'),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for page_node_form.
+ */
+function gkplus_form_page_node_form_alter(&$form, &$form_state, $form_id) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  $form['title']['#required'] = FALSE;
+}
+
+/**
+ * Implements hook_preprocess_HOOK for html.tpl.php.
+ *
+ * Adds the miniteme (gking-alt) class attribute to configured node view pages.
+ */
+function gkplus_preprocess_html(&$vars) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  $object = menu_get_object();
+  if (!isset($object)) {
+    return;
+  }
+  if ($object->nid && _gkplus_entity_setting($object->nid, 'minitheme_nodes')) {
+    $vars['classes_array'][] = "gkplus-minitheme";
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK for taxonomy-term.tpl.php.
+ *
+ * Adds nodeorder admin link to terms for admin on gking site only.
+ *
+ * @ingroup nodeorder
+ */
+function gkplus_preprocess_taxonomy_term(&$vars) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+
+  $tid = $vars['term']->tid;
+  if (os_taxonomy_count_attached_nodes($tid) < 2) {
+    return;
+  }
+
+  global $user;
+  if (!module_exists('nodeorder') || !spaces_access_admin()) {
+    return;
+  }
+
+  ctools_include('ajax');
+  ctools_include('modal');
+
+  $vars['title_prefix'] = "<span class='term-admin-links'>"
+    . ctools_modal_text_button(t('Sort Section'), "taxonomy/nojs/nodeorder/$tid", t('Sort Section'), "term-admin-link term-admin-sort-link")
+    . "</span>";
+}
+
+/**
+ * Implements hook_preprocess_HOOK for theme_os_taxonomy_tagged_nodes().
+ *
+ * @ingroup term_display_options
+ */
+function gkplus_preprocess_os_taxonomy_tagged_nodes(&$vars) {
+  if (!_gkplus_check_sid()) {
+    return;
+  }
+  if (!isset($vars['taxonomy_term']->tid) || !isset($vars['taxonomy_term']->vid)) {
+    return;
+  }
+
+  $vocab = taxonomy_vocabulary_load($vars['taxonomy_term']->vid);
+  if ($vocab->name !== 'Research Interests') {
+    return;
+  }
+
+  // Prepares fresh set of classes for this term heading.
+  if (!isset($vars['options']['attributes']['class'])) {
+    $vars['options']['attributes']['class'] = array();
+  }
+  // Removes gkplus term attributes from parent options for child terms.
+  else {
+    $original = $vars['options']['attributes']['class'];
+    $remove = array('gkplus-hidden-heading', 'gkplus-show-heading', 'gkplus-child-indent', 'gkplus-no-indent');
+    $vars['options']['attributes']['class'] = array_diff($original, $remove);
+  }
+
+  // Adds custom display options assigned to this term.
+  if (_gkplus_entity_setting($vars['taxonomy_term']->tid, 'hidden_heading_terms')) {
+    $vars['options']['attributes']['class'][] = 'gkplus-hidden-heading';
+  }
+  else {
+    $vars['options']['attributes']['class'][] = 'gkplus-show-heading';
+  }
+  if (_gkplus_entity_setting($vars['taxonomy_term']->tid, 'child_indent_terms')) {
+    $vars['options']['attributes']['class'][] = 'gkplus-child-indent';
+  }
+  else {
+    $vars['options']['attributes']['class'][] = 'gkplus-no-indent';
+  }
+}
+
+/**
+ * Returns TRUE if the node is set to use the custom setting.
+ *
+ * @param int $etid
+ *   The entity ID of the node or term about to be viewed.
+ * @param string $setting
+ *   The variable name to test this entity for membership of; one of
+ *   "minitheme_nodes", "hidden_heading_terms", or "child_indent_terms".
+ *
+ * @ingroup term_display_options
+ */
+function _gkplus_entity_setting($etid, $setting) {
+  $variable_name = 'gkplus_' . $setting;
+  $etids = variable_get($variable_name, array());
+  return in_array($etid, $etids);
+}
+
+/**
+ * Updates an array of entity IDs to add or remove this entity ID for a setting.
+ *
+ * @param int $etid
+ *   The entity ID, a node or taxonomy term that was just updated.
+ * @param string $option
+ *   The option in question, one of "minitheme_nodes", "hidden_heading_terms",
+ *   or "child_indent_terms".
+ * @param int $value
+ *   The checkbox value, 0 or 1.
+ *
+ * @ingroup term_display_options
+ */
+function _gkplus_entity_setting_update($etid, $setting, $value) {
+  $variable_name = 'gkplus_' . $setting;
+  $etids = variable_get($variable_name, array());
+  // Adds the entity if the value is 1 and the entity is not yet saved as such.
+  if ($value && !in_array($etid, $etids)) {
+    $etids[] = $etid;
+    variable_set($variable_name, $etids);
+  }
+  // Removes the entity if the value is 0 and the entity is not yet removed.
+  else if (!$value && in_array($etid, $etids)) {
+    unset($etids[array_search($etid, $etids)]);
+    variable_set($variable_name, $etids);
+  }
+}
+
+/**
+ * Returns TRUE if the purl of the current vsite is "gkplus".
+ */
+function _gkplus_check_sid($sid = GKPLUS_SID) {
+  $vsite = vsite_get_vsite();
+  return ($vsite && $vsite->id == $sid);
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Ensures that gkplus module will implement it's hook before nodeorder.
+ *
+ * @ingroup nodeorder
+ */
+function gkplus_module_implements_alter(&$implementations, $hook) {
+  // Moves gkplus_form_alter() to the end of the list,
+  // Ensures it will execute after nodeorder_form_alter().
+  if ($hook == 'form_alter') {
+    // module_implements() goes thru $implementations with a loop in the order
+    // that the items were added, so to move an item to the end of the array,
+    // we remove it, then then add it.
+    if (!isset($implementations['gkplus'])) {
+      return;
+    }
+    $group = $implementations['gkplus'];
+    unset($implementations['gkplus']);
+    $implementations['gkplus'] = $group;
+  }
+}

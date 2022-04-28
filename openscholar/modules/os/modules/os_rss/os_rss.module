@@ -1,0 +1,401 @@
+<?php
+/**
+ * @file
+ * os_rss.module
+ */
+
+include_once 'os_rss.features.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function os_rss_menu() {
+  $items = array();
+
+  $items['cp/build/features/os_rss_feed'] = array(
+    'title' => 'RSS feed settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('os_rss_feed_settings'),
+    'access callback' => 'spaces_access_admin',
+  );
+
+  $items['rss'] = array(
+    'title' => 'RSS Feeds',
+    'page callback' => 'os_rss_list_of_feeds',
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function os_rss_theme() {
+  return array(
+    'os_rss_importer_bundles' => array(
+      'variables' => array(
+        'title' => '',
+        'sub-title' => '',
+        'items' => '',
+      ),
+    ),
+  );
+}
+
+/**
+ *  Implements hook_views_data().
+ */
+function os_rss_views_data() {
+  $data = array();
+
+  $data['node']['os_rss_pubDate'] = array(
+    'title' => t('OS RSS pubDate'),
+    'help' => t('pubDate of the node.'),
+    'field' => array(
+      'handler' => 'os_rss_pubDate',
+    ),
+  );
+
+  $data['node']['os_rss_guid'] = array(
+    'title' => t('OS RSS guid'),
+    'help' => t('Guid for the node.'),
+    'field' => array(
+      'handler' => 'os_rss_guid',
+    ),
+  );
+
+  $data['node']['os_rss_link'] = array(
+    'title' => t('OS RSS link'),
+    'help' => t('Provide absolute url for the node.'),
+    'field' => array(
+      'handler' => 'os_rss_link',
+    ),
+  );
+
+  return $data;
+}
+
+/**
+ * Return default bundles to be displayed for the user.
+ */
+function os_rss_default_bundles() {
+  $available_bundles = os_get_bundles(array(OS_PUBLIC_APP));
+  $machine_names = array_keys($available_bundles);
+
+  if (!empty($machine_names)) {
+    $app_info = os_app_info();
+    foreach ($app_info as $info) {
+      if (empty($info['exclude_from_rss'])) {
+        continue;
+      }
+
+      foreach ($info['exclude_from_rss'] as $bundle) {
+        if (in_array($bundle, $info['exclude_from_rss'])) {
+          // The bundle is exported by the app and need to be removed from the
+          // content types list when creating an RSS feed.
+          $key = array_search($bundle, $machine_names);
+          unset($machine_names[$key]);
+        }
+      }
+    }
+
+    return array_combine($machine_names, $machine_names);
+  }
+
+  return $machine_names;
+}
+
+/**
+ * Supply form for create RSS feed links.
+ */
+function os_rss_list_of_feeds() {
+  $selected_bundles = variable_get('os_rss_feed_content_types', array());
+  $selected_vocabularies = variable_get('os_rss_feed_vocabs', FALSE);
+
+  $content = '';
+
+  $params = array(
+    '!wiki_link' => l("Wikipedia's more complete definition", 'http://en.wikipedia.org/wiki/RSS'),
+  );
+  $content .= "<div class='os-rss-description'>" .
+  t("RSS stands for Really Simple Syndication (see !wiki_link), and provides a way for readers to subscribe to content updates. We provide RSS feeds for the following content types and categories.", $params)
+  . "</div>";
+
+  $selected_bundles = array_merge(os_rss_default_bundles(), $selected_bundles);
+
+  if (!empty($selected_bundles)) {
+    $items = array();
+
+    foreach ($selected_bundles as $bundle) {
+      if ($bundle) {
+        $items[] = array('key' => $bundle, 'link' => node_type_get_name($bundle));
+      }
+    }
+
+    if ($items) {
+      $links = _os_rss_importer_feed_create($items, 'type');
+
+      $content .= theme('os_rss_importer_bundles', array(
+        'title' => t('Content Types'),
+        'items' => $links,
+      ));
+    }
+  }
+
+  // Get the list of all vocabs. We use the variable to filter out anything that
+  // shouldn't belong.
+  $vsite = vsite_get_vsite();
+  ctools_include('taxonomy', 'vsite_vocab');
+  $vocabs = vsite_vocab_get_vocabularies($vsite);
+  if ($selected_vocabularies === FALSE) {
+    $ids = array_keys($vocabs);
+    $selected_vocabularies = array_combine($ids, $ids);
+  }
+  else {
+    // Search for new vocabs and enable them by default.
+    $new = array_diff_key($vocabs, $selected_vocabularies);
+    $new_vids = array_keys($new);
+    if (!empty($new_vids)) {
+      $selected_vocabularies += array_combine($new_vids, $new_vids);
+    }
+  }
+
+  if (!empty($selected_vocabularies)) {
+    $vocabularies_feeds = array();
+
+    $vocabularies = taxonomy_vocabulary_load_multiple($selected_vocabularies);
+
+    foreach ($selected_vocabularies as $vid) {
+      $tree = taxonomy_get_tree($vid);
+
+      $items = array();
+
+      foreach ($tree as $term) {
+        $items[] = array('key' => $term->tid, 'link' => $term->name);
+      }
+
+      if ($items) {
+        $links = _os_rss_importer_feed_create($items, 'term');
+        $description = '';
+        if ($vocabularies[$vid]->description) {
+          $description = '<span class="os-rss-vocab-description">' . check_plain($vocabularies[$vid]->description) . '</span>';
+        }
+
+        $reader_terms = '<h3>' . check_plain($vocabularies[$vid]->name) . '</h3>';
+        $reader_terms .= $description;
+        $reader_terms .= theme('item_list', array(
+          'items' => $links,
+          'attributes' => array('class' => array('os-reader-terms')),
+        ));
+
+        $vocabularies_feeds[] = $reader_terms;
+      }
+    }
+
+    if ($vocabularies_feeds) {
+      $content .= theme('os_rss_importer_bundles', array(
+        'title' => t('Categories'),
+        'items' => $vocabularies_feeds,
+        'attributes' => array('class' => array('os-reader-feed-items')),
+      ));
+    }
+  }
+
+  return $content;
+}
+
+/**
+ * Build the links for the RSS.
+ *
+ * @param $items
+ *  Arrays of items that will be rendered to links. The validate structure is:
+ *    - key: The value which the node will be filtered by
+ *    - link: The title of the feed.
+ * @param $key
+ *  The name of the query argument which hold the value that will be filter by.
+ *
+ * @return Array
+ *  Array of rendered links.
+ *
+ * @code
+ *  $taxonomy_terms = taxonomy_term_load_multiple($terms);
+ *  foreach ($taxonomy_terms as $term) {
+ *    $items[] = array('key' => $term->tid, 'link' => $term->name);
+ *  }
+ *
+ * $links = array_merge($links, _os_rss_importer_feed_create($items, 'term'));
+ * @endcode
+ *
+ * @see os_rss_importer_feed_create().
+ */
+function _os_rss_importer_feed_create($items, $key) {
+  $links = array();
+  foreach ($items as $item) {
+    $options = array(
+      'query' => array(
+        $key => $item['key'],
+      ),
+    );
+
+    $links[] = l($item['link'], 'rss.xml', $options);
+  }
+
+  return $links;
+}
+
+/**
+ * Get the node IDs according the the filter criteria.
+ */
+function os_rss_importer_feed_export() {
+  $info = array();
+  if (!empty($_GET['type'])) {
+    $info = array(
+      'type' => 'type',
+      'data' => $_GET['type'],
+    );
+  }
+  elseif (!empty($_GET['term'])) {
+    $info = array(
+      'type' => 'terms',
+      'data' => $_GET['term'],
+    );
+  }
+
+  $nids = os_rss_importer_feed_get_nids($info);
+  return implode(",", $nids);
+}
+
+/**
+ * Build the Content with the RSS feeds.
+ *
+ * @param $info
+ *  Array of search criteria with the next filters:
+ *    - type: type or term.
+ *    - data: The node type or array of term IDs.
+ *
+ * @return Array
+ *  List of node IDs.
+ */
+function os_rss_importer_feed_get_nids($info = array()) {
+  $nids = array();
+
+  $query = new EntityFieldQuery();
+  $query
+    ->entityCondition('entity_type', 'node');
+
+  if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+    $query->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', $vsite->id);
+  }
+
+  if ($info) {
+    if ($info['type'] == 'type') {
+      $query->propertyCondition('type', $info['data']);
+    }
+    else {
+      $query->fieldCondition(OG_VOCAB_FIELD, 'target_id', $info['data']);
+    }
+  }
+
+  $results = $query->execute();
+
+  if (!empty($results['node'])) {
+    $nids = array_keys($results['node']);
+  }
+
+  return $nids;
+}
+
+/**
+ * Implements hook_context_load_alter().
+ */
+function os_rss_context_load_alter(&$context) {
+  if ($context->name != 'os_rss_feed') {
+    return;
+  }
+
+  // The context of the rss feed is not node context. Adding the export_module
+  // key and the settings_link key will add for the context a settings button.
+  $context->export_module = 'os_rss_feed';
+  $context->settings_link = TRUE;
+}
+
+/**
+ * Create a predefined RSS feeds.
+ */
+function os_rss_feed_settings($form, $form_settings) {
+  $values = array(
+    'content_types' => variable_get('os_rss_feed_content_types', array()),
+    'vocabularies' => variable_get('os_rss_feed_vocabs', FALSE),
+  );
+
+  // merge in defaults for any content type that's been enabled since this form was saved
+  $values['content_types'] = array_merge(os_rss_default_bundles(), $values['content_types']);
+
+  $bundles = os_get_bundles(array(1));
+
+  $app_info = os_app_info();
+  foreach ($app_info as $info) {
+    if (empty($info['exclude_from_rss'])) {
+      continue;
+    }
+
+    foreach ($info['exclude_from_rss'] as $bundle) {
+      if (in_array($bundle, $info['exclude_from_rss'])) {
+        // The bundle is exported by the app and need to be removed from the
+        // content types list when creating an RSS feed.
+        unset($bundles[$bundle]);
+      }
+    }
+  }
+
+  $form['os_rss_feed_content_types'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Content types'),
+    '#options' => $bundles,
+    '#description' => t('Select which content types to display as RSS feed options for site visitors.'),
+    '#default_value' => $values['content_types'],
+  );
+
+  $vsite = vsite_get_vsite();
+  ctools_include('taxonomy', 'vsite_vocab');
+  $vocabs = vsite_vocab_get_vocabularies($vsite);
+
+  $options = array();
+  if (is_array($values['vocabularies'])) {
+    $defaults = $values['vocabularies'];
+  }
+  foreach ($vocabs as $vocab) {
+    $options[$vocab->vid] = $vocab->name;
+    if ($values['vocabularies'] === FALSE || !isset($values['vocabularies'][$vocab->vid])) {
+      $defaults[$vocab->vid] = $vocab->vid;
+    }
+  }
+
+  $form['os_rss_feed_vocabs'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Vocabularies'),
+    '#options' => $options,
+    '#description' => t('Select which vocabularies to display as RSS feed options for site visitors.'),
+    '#default_value' => $defaults,
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Theme callback; Display the links of the feed with additional text.
+ */
+function theme_os_rss_importer_bundles($variables) {
+  drupal_add_css(drupal_get_path('module', 'os_rss') . '/css/os_rss.css');
+
+  $content = '<h2 class="os-reader-feed-title">' . check_plain($variables['title']) . '</h2>';
+  $content .= '<span class="os-reader-feed-sub-title">' . check_plain($variables['sub-title']) . '</span>';
+
+  $content .= theme('item_list', array(
+    'items' => $variables['items'],
+    'attributes' => array('class' => array('os-reader-feed-items')),
+  ));
+
+  return $content;
+}

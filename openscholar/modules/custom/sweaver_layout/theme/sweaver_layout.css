@@ -1,0 +1,19 @@
+#sweaver_layout .block {
+	width: 200px;
+	min-height: 30px;
+	padding: 3px;
+	padding-left: 30px;
+	background-color: black;
+	color: white;
+	display: inline-block;
+	margin: 3px;
+}
+
+#sweaver_layout .block .block-content,
+#sweaver_layout .block .contextual-links-wrapper {
+	display: none;
+}
+
+#sweaver .block h2.block-title {
+	color: white !important;
+}

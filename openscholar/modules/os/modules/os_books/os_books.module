@@ -1,0 +1,470 @@
+<?php
+
+/**
+ * @file
+ * OS Books file module.
+ */
+
+define("OS_BOOKS_CACHE", 'cache_book_pages');
+
+/**
+ * Gets the root node of any book tree.
+ */
+function os_books_get_root($node, $level = 0) {
+  if (is_numeric($node)) {
+    $node = node_load($node);
+  }
+
+  // Node isn't a book. Just leave.
+  if (!isset($node->book)) {
+   return $node;
+  }
+
+  if ($level) {
+    // Get the parent that's at the $level depth of the tree.
+    if ($node->book['p'.$level]) {  // book['p$int'] only goes up to 9
+      $item = book_link_load($node->book['p'.$level]);
+      $node = node_load($item['nid']);
+    }
+    else {
+      while ($node->book['depth'] > $level) {
+        $parent = book_link_load($node->book['plid']);
+        $pid = $parent['nid'];
+        $node = node_load($pid);
+      }
+    }
+  }
+  else {
+    $node = node_load($node->book['bid']);
+  }
+  return $node;
+}
+
+/**
+ * Takes any node in a book tree and builds the entirety of that tree.
+ */
+function os_books_build_tree($node, $flatten = FALSE) {
+  $root = os_books_get_root($node);
+  static $building = array();
+
+  // If we're in the middle of building this tree, do nothing
+  // this prevents an infinite loop.
+  if (isset($root->book) && !isset($building[$root->nid])) {
+    $building[$root->nid] = TRUE;
+    $cache = _os_books_get_cache($root->nid);
+    if ($cache) return $cache;
+
+    $tree = book_menu_subtree_data($root->book);
+    $output = _os_books_build_tree_recursive($tree, $flatten);
+
+    $cache_key = _os_books_get_cache_key($root->nid, $root->book['bid']);
+    cache_set($cache_key, $output, OS_BOOKS_CACHE, CACHE_PERMANENT);
+    unset($building[$root->nid]);
+    return $output;
+  }
+}
+
+/**
+ * Builds a full table of contents for a given book node.
+ *
+ * @param object|int $node
+ *   Either a nid or a full node object.
+ *
+ * @param string $style
+ *   Either 'full', 'partial'
+ *
+ * @param bool $separate
+ *   True if the function should split the top level and second level into
+ *   separate.
+ *
+ * @return array|NULL $block
+ *   Returns NULL if node cannot be loaded or $node->book is not set.
+ */
+function os_books_build_toc($node, $style = 'partial', $separate = FALSE) {
+  $block = array();
+
+  if (is_numeric($node)) {
+    $node = node_load($node);
+  }
+
+  if (is_object($node) && isset($node->book)) {
+    $menu_tree = array();
+    switch ($style) {
+      case 'full':
+        $menu_tree = menu_tree_all_data($node->book['menu_name']);
+        break;
+      case 'partial':
+        $menu_tree = menu_tree_all_data($node->book['menu_name'], $node->book);
+        break;
+    }
+
+    if ($separate) {
+      $top = current($menu_tree);
+      $block['subject'] = theme('book_title_link', array('link' => $top['link']));
+      $output = menu_tree_output($top['below']);
+      $block['content'] = render($output);
+    }
+    else {
+      $output = menu_tree_output($menu_tree);
+      $block['content'] = render($output);
+    }
+  }
+
+  return $block;
+}
+
+/**
+ * Recursive function to collect the data array from the book.
+ */
+function _os_books_build_tree_recursive($tree, $flatten = FALSE) {
+  if (!is_array($tree)) {
+    $tree = array($tree);
+  }
+
+  $output = array();
+  $orig_path = $_GET['q'];
+  foreach ($tree as $link) {
+    $nid = $link['link']['nid'];
+    $node = node_load($nid);
+    // Trick drupal into thinking we're on this node.
+    $_GET['q'] = 'node/'.$nid;
+    $output[$nid]['content'] = drupal_render(node_show($node));
+    $output[$nid]['url'] = drupal_get_path_alias('node/'.$nid);
+    $output[$nid]['title'] = node_page_title($node);
+    if (module_exists('os_breadcrumbs')) {
+      $output[$nid]['breadcrumb'] = os_breadcrumbs_get_breadcrumbs(NULL, $node);
+    }
+    if ($link['link']['has_children']) {
+      $children = _os_books_build_tree_recursive($link['below'], $flatten);
+      if ($flatten) {
+        // Array merge blows away our nid keys.
+        foreach ($children as $k => $v) {
+          $output[$k] = $v;
+        }
+      }
+      else {
+        $output[$nid]['children'] = $children;
+      }
+    }
+  }
+  // Change the path back.
+  $_GET['q'] = $orig_path;
+
+  return $output;
+}
+
+function os_books_node_view($node, $view_mode) {
+  if ($view_mode == 'full') {
+    if ($node->type == 'book' && isset($node->book) && $node->book) {
+      if (variable_get('os_books_swap_enabled', FALSE)) {
+        $content = $node->content;
+        // Drupal destroys $node->content during its build process.
+        // Without it, we get fatal errors.
+        $pages = os_books_build_tree($node, true);
+        $node->content = $content;
+        // This is the page's node, not one we render through os_books.
+        if ($pages) {
+          drupal_add_js(array(
+            'os_books' => array(
+              'pages' => $pages,
+              'settings' => _os_books_get_book_settings($node->book['bid']),
+            ),
+          ), 'setting');
+          $node->content['#attached']['js'][] = drupal_get_path('module', 'os_books').'/os_books.js';
+        }
+      }
+
+      // Unset the book navigation links.
+      if (module_exists('book') && book_type_is_allowed($node->type)) {
+        unset($node->content['book_navigation']);
+      }
+
+      // Add contextual links
+      // Drupal doesn't add contextual links to a node when we're on that
+      // node's page this'll probably have to go somewhere else eventually,
+      // to catch all nodes.
+      if (node_is_page($node)) {
+        $node->content['#contextual_links']['node'] = array('node', array($node->nid));
+
+        // activate the book's context
+        if ($context = context_load('os_books-book-'.$node->book['bid'])) {
+          context_set('context', $context->name, $context);
+        }
+      }
+
+      // Printed links.
+      if (user_access('access print version')) {
+        $book_links = &$node->content['links']['book']['#links'];  // because I'm lazy
+        $book_links['book_printer_full'] = array(
+          'title' => t('Print'),
+          'href' => 'book/export/html/' . $node->book['bid'],
+          'attributes' => array(
+            'title' => t('Show a print version of this book.'),
+            'class' => array('book_printer')
+          )
+        );
+        if (isset($book_links['book_add_child'])) {
+          $book_links['book_add_child']['attributes']['class'][] = 'book_add_child';
+        }
+        unset($node->content['links']['book']['#links']['book_printer']);
+      }
+    }
+  }
+}
+
+function os_books_contextual_links_view_alter(&$element, &$items) {
+  if (isset($items['node-outline'])) {
+    $destination = str_replace('/edit', '', $element['#links']['node-edit']['href']);
+    foreach ($element['#links'] as $k => $v) {
+      $element['#links'][$k]['query']['destination'] = $destination;
+    } 
+  }
+}
+
+function os_books_context_custom($name) {
+  if (strpos($name, 'os_books-book') !== FALSE) {
+    $nid = str_replace('os_books-book-', '', $name);
+    $ctx = (object)array(
+      'disabled' => FALSE,
+      'api_version' => 3,
+      'name' => 'os_books-book-'.$nid,
+      'description' => 'Context active in a given book.',
+      'tag' => 'OpenScholar',
+      'conditions' => array(),
+      'reactions' => array(),
+      'condition_mode' => 0,
+      'weight' => 5,
+    );
+
+    return $ctx;
+  }
+}
+
+function _os_books_get_book_settings($bid) {
+  return array();
+}
+
+/**
+ * Node API hooks.
+ *
+ * Used for clearing caches when a book node changes.
+ */
+function os_books_node_insert($node) {
+  _os_books_clear_cache($node);
+}
+
+function os_books_node_update($node) {
+  _os_books_clear_cache($node);
+}
+
+function os_books_node_delete($node) {
+  _os_books_clear_cache($node);
+}
+
+/**
+ * Caching functions.
+ */
+function _os_books_get_cache($root, $bid = 0) {
+  if (is_object($root) && isset($root->nid)) {
+    $root = $root->nid;
+    $bid = $root->book['bid'];
+  }
+//  commented until these things are back in
+//  elseif (!(int)$root || !module_exists('views_content_cache')) {
+//    return FALSE;
+//  }
+
+//  $cutoff = 0;
+//  $cache_params = array(
+//    'node' => array('book' => 'book'),
+//    'os_og' => array('current' => 'current'),
+//  );
+//
+//  // Retrieve the latest update time matching the settings on this View.
+//  $cid = array();
+//  foreach ($cache_params as $key_id => $key_values) {
+//    if ($plugin = views_content_cache_get_plugin($key_id)) {
+//      $cid[$key_id] = $plugin->view_key($key_values);
+//    }
+//  }
+//  if (!empty($cid) && ($timestamp = views_content_cache_update_get($cid))) {
+//    $cutoff = $timestamp;
+//  }
+
+  $cache_key = _os_books_get_cache_key($bid, $root);
+  if ($cache = cache_get($cache_key, OS_BOOKS_CACHE)) {
+    return $cache->data;
+  }
+}
+
+function _os_books_clear_cache($node) {
+  if (isset($node->book) && isset($node->book['bid'])) {
+    $cache_key = _os_books_get_book_cache_wildcard($node->book['bid']);
+    cache_clear_all($cache_key, OS_BOOKS_CACHE, TRUE);
+  }
+}
+
+/**
+ * Get the first part of the cache key
+ * To be used to clear all caches of this book,
+ * regardless of the root they're using
+ * @param unknown_type $bid - The id of the book itself
+ */
+function _os_books_get_book_cache_wildcard($bid) {
+  $parts = array();
+  $cid_parts[] = "os_book";
+  $cid_parts[] = $bid;
+
+  return implode(':', $cid_parts);
+}
+
+/**
+ * Return the full key.
+ * To be used with getting or setting a specific cache
+ * @param $bid
+ *  The id of the book itself.
+ *
+ * @param $root
+ *  The id of the node used as the root.
+ */
+function _os_books_get_cache_key($bid, $root) {
+  $cid_parts = array();
+
+  $cid_parts[] = "os_book";
+  $cid_parts[] = $bid;
+  $cid_parts[] = $root;
+  // Clear cache when book settings are changed ?
+  // $cid_parts[] = scholar_book_toc_location();
+  // Special caching for super user.
+  // $cid_parts[] = (spaces_access_admin())?1:0;
+
+  if (module_exists('locale')) {
+    global $language;
+    $cid_parts[] = $language->language;
+  }
+
+  return $key = implode(':', $cid_parts);
+}
+
+function os_books_preprocess_book_export_html(&$vars) {
+  $vars['head'] .=     '<link type="text/css" rel="stylesheet" href="'.$GLOBALS['base_url'].'/'.drupal_get_path('module', 'os_books').'/os_books.print.css'.'"/>'."\r\n";
+}
+
+/**
+ * Removes collapsed/expanded class if none of the link's children are accessible
+ */
+function os_books_preprocess_menu_link(&$vars) {
+  // #original_link only exists on links generated by menu_tree_output
+  // menu_tree_output generates the toc links
+  if (empty($vars['element']['#below']) && isset($vars['element']['#original_link'])) {
+    // get the menu tree for this link
+    // if it has anything in its below var, it gets the collapsed/expanded class
+    // links will have nothing in the below var if it's a sibling of a parent, so we need to get the full access tree
+    module_load_include('inc', 'os', 'includes/menu');
+    $tree = os_menu_tree_data($vars['element']['#original_link']['menu_name']);
+    $link = _os_books_find_menu_link_in_tree($tree, $vars['element']['#original_link']);
+    // this link has no children because none of them are accessible by the user
+    // remove the collapsed/expanded class
+    if ($link && empty($link['below'])) {
+      $vars['element']['#attributes']['class'] = array_diff($vars['element']['#attributes']['class'], array('collapsed', 'expanded'));
+      $vars['element']['#attributes']['class'] = array_merge($vars['element']['#attributes']['class'], array('leaf'));
+    }
+  }
+  if (isset($vars['element']['#original_link']) && $vars['element']['#original_link']['has_children'] > 0) {
+    $children = _os_books_get_menu_children($vars['element']['#original_link']['link_path']);
+    if (empty($children)) {
+      $vars['element']['#attributes']['class'] = array_diff($vars['element']['#attributes']['class'], array('collapsed', 'expanded'));
+    }
+  }
+}
+
+/**
+ * Loops through all a menu links parents from root to leaf, tracing back the path to this link.
+ * Use this when you have a link from a partial tree and want it from the whole tree
+ */
+function _os_books_find_menu_link_in_tree($tree, $link) {
+  $children = reset($tree);
+  $children = $children['below'];
+
+  if (!$children) {
+    return FALSE;
+  }
+
+  for ($i=1;$i<10;$i++) {
+    $plid = $link['p'.$i];
+
+    if (!$plid) {
+      break;
+    }
+
+    foreach ($children as $c) {
+      if ($c['link']['mlid'] == $plid) {
+
+        if ($c['link']['mlid'] == $link['mlid']) {
+          return $c;
+        }
+
+        $children = $c['below'];
+        break;
+      }
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function os_books_menu_alter(&$callbacks) {
+
+  if (!module_exists('vsite')) return;
+
+  $callbacks['book/export/%/%']['access callback'] = 'os_books_access_export';
+  $callbacks['book/export/%/%']['access arguments'] = array(3, 'access printer-friendly version');
+}
+
+/**
+ * Check that the book page you are trying to export is in the current site.
+ *
+ * @param $node
+ * @param $permission
+ */
+function os_books_access_export($node, $permission) {
+
+  $vsite = vsite_get_vsite();
+  if (!$vsite) {
+    return user_access($permission);
+  }
+
+  // Verify that the book page is in the current site.
+  $groups = og_get_entity_groups('node', $node);
+  if (empty($groups['node']) || in_array($vsite->id, $groups['node'])) {
+    return user_access($permission) && $vsite->access_feature('view', 'os_booklets');
+  }
+
+  return FALSE;
+}
+
+/**
+ * Get the immediate children from a menu path after checking access.
+ * @param $path
+ *    e.g.: node/xxxx
+ */
+function _os_books_get_menu_children($path) {
+  $parent = menu_link_get_preferred($path);
+  $parameters = array(
+    'active_trail' => array($parent['plid']),
+    'only_active_trail' => FALSE,
+    'min_depth' => $parent['depth']+1,
+    'max_depth' => $parent['depth']+1,
+    'conditions' => array('plid' => $parent['mlid']),
+  );
+  $children = menu_build_tree($parent['menu_name'], $parameters);
+  foreach ($children as $key => $child) {
+    if ($child['link']['hidden'] == 1) {
+      // Removing the hidden menu links
+      unset($children[$key]);
+    }
+  }
+  return $children;
+}

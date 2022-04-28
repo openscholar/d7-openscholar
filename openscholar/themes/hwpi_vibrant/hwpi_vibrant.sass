@@ -1,0 +1,373 @@
+//colors
+@import _colors
+@import _helpers
+
+//fonts
+$font_0: Georgia
+$font_1: Baskerville
+$font_2: Palatino
+$font_3: Palatino Linotype
+$font_4: Book Antiqua
+$font_5: Times New Roman
+$font_6: serif
+$font_7: Arial
+$font_8: Helvetica
+$font_9: sans-serif
+$font_10: georgia
+$font_11: arial
+
+//urls
+$url_0: url(../images/standard-body-gradient.png)
+$url_1: url(../images/readmore.png)
+
+.front 
+	#content-panels 
+		.block
+			&.block-boxes-os_boxes_manual_list 
+				&.styled
+					.block-title
+						color: contrasting-color($school_l, $font_light, $font_dark) !important
+						background: $school_l
+						background: -moz-linear-gradient(top, $school_l 0, $school_d 100%)
+						background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, $school_l), color-stop(100%, $school_d))
+						background: -webkit-linear-gradient(top, $school_l 0, $school_d 100%)
+						background: -o-linear-gradient(top, $school_l 0, $school_d 100%)
+						background: -ms-linear-gradient(top, $school_l 0, $school_d 100%)
+						background: linear-gradient(to bottom, $school_l 0, $school_d 100%)
+
+		.block-title 
+			background: #f8f8f8
+			color: #000
+			border-bottom: 1px solid #dededc
+
+		.block-content
+			border-top: 1px solid #f2f2f2
+
+	&.no-sidebars .region-content-top .block-boxes-os_slideshow_box:after 
+		background-color: $school_d
+
+	#content-column .block 
+		border-top: 6px solid #e1e1e1
+
+.view-os-image-gallery-slideshow 
+	background: #252525
+
+.block-boxes-os_boxes_slideshow
+
+	.field-name-body 
+		font-family: $font_10
+
+.region-inner
+	.rslides_nav
+		background-color: $school_d
+.field-name-body
+	h2 
+		font-family: $font_7, $font_8, $font_9
+
+	h3 
+		font-family: $font_7, $font_8, $font_9
+
+	h4 
+		font-family: $font_7, $font_8, $font_9
+
+#menu-bar 
+	background: #fff
+	nav 
+		background: $school_2
+		-webkit-box-shadow: 0 1px 1px 1px #school_d
+		//If you use compass, instead of the line below you could use + box-shadow($shadow-1, $shadow-2, $shadow-3, $shadow-4, $shadow-5, $shadow-6, $shadow-7, $shadow-8, $shadow-9, $shadow-10)
+		box-shadow: 0 1px 1px 1px #school_d
+	ul 
+		&.nice-menu 
+			a
+				font-family: $font_0, $font_1, $font_2, $font_3, $font_4, $font_5, $font_6
+				&.active 
+					background: #1E2540
+					color: $font_light
+					&:hover 
+						background: #1E2540
+						color: $font_light
+
+
+			.menuparent
+				a 
+					color: inherit
+					font-family: $font_0, $font_1, $font_2, $font_3, $font_4, $font_5, $font_6
+					&.active
+						background: #282828
+						background: -moz-linear-gradient(top, #313131 0, #282828 100%)
+						background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#313131), color-stop(100%,#282828))
+						background: -webkit-linear-gradient(top, #313131 0,#282828 100%)
+						background: -o-linear-gradient(top, #313131 0,#282828 100%)
+						background: -ms-linear-gradient(top, #313131 0,#282828 100%)
+						background: linear-gradient(to bottom, #313131 0,#282828 100%)
+						filter: "progid: dximagetransform.microsoft.gradient(startcolorstr={#313131}, endcolorstr={#282828},gradienttype=0 )"
+				ul
+					li a
+						font-family: $font_7, $font_8, $font_9
+						&:hover 
+							background: #282828 !important
+							color: #fff !important
+
+						&.active 
+							background: #282828 !important
+							color: #fff !important
+
+			li
+				&.menuparent:hover a 
+					background: #282828
+					background: -moz-linear-gradient(top, #313131 0, #282828 100%)
+					background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#313131), color-stop(100%,#282828))
+					background: -webkit-linear-gradient(top, #313131 0,#282828 100%)
+					background: -o-linear-gradient(top, #313131 0,#282828 100%)
+					background: -ms-linear-gradient(top, #313131 0,#282828 100%)
+					background: linear-gradient(to bottom, #313131 0,#282828 100%)
+					filter: "progid: dximagetransform.microsoft.gradient(startcolorstr={#313131}, endcolorstr={#282828},gradienttype=0 )"
+					color: #fff
+			ul 
+				background: #282828
+		a
+			font-family: $font_0, $font_1, $font_2, $font_3, $font_4, $font_5, $font_6
+
+		> li > a 
+			&:hover 
+				background: #282828
+				background: -moz-linear-gradient(top, #313131 0, #282828 100%)
+				background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#313131), color-stop(100%,#282828))
+				background: -webkit-linear-gradient(top, #313131 0,#282828 100%)
+				background: -o-linear-gradient(top, #313131 0,#282828 100%)
+				background: -ms-linear-gradient(top, #313131 0,#282828 100%)
+				background: linear-gradient(to bottom, #313131 0,#282828 100%)
+				filter: "progid: dximagetransform.microsoft.gradient(startcolorstr={#313131}, endcolorstr={#282828},gradienttype=0 )"
+				color: #fff
+
+			&.active 
+				background: #282828
+				background: -moz-linear-gradient(top, #313131 0, #282828 100%)
+				background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#313131), color-stop(100%,#282828))
+				background: -webkit-linear-gradient(top, #313131 0,#282828 100%)
+				background: -o-linear-gradient(top, #313131 0,#282828 100%)
+				background: -ms-linear-gradient(top, #313131 0,#282828 100%)
+				background: linear-gradient(to bottom, #313131 0,#282828 100%)
+				filter: "progid: dximagetransform.microsoft.gradient(startcolorstr={#313131}, endcolorstr={#282828},gradienttype=0 )"
+				&:hover 
+					background: #fff
+					color: #1f1f1f
+
+
+#columns
+	background-image: linear-gradient(to bottom, $school 0, $school_d 252px, #e8e8e8 252px)
+
+ul
+	&.links li
+		&.link-count-node-readmore 
+			border: 1px solid #dededc !important
+			background: #f8f8f8
+			background: -moz-linear-gradient(top, #f8f8f8 0, #f3f3f3 100%)
+			background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f8f8f8), color-stop(100%,#f3f3f3))
+			background: -webkit-linear-gradient(top, #f8f8f8 0,#f3f3f3 100%)
+			background: -o-linear-gradient(top, #f8f8f8 0,#f3f3f3 100%)
+			background: -ms-linear-gradient(top, #f8f8f8 0,#f3f3f3 100%)
+			background: linear-gradient(to bottom, #f8f8f8 0,#f3f3f3 100%)
+			filter: "progid: dximagetransform.microsoft.gradient(startcolorstr={#f8f8f8}, endcolorstr={#f3f3f3},gradienttype=0 )"
+			a
+				background: $url_1 no-repeat 100% center transparent
+
+#page-title 
+	font-family: $font_7, $font_8, $font_9
+
+.node-title 
+	font-family: $font_7, $font_8, $font_9
+
+.page-search 
+	.title a 
+		font-family: $font_7, $font_8, $font_9
+
+	#content-column p 
+		font-family: $font_7, $font_8, $font_9
+
+#content-column 
+	.block
+		&.block-boxes-os_boxes_manual_list .links.inline a 
+			font-family: $font_7, $font_8, $font_9
+	p 
+		font-family: $font_10
+	li 
+		font-family: $font_10
+
+.more-link 
+	font-family: $font_7, $font_8, $font_9
+
+#footer 
+	color: #fff
+	background: #2b2b2b
+	background: -moz-linear-gradient(top, #2b2b2b 0, #1b1b1b 100%)
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#2b2b2b), color-stop(100%,#1b1b1b))
+	background: -webkit-linear-gradient(top, #2b2b2b 0,#1b1b1b 100%)
+	background: -o-linear-gradient(top, #2b2b2b 0,#1b1b1b 100%)
+	background: -ms-linear-gradient(top, #2b2b2b 0,#1b1b1b 100%)
+	background: linear-gradient(to bottom, #2b2b2b 0,#1b1b1b 100%)
+	filter: "progid: dximagetransform.microsoft.gradient(startcolorstr={#2b2b2b}, endcolorstr={#1b1b1b},gradienttype=0 )"
+	a 
+		color: #57acff
+
+	.footer-login
+		color: #57acff
+
+	ul.menu a 
+		font-family: $font_7, $font_8, $font_9
+
+.cke_editable 
+	* 
+		font-family: $font_10
+
+	h2 
+		font-family: $font_11
+
+	h3 
+		font-family: $font_11
+
+	h4 
+		font-family: $font_11
+
+.breadcrumb
+	color: contrasting-color($school, $font_light, $font_dark)
+	a 
+		color: contrasting-color($school, $font_light, $font_dark)
+	span
+		color: contrasting-color($school, $font_light, $font_dark)
+
+
+.comment-wrapper 
+	border-top: 6px solid #e1e1e1
+
+.sidebar 
+	.block 
+		border: 1px solid #dededc
+		background: #fff
+		//If you use compass, instead of the line below you could use + box-shadow($shadow-1, $shadow-2, $shadow-3, $shadow-4, $shadow-5, $shadow-6, $shadow-7, $shadow-8, $shadow-9, $shadow-10)
+		box-shadow: 0 1px 2px 0 #dededc
+
+
+	.block-title 
+		background: #f8f8f8
+		color: #000
+		border-bottom: 1px solid #dededc
+
+	.block-content
+		border-top: 1px solid #f2f2f2
+
+
+.block 
+	&.no-title
+		.view .date-nav-wrapper 
+			border-top: 1px solid #cacaca
+
+.ui-tabs
+	ul.ui-tabs-nav li
+		border-right: 1px solid #d3d3d3
+		&.ui-tabs-active
+			border-bottom: 1px solid $school_d
+			border-top: 1px solid $school
+			background: linear-gradient(to bottom, $school 0, $school_d 100%) repeat scroll 0 0 transparent
+			a 
+				color: contrasting-color($school, $font_light, $font_dark)
+
+.calendar-calendar 
+	.mini-day-on
+		background: #3a72ab
+	th.days
+		background-color: #fff
+
+.event-start-day 
+	color: $school_d
+
+.event-start-month 
+	color: #333
+
+.section-nav 
+	.menu-depth-1 
+		> ul 
+			border: 1px solid #dededc
+			background: #fff
+			//If you use compass, instead of the line below you could use + box-shadow($shadow-1, $shadow-2, $shadow-3, $shadow-4, $shadow-5, $shadow-6, $shadow-7, $shadow-8, $shadow-9, $shadow-10)
+			box-shadow: 0 1px 2px 0 #dededc
+
+		> a 
+			background: #1c1c1c !important
+	ul
+		&.menu li
+			&.menu-depth-2 a 
+				border-top: 1px solid #fff
+				border-bottom: 1px solid #fff
+		ul a.active 
+			color: #1e1e1e !important
+
+	.expanded.menu-depth-2 
+		> a
+			color: #2769ac
+			background: #f7f7f7
+			&:hover 
+				background-color: #e3e3e1 !important
+	.menu-depth-2 a 
+		&:hover 
+			background-color: #e3e3e1 !important
+			border-top: 1px solid #dededc
+			border-bottom: 1px solid #dededc
+
+		&:focus 
+			background-color: #e3e3e1 !important
+			border-top: 1px solid #dededc
+			border-bottom: 1px solid #dededc
+
+
+
+.page-node #content-column .content-inner
+	border: 1px solid #dededc
+	background: #fff
+	//If you use compass, instead of the line below you could use + box-shadow($shadow-1, $shadow-2, $shadow-3, $shadow-4, $shadow-5, $shadow-6, $shadow-7, $shadow-8, $shadow-9, $shadow-10)
+	box-shadow: 0 1px 2px 0 #dededc
+.lt-ie9 #menu-bar nav 
+	border: 1px solid #dededc
+
+.links a 
+	font-family: $font_7, $font_8, $font_9
+
+.boxes-box-content h2 
+	font-family: $font_7, $font_8, $font_9
+
+.view-os-events .views-field-colorbox 
+	font-family: $font_7, $font_8, $font_9
+
+.node-person .node-content .block .block-title 
+	font: bold 16px/24px $font_11, $font_9
+	background: #f7f7f7
+	-webkit-box-shadow: 0 1px 0 1px #dededc
+	//If you use compass, instead of the line below you could use + box-shadow($shadow-1, $shadow-2, $shadow-3, $shadow-4, $shadow-5, $shadow-6, $shadow-7, $shadow-8, $shadow-9, $shadow-10)
+	box-shadow: 0 1px 0 1px #dededc
+	border-top: 1px solid #dededc
+
+table td.mini
+	.mini-day-on a 
+		color: #fff
+
+.date-nav h3 a 
+	color: #1e1e1e
+	font-family: $font_11
+
+.event-start .event-start 
+	background: #f8f8f8
+	border: 1px solid #dededc
+
+#layout_16_9_side .slide 
+	background: $school_l
+	background: -moz-linear-gradient(top, $school_l 0, $school_d 100%)
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, $school_l), color-stop(100%, $school_d))
+	background: -webkit-linear-gradient(top, $school_l 0, $school_d 100%)
+	background: -o-linear-gradient(top, $school_l 0, $school_d 100%)
+	background: -ms-linear-gradient(top, $school_l 0, $school_d 100%)
+	background: linear-gradient(to bottom, $school_l 0, $school_d 100%)
+
+#search-block-form #edit-submit
+	background-position: -43px -440px
+	background-color: $school

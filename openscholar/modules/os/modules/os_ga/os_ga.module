@@ -1,0 +1,343 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code for OpenScholar: Google Analytics module.
+ */
+
+// Defines which file extensions should be tracked, if enabled.
+define('OS_GA_TRACK_FILE_EXTENSIONS', '7z|aac|arc|arj|asf|asx|avi|bin|csv|docx?|exe|flv|gif|gz|gzip|hqx|jar|jpe?g|js|mp(2|3|4|e?g)|mov(ie)?|msi|msp|pdf|phps|png|ppt|qtm?|ra(m|r)?|sea|sit|tar|tgz|torrent|txt|wav|wma|wmv|wpd|xlsx?|xml|z|zip');
+
+/**
+ * Implements hook_form_FORM_ID_alter() for os_settings_form.
+ *
+ * Allows admins to set the global Google Analytics ID and sitewide options.
+ */
+function os_ga_form_os_settings_form_alter(&$form, &$form_state, $form_id) {
+  $form['os_ga'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Google Analytics'),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['os_ga']['os_ga_global_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Global Google Analytics Tracking ID'),
+  	'#weight' => 0,
+    '#size' => 20,
+    '#maxlength' => 255,
+    '#default_value' => variable_get('os_ga_global_id', ''),
+    '#description' => t("Enables sitewide tracking for a single <a href=\"http://www.google.com/analytics/\">Google Analytics</a> account.<br/>Expected format: <strong>UA-XXXXXXX-XX</strong>"),
+    '#element_validate' => array('os_ga_analytics_id_validate'),
+  );
+  $form['os_ga']['os_ga_link_tracking'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Link tracking'),
+    '#weight' => 1,
+    '#default_value' => variable_get('os_ga_link_tracking', 0),
+    '#description' => t("Turns on Google Analytics tracking for outgoing links, mailto links, and file download links for all sites."),
+  );
+  $form['os_ga']['os_ga_404'] = array(
+    '#type' => 'checkbox',
+    '#weight' => 2,
+    '#title' => t('404 Not Found path rewriting'),
+    '#default_value' => variable_get('os_ga_404', 0),
+    '#description' => t("Reports 404 not found paths to Google Analytics accounts with a prepended '/error-404' for easy identification."),
+  );
+  $form['os_ga']['os_ga_search'] = array(
+    '#type' => 'checkbox',
+    '#weight' => 3,
+    '#title' => t('Site search tracking'),
+    '#default_value' => variable_get('os_ga_search', 0),
+    '#description' => t("Sends URL search keys to Google Analytics they way it expects them."),
+  );
+  $form['os_ga']['os_ga_navigation'] = array(
+    '#type' => 'checkbox',
+    '#weight' => 4,
+    '#title' => t('Navigation click tracking'),
+    '#default_value' => variable_get('os_ga_navigation', 0),
+    '#description' => t("Turns on tagged click tracking for main menus for Google Analytics accounts for all sites. "),
+  );
+  $form['os_ga']['os_ga_addthis'] = array(
+    '#type' => 'checkbox',
+    '#weight' => 5,
+    '#title' => t('AddThis social tracking'),
+    '#default_value' => variable_get('os_ga_addthis', 0),
+    '#description' => t("Turns on AddThis social tracking integration with Google Analytics for all sites. Currently only available for one Google Analytics account per pageload."),
+  );
+  $form['os_ga']['os_ga_addthis_default'] = array(
+    '#type' => 'radios',
+    '#title' => t('AddThis default account'),
+    '#weight' => 6,
+    '#default_value' => variable_get('os_ga_addthis_default', 'vsite'),
+    '#options' => array(
+      'vsite' => t('Individual site account'),
+      'global' => t('Global account'),
+    ),
+    '#description' => t("AddThis social tracking is only available to one Google Analytics account per pageload. In cases where one account must be chosen for AddThis social tracking, the default account will be chosen."),
+    '#dependency' => array('edit-os-ga-addthis' => array('1')),
+    '#attributes' => array('class' => array('form-item-child')),
+  );
+  $form['os_ga']['os_ga_custom_variable_index'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Site homepage Custom Variable index'),
+    '#weight' => 7,
+    '#size' => 5,
+    '#maxlength' => 2,
+    '#default_value' => variable_get('os_ga_custom_variable_index', 0),
+    '#description' => t("For Classic Google analytics only. Enter a value between 1 and 5 to send the current vsite homepage URL to GA. This allows you to run reports by vsite within GA."),
+  );
+}
+
+/**
+ * Impelements hook_page_alter().
+ */
+function os_ga_page_alter() {
+  // Does nothing if there are no accounts available.
+  $accounts = _os_ga_get_accounts();
+  if (empty($accounts)) {
+    return;
+  }
+
+  // Generates tracking script and inserts into page header.
+  // Optionally includes 404 error handling, search and AddThis integration.
+  $script = _os_ga_build_script($accounts);
+  drupal_add_js($script, 'inline');
+
+  // Prepares click tracking settings as Drupal js settings.
+  $settings = array();
+  if ($track_outbound = variable_get('os_ga_link_tracking', 0)) {
+    $settings['trackOutbound'] = $track_outbound;
+  }
+  if ($track_mailto = variable_get('os_ga_link_tracking', 0)) {
+    $settings['trackMailto'] = $track_mailto;
+  }
+  if ($track_download = variable_get('os_ga_link_tracking', 0)) {
+    $settings['trackDownload'] = $track_download;
+    $settings['trackDownloadExtensions'] = OS_GA_TRACK_FILE_EXTENSIONS;
+  }
+  if ($track_navigation = variable_get('os_ga_navigation', 0)) {
+    $settings['trackNavigation'] = $track_navigation;
+  }
+
+  // Only adds click tracking jQuery file if some setting is on.
+  if (!empty($settings)) {
+    drupal_add_js(array('os_ga' => $settings), 'setting');
+    drupal_add_js(drupal_get_path('module', 'os_ga') . '/os_ga.js');
+  }
+}
+
+/**
+ * Returns Google Analytics account variables.
+ */
+function _os_ga_get_accounts() {
+  $accounts = array();
+
+  $global_account = variable_get('os_ga_global_id', '');
+  $addthis_default = variable_get('os_ga_addthis_default', 'vsite');
+
+  // Gets the global GA account, if available.
+  if (strlen($global_account)) {
+    $accounts[$global_account] = array();
+    $accounts[$global_account]['addthis_default'] = (bool) ($addthis_default == 'global');
+  }
+
+  // Gets the vsite GA account, if available.
+  if (module_exists('vsite') && $vsite = vsite_get_vsite() && $vsite_account = variable_get('os_ga_google_analytics_id', '')) {
+    $accounts[$vsite_account] = array();
+    $accounts[$vsite_account]['addthis_default'] = (bool) ($addthis_default == 'vsite');
+  }
+
+  return $accounts;
+}
+
+/**
+ * Element validate callback; checks a string matches format "UA-XXXXX-XX".
+ */
+function os_ga_analytics_id_validate($element, $form_state) {
+  $pattern = '/^UA-[0-9]+-[0-9]{1,2}$/';
+  if ($element['#value'] && !preg_match($pattern, trim($element['#value']))) {
+    form_error($element, t('This field does not follow the correct format.'));
+  }
+}
+
+/**
+ * Implements hook_os_widget().
+ */
+function os_ga_os_widget() {
+  $widgets = array();
+
+  $widgets['os_ga-google_translate'] = array(
+    'module' => 'os_ga',
+    'delta' => 'google_translate',
+    'title' => '',
+    'info' => t('Google Translate'),
+  );
+
+  return $widgets;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function os_ga_block_info() {
+  $blocks = array();
+
+  $blocks['google_translate'] = array(
+    'info' => t('Google Translate'),
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implement hook_block_view().
+ */
+function os_ga_block_view($delta) {
+  $block = array();
+
+  switch ($delta) {
+    case 'google_translate':
+      $block['content'] = os_ga_google_translate();
+      break;
+  }
+
+  return $block;
+}
+
+/**
+ * Renders a Google translate HTML and add needed JS.
+ */
+function os_ga_google_translate() {
+  global $language;
+  $script = '';
+
+  $script .= "function googleTranslateElementInit() {";
+  $script .= "new google.translate.TranslateElement({pageLanguage: '$language->language', layout: ";
+  $script .= "google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');";
+  $script .= "}";
+
+  drupal_add_js($script, array('type' => 'inline'));
+  drupal_add_js('//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit', array('type' => 'external'));
+
+  return '<div id="google_translate_element"></div>';
+}
+
+/**
+ * Builds Google Analytics tracking javascript code to insert onto pages.
+ *
+ * @param array $accounts
+ *   An array containing account info for each GA account.
+ *
+ * @return string $output
+ *   The complete script to insert onto the page.
+ */
+function _os_ga_build_script($accounts = array()) {
+  // Returns empty string if no accounts.
+  if (empty($accounts)) {
+    return '';
+  }
+
+  // Starts the script.
+  $output = 'var _gaq = _gaq || [];';
+  // Adds each GA account to the script.
+  foreach ($accounts as $account => $info) {
+    $output .= '_gaq.push(["_setAccount", ' . drupal_json_encode($account) . ']);';
+    // Adds 404 page tracking if enabled and this is a 404 page.
+    if (variable_get('os_ga_404', 0) && (drupal_get_http_header("Status") == '404 Not Found')) {
+      $url_custom = '\'/error-404/\'+document.location.pathname';
+    }
+    // Otherwise adds search tracking if this is a search page.
+    elseif (variable_get('os_ga_search', 0) && module_exists('search') && arg(0) == 'search' && $keys = _os_ga_search_get_keys()) {
+      $url_custom = '(window.os_ga_search_results) ? ' . drupal_json_encode(url('search/' . arg(1), array('query' => array('search' => $keys)))) . ' : ' . drupal_json_encode(url('search/' . arg(1), array('query' => array('search' => 'no-results:' . $keys, 'cat' => 'no-results'))));
+    }
+    // Setup IP anonymization for google analytics.
+    $output .= '_gaq.push(["_gat._anonymizeIp"]);';
+    // Adds any custom rewritten URL from above.
+    if (!empty($url_custom)) {
+      $output .= '_gaq.push([\'_trackPageview\',' . $url_custom . ']);';
+    }
+    // Otherwise uses GA default page tracking settings.
+    else {
+      $output .= '_gaq.push(["_trackPageview"]);';
+    }
+
+    // For global only, optionally adds a custom variable to report on vsite.
+    // For classic google analytics.
+    // @see https://developers.google.com/analytics/devguides/collection/gajs/gaTrackingCustomVariables
+    if ($account == variable_get('os_ga_global_id', '')) {
+      $index = variable_get('os_ga_custom_variable_index', 0);
+      if (is_numeric($index) && !empty($index) && $index < 6) {
+        $output .= _os_ga_set_custom_var_snippet($index);
+      }
+    }
+
+    // Checks if this is the default AddThis account.
+    if ($info['addthis_default'] === TRUE) {
+      $addthis_account = $account;
+    }
+  }
+  // Sets the AddThis account to the only account, if it wasn't default already.
+  if (!isset($addthis_account) && sizeof($accounts) == 1) {
+    $addthis_account = array_shift($accounts);
+  }
+
+  // Finishes up the script.
+  $output .= '(function() {var ga = document.createElement("script");ga.type = "text/javascript";ga.async = true;ga.src = ("https:" == document.location.protocol ? "https://ssl" : "http://www") + ".google-analytics.com/ga.js";var s = document.getElementsByTagName("script")[0];s.parentNode.insertBefore(ga, s);})();';
+
+  // Integrates with AddThis.
+  // Currently AddThis only supports one property per pageload.
+  // $addthis_account will be the account (string) of:
+  //  - the only enabled account (if only global or only vsite account exists)
+  //    OR
+  //  - the account specified default (if both global and vsite accounts exist)
+  // Otherwise, $addthis_account will be NULL and this js won't be added.
+  if (variable_get('os_ga_addthis', 0) && $addthis_account) {
+    $output .= "var addthis_config = {data_ga_social: true, data_ga_property: " . drupal_json_encode($addthis_account) . "};";
+  }
+
+  return $output;
+}
+
+/**
+ * Implements hook_preprocess_search_results().
+ *
+ * Collects and adds the number of search results to the head.
+ */
+function os_ga_preprocess_search_results(&$variables) {
+  // There is no search result $variable available that hold the number of items
+  // found. But the pager item mumber can tell the number of search results.
+  global $pager_total_items;
+
+  drupal_add_js('window.os_ga_search_results = ' . intval($pager_total_items[0]) . ';', array('type' => 'inline', 'group' => JS_LIBRARY-1));
+}
+
+/**
+ * Helper function for grabbing search keys. Function is missing in D7.
+ *
+ * http://api.drupal.org/api/function/search_get_keys/6
+ */
+function _os_ga_search_get_keys() {
+  static $return;
+  if (!isset($return)) {
+    // Extract keys as remainder of path
+    // Note: support old GET format of searches for existing links.
+    $path = explode('/', $_GET['q'], 3);
+    $keys = empty($_REQUEST['keys']) ? '' : $_REQUEST['keys'];
+    $return = count($path) == 3 ? $path[2] : $keys;
+  }
+  return $return;
+}
+
+/**
+ * Returns a javascript snippet which sets a custom Google Analytics variable.
+ */
+function _os_ga_set_custom_var_snippet($index) {
+  $name = t('Site homepage');
+  $value = rtrim(url('<front>', array('absolute' => TRUE), '/'));
+
+  // Sets a page-level custom variable at the given index.
+  return "_gaq.push(['_setCustomVar',{$index},'{$name}','{$value}',3]);";
+}

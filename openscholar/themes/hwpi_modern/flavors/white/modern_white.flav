@@ -1,0 +1,6 @@
+name = White
+description = A clean white version of the Classic theme
+screenshot = screenshot.png
+
+css[] = white.css
+css[] = responsive.white.css

@@ -1,0 +1,93 @@
+#file-entity-add-upload .form-item-upload {
+	text-align: center;
+	margin: 50px 0;
+}
+
+#file-entity-add-upload #edit-upload {
+  position: relative;
+}
+
+#file-entity-add-upload .form-item-upload input {
+	display: none;
+}
+
+#file-entity-add-upload label[for="edit-upload"] {
+	display: inline-block;
+	vertical-align: top;
+}
+
+#file-entity-add-upload .form-required {
+	display: none;
+}
+
+#file-entity-add-upload .form-help {
+	background: url('../../../../../themes/os_basetheme/images/scholarbase-sprite.png') no-repeat 0 -150px;
+	width: 20px;
+	height: 20px;
+	text-indent: -10em;
+	display: inline-block;
+	overflow: hidden;
+	margin: 0 5px;
+}
+
+#file-entity-add-upload .form-item-upload .form-help:hover {
+	background-position: 0 -170px;
+}
+
+#file-entity-add-upload .form-item-upload .form-file {
+	display: block;
+	position: absolute;
+	top: -1px;
+  opacity: 0.00;
+  filter: alpha(opacity: 0.00);
+  left: 45%;
+  height: 30px;
+  width: 84px;
+  cursor: pointer;
+}
+
+#file-entity-add-upload .form-item-upload input.file-select {
+	display: inline-block;
+}
+
+#file-entity-add-upload .form-item-upload .description {
+	visibility: hidden;
+}
+
+#file-entity-add-upload .form-item-upload .form-help:hover ~ .description {
+	visibility: visible;
+}
+
+#file-entity-add-upload .form-actions {
+	text-align: right;
+}
+
+#file-entity-add-upload #edit-upload-ajax-wrapper ~ .form-actions input {
+	display: none;
+}
+
+#edit-upload label.file-select {
+	display: inline-block;
+	cursor: pointer;
+	padding: 4px 17px;
+	margin-bottom: 1em;
+	margin-right: 1em;
+	color: #5a5a5a;
+	text-align: center;
+	font-weight: normal;
+	font-size: 1.077em;
+	font-family: "Lucia Grande", Verdana, sans-serif;
+	border: 1px solid #e4e4e4;
+	border-bottom-color: #b4b4b4;
+	border-left-color: #d2d2d2;
+	border-right-color: #d2d2d2;
+	background-color: #f5f5f5;
+	border-radius: 20px;
+}
+
+#edit-upload label.file-select.focus {
+	background-color: #666;
+	color: #fff;
+	border-color: #555;
+	text-shadow: #222 0 -1px 0;
+}

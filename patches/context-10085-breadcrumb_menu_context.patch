@@ -1,0 +1,16 @@
+diff --git a/plugins/context_reaction_menu.inc b/plugins/context_reaction_menu.inc
+index 4f0e54c..9b268b9 100644
+--- a/plugins/context_reaction_menu.inc
++++ b/plugins/context_reaction_menu.inc
+@@ -140,6 +140,10 @@ class context_reaction_menu extends context_reaction {
+       list($menu_name, $path) = explode(':', $id);
+       $by_menu_name[$menu_name][] = $path;
+     }
+-    return $by_menu_name;
++    return $active_paths;
++    // Disabling return $by_menu_name
++    // to return active paths before getting exploded against ":"
++    // Versions before context-7.x-3.3 are like exactly this
++    //return $by_menu_name;
+   }
+ }

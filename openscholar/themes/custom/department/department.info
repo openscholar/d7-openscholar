@@ -1,0 +1,62 @@
+;----------// Theme Information
+
+name        = Department
+description = Clean theme for individual or department use.
+  core        = 7.x
+  base theme = os_basetheme
+  release     = 7.x-3.x
+  engine      = phptemplate
+  screenshot  = screenshot.png
+  flavor_name = "Standard"
+  plugins[os][flavor] = flavors
+
+;----------// OpenScholar
+
+os[theme_type]   = "vsite"
+os[theme_access] = "private"
+os[cp_layout_css] = cp-layout-map.css
+
+;----------// Stylesheets
+
+stylesheets[screen][] = css/department.responsive.layout.css
+stylesheets[screen][] = css/department.css
+
+ie_stylesheets[screen][lt IE 10][] = css/department-ie.css
+
+  
+
+
+;----------// Theme Settings
+
+  ; Layout settings - Standard bigscreen
+  settings[bigscreen_layout]         = 'three_col_grail'
+  settings[bigscreen_page_unit]      = 'px'
+  settings[bigscreen_sidebar_unit]   = 'px'
+  settings[bigscreen_max_width_unit] = 'px'
+  settings[bigscreen_page_width]     = 970
+  settings[bigscreen_sidebar_first]  = 195
+  settings[bigscreen_sidebar_second] = 250
+  settings[bigscreen_set_max_width]  = 1
+  settings[bigscreen_max_width]      = 1140
+  settings[bigscreen_media_query]    = 'only screen and (min-width:1025px)'
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+

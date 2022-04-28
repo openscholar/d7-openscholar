@@ -1,0 +1,84 @@
+<?php
+
+function media_embed_install() {
+  // Add the fields for file type.
+  try {
+    field_create_field(array(
+      'field_name' => 'field_html_code',
+      'type' => 'text_long',
+    ));
+  }
+  catch (FieldException $fe) {
+    // the fields already exist
+  }
+
+  field_create_instance(array(
+    'field_name' => 'field_html_code',
+    'entity_type' => 'file',
+    'label' => 'Code',
+    'bundle' => 'html',
+    'required' => TRUE,
+    'display' => array(
+      'default' => array(
+        'label' => 'hidden',
+      ),
+    )
+  ));
+
+  field_bundle_settings('file', 'html', array(
+    'extra_fields' => array(
+      'display' => array(
+      	'file' => array(
+          'default' => array(
+            'visible' => TRUE,
+            'weight' => 0,
+          ),
+      	),
+      ),
+    ),
+  ));
+}
+
+function media_embed_uninstall() {
+  try {
+    field_attach_delete_bundle('file', 'html');
+  }
+  catch (Exception $e) {
+
+  }
+}
+
+/**
+ * Reverts the HTML file type
+ */
+function media_embed_update_7001(&$sandbox) {
+  ctools_include('export');
+  $type = ctools_export_load_object('file_type', 'names', array('html'));
+
+  ctools_export_crud_delete('file_type', $type['html']);
+}
+
+/**
+ * Ensures that all files with the embed:// protocol are not given the undefined file type
+ */
+function media_embed_update_7002(&$sandbox) {
+  db_update('file_managed')
+   ->fields(array('type' => 'html'))
+   ->condition('uri', db_like('embed://').'%', 'LIKE')
+   ->execute();
+}
+
+/**
+ * Fix the white list embedded domains list.
+ */
+function media_embed_update_7003() {
+  // Clear all the http:// and https:// form the list of domains.
+  $domains = variable_get('media_embed_whitelist');
+  array_walk($domains, function(&$domain) {
+    // Remove any http and www from the domain.
+    $domain = str_replace(array('https://www.', 'http://www.'), '', $domain);
+  });
+
+  // Make sure we don't multiple domains.
+  variable_set('media_embed_whitelist', array_unique($domains));
+}

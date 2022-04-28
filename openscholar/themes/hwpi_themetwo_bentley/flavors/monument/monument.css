@@ -1,0 +1,256 @@
+@import url(https://fonts.googleapis.com/css?family=Arimo);
+
+
+html,
+body,
+.cke_editable * {
+  color: #545a5d;
+    font-family: 'Open Sans', Arial,Helvetica,sans-serif;
+    line-height: 24px;
+}
+
+#header {
+  background: url(header_background.png) left top no-repeat #3f3f3f;
+  border-top: 1px solid #525252;
+}
+
+#boxes-box-site_info,
+#boxes-box-site_info a {
+	  font-family: 'Arimo';
+	 }
+
+#boxes-box-site_info h1 a {
+font-size: 32px;
+}
+
+#boxes-box-site_info h2 {
+font-size: 25px;
+margin-bottom:2px !important;
+}
+
+#boxes-box-site_info p {
+font-size: 18px;
+margin-bottom:10px !important;
+}
+
+
+
+#menu-bar {
+	background: url(menu2Back.png) 0 0 repeat #ccc;
+	border-bottom:1px solid #ccc;
+}
+
+#menu-bar ul.nice-menu a {
+    color: #6a7073;
+}
+
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu a.active,
+#menu-bar ul.nice-menu a:hover {
+	
+	background: #686868 !important;
+
+}
+#menu-bar ul.nice-menu .menuparent {
+    padding-right: 0;
+}
+
+#menu-bar ul.nice-menu .menuparent ul{/*carlos: setting the border color on the submenu*/
+	border:1px solid #bbbbbb;
+	border-top:0;
+}
+#menu-bar ul.nice-menu .menuparent ul li{/*carlos: adding more padding between the main menu items*/
+	padding-right:18px;
+}
+
+#menu-bar ul.nice-menu .menuparent > a:before {
+background-position: -57px -566px;
+
+}
+
+#menu-bar ul.nice-menu .menuparent.over > a:before,
+#menu-bar ul.nice-menu .menuparent a:hover:before,
+#menu-bar ul.nice-menu .menuparent a.active:before {
+  background-position: 0 -566px; /* White Arrow */
+}
+
+
+#menu-bar ul.nice-menu .menuparent ul li a,
+#menu-bar ul.nice-menu .menuparent ul li a.active {/*submenu attributes*/
+ text-transform:none;
+ box-shadow:none;
+ 	
+}
+#menu-bar ul.nice-menu .menuparent ul li {
+	width:100% !important;
+
+}
+#menu-bar ul.nice-menu .menuparent ul li :hover {
+	background:rgba(120,124,126, 0.80) !important;
+
+}
+
+#menu-bar ul.nice-menu .menuparent ul li a:hover {
+ color:#e6e1b3;
+ box-shadow:none;
+}
+
+
+#menu-bar ul.nice-menu ul {/*submenu background attributes*/
+    background:#686868;
+	border-top-left-radius: 0;
+border-top-right-radius: 0;
+border-bottom-right-radius: 0;
+border-bottom-left-radius: 0; 
+}
+
+
+.node-type-person #content-column .node-person h2.block-title, .sidebar .block h2.block-title
+.node-type-person #content-column .node-person h2.block-title,
+.sidebar .block h2.block-title {
+  background: none repeat scroll 0 0 #A23338;
+}
+
+.calendar-calendar .mini-day-on {
+    border: 1px solid #ccc;
+	background-color:#e4d9d9;
+	
+}
+.calendar-calendar .mini-day-on a {
+	color:#838383;
+}
+
+#boxes-box-os_pages_section_nav,
+.section-nav ul.menu li a {
+	border-color: #ced1d2;
+}
+
+.section-nav a:hover {
+    background-color: #f3f3f1 !important;
+}
+.section-nav a {
+	color: #636a6d;
+}
+.section-nav a.active {
+	background-color:#F3F2F1;
+	color: #636a6d;
+}
+
+
+
+/*end*/
+.section-nav .menu-depth-1 > a {
+  background-color: #a23338 !important;
+}
+.section-nav .menu-depth-1 > a:hover {
+  background-color: #707476 !important;
+}
+.section-nav .expanded.menu-depth-2 > a {
+  background-color: #909496;
+}
+
+.section-nav .expanded.menu-depth-2 > a:hover {
+  background-color: #818e94 !important;
+}
+.section-nav ul.menu li a {
+    display: block;
+    text-decoration: none;
+	font-weight: normal;
+	-webkit-transition: background-color 0.4s ease 0s;
+    -moz-transition: background-color 0.4s ease 0s;
+    -o-transition: background-color 0.4s ease 0s;
+    transition: background-color 0.4s ease 0s;
+}
+
+.section-nav .expanded.menu-depth-2 .menu-depth-3 > a, 
+.section-nav .expanded.menu-depth-2 .menu-depth-4 > a, 
+.section-nav .expanded.menu-depth-2 .menu-depth-5 > a,
+.section-nav .expanded.menu-depth-2 .menu-depth-6 > a,
+.section-nav .leaf.menu-depth-3 > a,
+.section-nav .leaf.menu-depth-4 > a,
+.section-nav .leaf.menu-depth-5 > a,
+.section-nav .leaf.menu-depth-6 > a {
+background-color: #fff !important;
+}
+
+.section-nav .expanded.menu-depth-2 .menu-depth-3 > a:hover, 
+.section-nav .expanded.menu-depth-2 .menu-depth-4 > a:hover, 
+.section-nav .expanded.menu-depth-2 .menu-depth-5 > a:hover,
+.section-nav .expanded.menu-depth-2 .menu-depth-6 > a:hover,
+.section-nav .leaf.menu-depth-3 > a:hover,
+.section-nav .leaf.menu-depth-4 > a:hover,
+.section-nav .leaf.menu-depth-5 > a:hover,
+.section-nav .leaf.menu-depth-6 > a:hover {
+background-color: #f3f3f1 !important;
+}
+
+
+.section-nav .expanded.menu-depth-2 .menu-depth-3 > a.active, 
+.section-nav .expanded.menu-depth-2 .menu-depth-4 > a.active, 
+.section-nav .expanded.menu-depth-2 .menu-depth-5 > a.active,
+.section-nav .expanded.menu-depth-2 .menu-depth-6 > a.active,
+.section-nav .leaf.menu-depth-3 > a.active,
+.section-nav .leaf.menu-depth-4 > a.active,
+.section-nav .leaf.menu-depth-5 > a.active,
+.section-nav .leaf.menu-depth-6 > a.active {
+	background-color:#F3F2F1 !important;
+}
+
+#branding_footer, #branding_header {
+    background: none repeat scroll 0 0 #3F3F3F;
+
+}
+
+#page-title, .node-title, .page-search .title a, #content-column .block.block-boxes-os_boxes_manual_list .links.inline a, .more-link, .page-search #content-column p, .not-front #content-column p, .links a, #footer ul.menu a, .boxes-box-content h2, .view-os-events .views-field-colorbox {
+     font-family: 'Open Sans', Arial,Helvetica,sans-serif;}
+
+.sidebar .os-custom-menu ul{
+		border:1px solid #ced1d2;	
+}
+.sidebar .os-custom-menu a{
+		background-color:#FFF;
+		color:#737B7F;
+		-webkit-transition: background-color 0.4s ease 0s;
+    -moz-transition: background-color 0.4s ease 0s;
+    -o-transition: background-color 0.4s ease 0s;
+    transition: background-color 0.4s ease 0s;
+}
+.sidebar .os-custom-menu a:hover{
+	background-color:#f5f5f4 !important;
+}
+.sidebar .os-custom-menu ul.menu li a{
+	border-bottom:1px solid #ced1d2;
+}
+
+#block-views-os-events-block-1 .view .date-nav-wrapper, .calendar-calendar .mini tbody, .calendar-calendar th.days, .calendar-calendar td.empty, .calendar-calendar td {
+    border-color: #ced1d2;
+}
+.calendar-calendar th.days {
+	background-color:#e1e4e5;
+	color:#4D575A;
+}
+.calendar-calendar th.days.sun {
+    border-left-color: #ced1d2;
+}
+
+.calendar-calendar th.days.sat {
+    border-right-color: #ced1d2;
+}
+.calendar-calendar td {
+color: #4D575A;
+}
+.date-nav h3 a {
+	color:#737B7F;
+}
+.date-nav h3 {
+	font-family: 'Open Sans', Arial,Helvetica,sans-serif;
+}
+
+.field-name-field-event-location{
+	padding-bottom:20px;
+}
+.field-name-field-event-registration{
+	padding-top:20px;
+}
+

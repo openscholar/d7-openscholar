@@ -1,0 +1,12 @@
+.view-os-activity .views_slideshow_cycle_slide {
+  width: 100%;
+}
+.view-os-activity .views-field-message-render p {
+  margin-bottom: 5px;
+}
+
+.views-field-timestamp {
+  float: left; /* LTR */
+  margin-right: 5px;
+  font-style: italic;
+}

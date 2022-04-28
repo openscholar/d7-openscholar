@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * Renames all "vsite_domain_proccessing" variables in spaces_overrides.
+ */
+function vsite_domain_update_7001() {
+  // Renames misspelled variable
+  // "vsite_domain_proccessing" -> "vsite_domain_shared"
+  $query = db_update('spaces_overrides')
+    ->fields(array('object_id' => 'vsite_domain_shared'))
+    ->condition('object_type', 'variable')
+    ->condition('object_id', 'vsite_domain_proccessing')
+    ->execute();
+}
+
+/**
+ * Have vsite_domain run before securepages.
+ */
+function vsite_domain_update_7002() {
+
+  // place it behind os_publications modules
+  db_update('system')
+    ->fields(array('weight' => 5))
+    ->condition('name', 'securepages', '=')
+    ->condition('type', 'module', '=')
+    ->execute();
+}

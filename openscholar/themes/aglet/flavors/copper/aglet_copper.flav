@@ -1,0 +1,5 @@
+name = Copper
+description = Copper version of the aglet theme
+screenshot = screenshot.png
+
+css[] = copper.css

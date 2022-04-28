@@ -1,0 +1,47 @@
+.field-name-field-address {
+    clear: both;
+
+}
+
+#content .node-person .field-name-field-person-photo,
+#content .node-person .no-default-image,
+.block-boxes-os_boxes_manual_list .node-person .field-name-field-person-photo,
+#content-column .node-person .field-name-field-phone,
+#content-column .node-person .field-name-field-office-hours,
+#content .node-person .field-name-field-email,
+#content .node-person .field-name-og-vocabulary {
+    float: left;
+    margin-right: 1em;
+}
+#content .node-person .os-slider .field-name-field-email,
+#content .node-person .field-name-field-phone,
+#content .node-person .field-name-field-office-hours,
+#content .node-person .field-name-og-vocabulary.view-mode-slide_teaser {
+    float: none;
+}
+#content .node-person .os-slider .profile-link {
+    display: block;
+}
+#content .node-person .field-name-field-email.view-mode-no_image_teaser {
+    clear: both;
+    margin-right: 1em;
+}
+#content .node-person .field-name-field-professional-title h4,
+#content .node-person .field-name-field-professional-title h3 {
+    margin: 0;
+}
+#content .node-person .pic-bio.people-sidebar-teaser {
+    float: left;
+}
+.page-node.node-type-person #content-column header h1 {
+    display: none;
+}
+.node-person .field-name-field-professional-title {
+    font-weight: bold;
+}
+.sv-list-view-full .node-person .pic-bio {
+    width: 100%;
+}
+.node-person .field-name-field-professional-title.view-mode-sidebar_teaser .field-items .field-item {
+    display:block;
+}

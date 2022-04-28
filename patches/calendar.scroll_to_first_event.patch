@@ -1,0 +1,33 @@
+diff --git a/js/calendar_overlap.js b/js/calendar_overlap.js
+index 8e9d2dd..294942d 100644
+--- a/js/calendar_overlap.js
++++ b/js/calendar_overlap.js
+@@ -64,6 +64,8 @@
+ 
+      // Size the window
+      calendar_resizeViewport($);
++      //scroll to the first event on the calendar
++      calendar_scrollToFirst($);
+   }
+ };
+ })(jQuery);
+diff --git a/theme/theme.inc b/theme/theme.inc
+index 82fb5fb..bc9e666 100644
+--- a/theme/theme.inc
++++ b/theme/theme.inc
+@@ -628,10 +628,11 @@ function theme_calendar_time_row_heading($vars) {
+   if ($start_time == '00:00:00' && $next_start_time == '23:59:59') {
+     $hour = t('All times');
+   }
+-  elseif ($start_time == '00:00:00') {
+-    $date = date_create($curday_date . ' ' . $next_start_time);
+-    $hour = t('Before @time', array('@time' => date_format($date, $format_hour)));
+-  }
++  //commenting out to diaplay 12 am instead of "before 1am
++  // elseif ($start_time == '00:00:00') {
++  //   $date = date_create($curday_date . ' ' . $next_start_time);
++  //   $hour = t('Before @time', array('@time' => date_format($date, $format_hour)));
++  // }
+   else {
+     $date = date_create($curday_date . ' ' . $start_time);
+     $hour = date_format($date, $format_hour);

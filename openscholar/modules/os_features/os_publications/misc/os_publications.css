@@ -1,0 +1,166 @@
+
+.node-teaser .field-name-field-biblio-image {
+  float: left;
+  margin-right: 1em;
+}
+
+.node-biblio.node-teaser .field-name-field-upload {
+  display: inline;
+}
+
+/* CSS for citation style example popup box */
+.citation-example {
+  margin-bottom: 5px;
+}
+.citebox {
+  display: none;
+  position: absolute;
+  z-index: 99999;
+  width: 400px;
+  padding: 10px;
+  background: #fff;
+  color: #000000;
+  border: 1px solid #4D4F53;
+  margin: 0px;
+  -webkit-box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+  box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+}
+
+.citebox h2 {
+  background-color: #EFEFEF;
+  color:  #000;
+  font-size: 14px;
+  display: block;
+  width: 100%;
+  margin: -10px 0px 8px -10px;
+  padding: 5px 10px;
+  border-bottom: 2px solid #C4C2C2;
+}
+
+#overlay-title-wrapper {
+  max-width: 910px;
+}
+
+a.cite-pop {
+  color: #333;
+  cursor: default;
+}
+
+#edit-biblio-year-coded, .form-item-published, .form-item-biblio-year-coded,
+.form-item-biblio-year, #edit-field-biblio-pub-month,
+.form-item-field-biblio-pub-month-und, #edit-field-biblio-pub-day,
+.form-item-field-biblio-pub-day-und {
+  display: inline;
+}
+
+.year-wrapper {
+  padding-top: 10px;
+}
+
+.form-item.form-type-radio.form-item-published {
+  margin-left: 0;
+}
+
+.year-selection-wrapper {
+  padding-top: 10px;
+}
+
+h1.biblio-type-prefix {
+  float: left;
+  margin: 15px 10px 0px 0px;
+  padding: 0.3em 0;
+  color: #666;
+  font-size: 24px;
+  font-weight: normal;
+}
+
+.form-item-biblio-type span.form-required {
+  visibility: hidden;
+}
+
+.os-publications-image-help {
+  background: url("../../../../themes/os_basetheme/images/scholarbase-sprite.png") no-repeat 10px -297px;
+  display: inline;
+  height: 14px;
+  width: 19px;
+}
+
+.os-publications-image-help span {
+  visibility: hidden;
+}
+
+.container-inline-date .form-item-date #edit-date {
+  padding: 0;
+  margin-bottom: 5px;
+}
+
+.biblio-stylebox1 {
+  text-align: center;
+  display: none;
+  position: absolute;
+  z-index: 99999;
+  width: 200px;
+  top: 25px;
+  left: 116px;
+  padding: 5px;
+  background: #fff;
+  color: #000000;
+  border: 1px solid #4D4F53;
+  margin: 0px;
+  -webkit-box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+  box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+}
+
+.form-item-field-biblio-image-und-0 .description, .form-item-field-biblio-image-und-0 .image-widget-data{
+  position: relative;
+}
+
+.biblio-stylebox2 {
+  display: none;
+  position: absolute;
+  z-index: 99999;
+  width: 350px;
+  padding: 5px;
+  background: #fff;
+  color: #000000;
+  border: 1px solid #4D4F53;
+  margin: 0px;
+  -webkit-box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+  box-shadow: 0px 0px 5px 0px rgba(164, 164, 164, 1);
+}
+
+#field-biblio-extra-values thead tr th {
+  text-transform: none;
+}
+
+.biblio-abstract-dummy-link {
+  background: url("../../../../themes/os_basetheme/images/scholarbase-sprite.png") no-repeat scroll 0 -400px transparent;
+  padding-left: 12px;
+  text-decoration: none;
+  color: #336599;
+}
+
+.biblio-dummy-image {
+  width: 50px;
+  height: 65px;
+  float: left;
+  margin-right: 5px;
+}
+
+.biblio-dummy-wrapper {
+  line-height: 20px;
+  text-align: left;
+  font-weight: normal;
+}
+
+.biblio-dummy-body span {
+  font-weight: normal;
+}
+
+#edit-citation-distribute .fieldset-wrapper {
+  padding-top: 25px;
+}
+
+.form-select.error {
+  border: 1px solid red;
+}

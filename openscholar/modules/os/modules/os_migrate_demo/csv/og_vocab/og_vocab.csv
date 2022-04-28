@@ -1,0 +1,6 @@
+ID,Site,Vocabulary,Required,Cardinality,Widget,Bundle
+ogVocab1,personal1,authors,1,-1,options,bio
+ogVocab2,personal1,biology,0,1,entityreference_autocomplete,
+ogVocab3,personal1,math,0,2,entityreference_autocomplete_tags,
+ogVocab4,personal1,science,0,-1,entityreference_autocomplete_tags,
+ogVocab5,project1,biology,1,3,options,cv

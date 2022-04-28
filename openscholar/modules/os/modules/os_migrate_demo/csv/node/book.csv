@@ -1,0 +1,4 @@
+ID,Title,Body,Site,Terms,UID
+book1,All about nodes,All you need to know about nodes.,personal1,ScienceTerm1|ScienceTerm2|ScienceTerm3,user2
+book2,About A.L.S disease,All about the A.L.S disease,project1,,user2
+book3,All about terms,All you need to know about terms.,personal1,ScienceTerm2,user2

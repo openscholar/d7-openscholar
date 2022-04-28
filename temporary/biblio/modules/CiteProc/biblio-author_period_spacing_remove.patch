@@ -1,0 +1,12 @@
+diff --git a/modules/contrib/biblio/modules/CiteProc/CSL.inc b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+index 4eaa39d..3888a21 100644
+--- a/modules/contrib/biblio/modules/CiteProc/CSL.inc
++++ b/modules/contrib/biblio/modules/CiteProc/CSL.inc
+@@ -842,6 +842,7 @@ class csl_names extends csl_format {
+           $text .= $element->render($authors, $mode);
+           // String replace the weird spacing with " ,"
+           $text = str_replace(" ,", ",", $text);
++          $text = rtrim($text);
+         }
+       }
+       if (!empty($text)) $variable_parts[] = $text;

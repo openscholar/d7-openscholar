@@ -1,0 +1,230 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Creates a domain handler that overides the default purl domain handler.
+ *
+ * Also provides admin form for creating domains for vsites.
+ */
+
+// Changes the default domain proccessor to our custom processor.
+define('PURL_VSITE_DOMAIN', 'vsite_domain');
+
+// Changes the default domain proccessor to our custom processor.
+define('PURL_VSITE_PATH', 'vsite_path');
+
+/**
+ * Implements hook_enable().
+ */
+function vsite_domain_enable() {
+  global $base_url;
+
+  // Configure purl, grab OG method, replace path with vsite_path
+  $purl_types = variable_get('purl_types', array());
+  if (variable_get('purl_method_spaces_og', FALSE)) {
+    // Removes standard path processing
+    if (isset($purl_types['path'])) {
+      unset($purl_types['path']);
+    }
+    // Removes standard domain processing
+    if (isset($purl_types['domain'])) {
+      unset($purl_types['domain']);
+    }
+
+    // Adds new domain and path processing
+    $purl_types['vsite_domain'] = 'vsite_domain';
+    $purl_types['vsite_path'] = 'vsite_path';
+    variable_set('purl_types', $purl_types);
+
+    variable_set('purl_method_spaces_og', 'vsite_path');
+    variable_set('purl_method_vsite_domain', 'vsite_domain');
+  }
+
+  // Domain should be set to correct base, so that it does not change when
+  // domain providers are used
+  if (!variable_get('purl_base_domain', FALSE)) {
+    variable_set('purl_base_domain', $base_url);
+  }
+
+  // Sets vsite_domain module weight to be after Spaces OG in system table.
+  $weight = db_query("SELECT weight FROM {system} WHERE type = :type AND name = :name", array(
+      ':type' => 'module',
+      ':name' => 'spaces_og',
+    ))->fetchField();
+
+  db_update('system')->fields(array(
+      'weight' => ($weight + 1),
+    ))->condition('name', 'vsite_domain')->execute();
+
+  db_update('system')
+    ->fields(array('weight' => 5))
+    ->condition('name', 'securepages', '=')
+    ->condition('type', 'module', '=')
+    ->execute();
+}
+
+/**
+ * Implements hook_init
+ */
+function vsite_domain_init() {
+  global $conf, $is_https;
+  $domains = variable_get('vsite_domain_ssl_domains',array());
+
+  // Is securepages enabled?
+  // If we are not on a harvard domain turn it off.
+  if (!empty($domains) && module_exists('securepages') && variable_get('securepages_enable', 0)) {
+
+    //Turn SSL off for pages that don't match the wildcard certificate
+    $conf['securepages_enable'] = vsite_domain_on_secure_domain($domains);
+
+    // We are not on a secure domain.
+    if (!$conf['securepages_enable'] && $is_https) {
+      // Redirect to insecure.
+      securepages_goto(FALSE);
+    }
+  }
+}
+
+function vsite_domain_on_secure_domain($secure_domains) {
+
+  // Loop through the domains that are configured to work with our SSL certificate
+  foreach ($secure_domains as $domain) {
+    $offset = (strlen($domain) * -1);
+    // Check to see if the current domain matches one of our wildcard domains in the SSL cert.
+    // IF the cert has ".harvard.edu" then "foo.harvard.edu" is valid and we should enable, whild "bar.foo.harvard.edu" is not.
+    if(substr($_SERVER['HTTP_HOST'],$offset) == $domain && !strrpos($_SERVER['HTTP_HOST'],".",($offset-1))){
+      //We found a Match
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Implements hook_perm().
+ */
+function vsite_domain_permission() {
+  // Adds new permissions for managing domains witin a vsite.
+
+  return array(
+    'change vsite domain' => array(
+      'title' => t('Change vsite domain'),
+      'description' => t('Change vsite domain'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_purl_provider().
+ */
+function vsite_domain_purl_provider() {
+  // Provides the domain provider for vsites.
+
+  $items = array();
+  $items['vsite_domain'] = array(
+    'name' => 'VSite Domain Provider',
+    'description' => t('Sets the spaces context for a domain match.'),
+    'callback' => 'vsite_domain_apply_context',
+    'callback arguments' => array(
+      'og',
+    ),
+    'example' => 'my-space',
+  );
+
+  return $items;
+}
+
+/**
+ * Apply context callback; activates current space using a domain provider.
+ */
+function vsite_domain_apply_context($space_type, $sid) {
+  static $once;
+  if (empty($once)) {
+    spaces_init_space($space_type, $sid);
+    $space = spaces_get_space();
+    $space->purl_provider = PURL_VSITE_DOMAIN;
+
+    $modifier = purl_load(array('id' => $sid, 'provider' => $space->purl_provider));
+    $host = preg_replace('~https?://~', '', $_SERVER['HTTP_HOST']);
+    if ($modifier['value'] != $host && strpos($host, 'www.') === 0 && $modifier['value'] == substr($host, 4)) {
+      // If we are at a path prefixed with www and this site is not configured
+      // with www as the default domain then redirect to default
+      unset($_GET['destination']);
+      drupal_goto(request_path(), array(
+          'purl' => array(
+            'provider' => $space->purl_provider,
+            'id' => $sid,
+          ),
+          'query' => drupal_get_query_parameters($_GET, array('q')),
+        ), 301);
+    }
+
+    $once = TRUE;
+  }
+}
+
+/**
+ * Implements hook_purl_processor().
+ */
+function vsite_domain_purl_processor() {
+  // Context prefix provider callback.
+
+  $info = array();
+  $info['vsite_domain'] = array(
+    'title' => t('Scholar Vsite Domain Modifier'),
+    'handler' => array(
+      'class' => 'purl_vsite_domain',
+      'file' => 'purl_vsite_domain.inc',
+      'path' => drupal_get_path('module', 'vsite_domain') . '/plugins',
+      'parent' => 'domain',
+    ),
+  );
+  $info['vsite_path'] = array(
+    'title' => t('Scholar Vsite Path Modifier'),
+    'handler' => array(
+      'class' => 'purl_vsite_path',
+      'file' => 'purl_vsite_path.inc',
+      'path' => drupal_get_path('module', 'vsite_domain') . '/plugins',
+      'parent' => 'path',
+    ),
+  );
+
+  return $info;
+}
+
+/**
+ * Maintains a static array of purl values that have been processed.
+ *
+ * Note: only one vsite_provider should adjust each path.
+ *
+ * @param string $purl
+ *
+ * @return array $processed
+ */
+function _vsite_domain_processed_purls($purl = FALSE) {
+  static $processed;
+
+  if (!isset($processed)) {
+    $processed = array();
+  }
+
+  if (strlen($purl)) {
+    $processed[$purl] = $purl;
+  }
+
+  return $processed;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for cp_settings_form().
+ */
+function vsite_domain_form_cp_settings_form_alter(&$form, &$form_state, $form_id) {
+  // Adds the include file to the form_state to allow AJAX on the form.
+  $form_state['build_info']['files'][] = array(
+    'type' => 'inc',
+    'module' => 'vsite_domain',
+    'name' => 'includes/form',
+  );
+}

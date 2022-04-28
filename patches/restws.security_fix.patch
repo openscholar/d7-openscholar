@@ -1,0 +1,69 @@
+diff --git a/restws.module b/restws.module
+index 3121da3..f9e139f 100644
+--- a/restws.module
++++ b/restws.module
+@@ -210,7 +210,7 @@ function restws_menu_alter(&$items) {
+     else {
+       $items[$menu_path] = array(
+         'page callback' => 'restws_page_callback',
+-        'page arguments' => array($resource),
++        'page arguments' => array($resource, 'drupal_not_found'),
+         'access callback' => TRUE,
+         'type' => MENU_CALLBACK,
+       );
+@@ -229,7 +229,7 @@ function restws_menu_alter(&$items) {
+     else {
+       $items[$menu_path] = array(
+         'page callback' => 'restws_page_callback',
+-        'page arguments' => array($resource),
++        'page arguments' => array($resource, 'drupal_not_found'),
+         'access callback' => TRUE,
+         'type' => MENU_CALLBACK,
+       );
+@@ -250,7 +250,7 @@ function restws_menu_alter(&$items) {
+       else {
+         $items["$menu_path.$format"] = array(
+           'page callback' => 'restws_page_callback',
+-          'page arguments' => array($resource),
++          'page arguments' => array($resource, 'drupal_not_found'),
+           'access callback' => TRUE,
+           'type' => MENU_CALLBACK,
+         );
+@@ -261,8 +261,17 @@ function restws_menu_alter(&$items) {
+ 
+ /**
+  * Menu page callback.
++ *
++ * @param string $resource
++ *   The name of the resource.
++ * @param string $page_callback
++ *   The page callback to pass through when the request is not handled by this
++ *   module. If no other pre-existing callback is used, 'drupal_not_found'
++ *   should be passed explicitly.
++ * @param mixed $arg1,...
++ *   Further arguments that are passed through to the given page callback.
+  */
+-function restws_page_callback($resource, $page_callback = NULL) {
++function restws_page_callback($resource, $page_callback) {
+   $id_arg = arg(1);
+   $resource_arg = arg(0);
+   $format = FALSE;
+@@ -345,15 +354,9 @@ function restws_page_callback($resource, $page_callback = NULL) {
+ 
+   // @todo: Determine human readable URIs and redirect, if there is no
+   // page callback.
+-  if (isset($page_callback)) {
+-    // Further page callback arguments have been appended to our arguments.
+-    $args = func_get_args();
+-    return call_user_func_array($page_callback, array_slice($args, 2));
+-  }
+-  echo '404 Not Found';
+-  drupal_add_http_header('Status', '404 Not Found');
+-  drupal_page_footer();
+-  exit;
++  // Further page callback arguments have been appended to our arguments.
++  $args = func_get_args();
++  return call_user_func_array($page_callback, array_slice($args, 2));
+ }
+ 
+ /**

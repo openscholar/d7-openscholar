@@ -1,0 +1,56 @@
+.item-list ul.redirect-item,
+.item-list ul.redirect-item-list {
+    list-style-type: none;
+    margin-left: 0;
+}
+
+.item-list ul li.redirect-item {
+    list-style-type: none !important;
+}
+
+.item-list ul.redirect-item li {
+    display: block;
+    float: left;
+}
+
+li.redirect-property {
+    display: block;
+}
+
+.redirect-property.redirect-source {
+    width: 40%;
+}
+.redirect-property.redirect-icon {
+    width: 5%;
+    text-align: center;
+}
+.redirect-property.redirect-icon:after {
+    content: "\2192";
+}
+.redirect-property.redirect-destination {
+    width: 45%;
+}
+.redirect-property.redirect-delete {
+    width: 10%;
+    text-align: right;
+}
+
+#cp-menu-add-new-redirect {
+    text-align: left;
+    margin: 10px;
+}
+
+li.redirect-item > .item-list {
+    background: white;
+    display: inline-block;
+    border: 1px solid rgb(204, 204, 204);
+    margin: 0;
+    width: 96.8%;
+    margin-bottom: 0;
+    padding: 5px 10px;
+    margin-right: 10px;
+}
+
+#edit-advanced {
+    background: transparent;
+}

@@ -1,0 +1,6 @@
+name = Lemon Sand
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = lemon_sand.css
+css[] = responsive.lemon_sand.css

@@ -1,0 +1,3 @@
+name = OS Common JS Utilities
+description = Registers JS utilities that could be used by several interface components
+core = 7.x

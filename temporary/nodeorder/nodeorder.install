@@ -1,0 +1,108 @@
+<?php
+
+/**
+ * @file
+ * Nodeorder install file.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Adds field 'weight' to core table 'taxonomy_index'.
+ */
+function nodeorder_install() {
+  $module_name = 'nodeorder';
+
+  // Set field properties
+  $spec =  array(
+    'type' => 'int',
+    'signed' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+    'initial' => 0,
+    'description' => t('A user-defined weight for each node in its respective category.'),
+  );
+
+  // Create an index for 'weight'
+  $keys['indexes'] = array('weight' => array('weight'));
+
+  // Add the column to the table
+  $ret = array();
+  db_add_field('taxonomy_index', 'weight', $spec, $keys);
+  $installation_failed = FALSE;
+
+  // Check for query errors
+  for ($i = 0; $i < count($ret); $i++) {
+    if ($ret[$i]['success'] !== TRUE) {
+      $installation_failed = TRUE;
+      break;
+    }
+  }
+
+  if ($installation_failed) {
+    drupal_set_message(st('Table installation for the %name module was unsuccessful. The tables may need to be installed by hand.  See %name.install file for a list of the installation queries.', array('%name' => $module_name)), 'error');
+  }
+  else {
+    // Set the weight of the nodeorder module in the system table
+    // so that we come after most other modules in module_invoke_all()
+    // calls.  This ensures that we can alter forms after, for instance,
+    // the taxonomy module...
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("UPDATE {system} SET weight = 5 WHERE name = 'nodeorder' AND type = 'module'") */
+    db_update('system')
+  ->fields(array(
+      'weight' => 5,
+    ))
+  ->condition('name', 'nodeorder')
+  ->condition('type', 'module')
+  ->execute();
+
+    drupal_set_message(st('The %name module was installed successfully.', array('%name' => $module_name)));
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Drops field 'weight' from core table 'taxonomy_index'.
+ */
+function nodeorder_uninstall() {
+  $module_name = 'nodeorder';
+
+  $ret = array();
+  db_drop_index('taxonomy_index', 'weight');
+  db_drop_field('taxonomy_index', 'weight');
+  
+  $installation_failed = FALSE;
+
+  // Check for query errors
+  for ($i = 0; $i < count($ret); $i++) {
+    if ($ret[$i]['success'] !== TRUE) {
+      $installation_failed = TRUE;
+      break;
+    }
+  }
+
+  if ($installation_failed) {
+    drupal_set_message(st('Table uninstallation for the %name module was unsuccessful. The tables may need to be installed by hand.  See %name.install file for a list of the installation queries.', array('%name' => $module_name)), 'error');
+  }
+  else {
+    drupal_set_message(st('The %name module was uninstalled successfully.', array('%name' => $module_name)));
+  }
+}
+
+/**
+ * Implements hook_schema_alter().
+ *
+ * Informs drupal_get_schema() of the field addition to 'taxonomy_index'.
+ */
+function nodeorder_schema_alter(&$schema) {
+  $schema['taxonomy_index']['fields']['weight'] = array(
+    'type' => 'int',
+    'signed' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+    'initial' => 0,
+    'description' => t('A user-defined weight for each node in its respective category.'),
+  );
+}

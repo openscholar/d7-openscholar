@@ -1,0 +1,14 @@
+<div class="decorative_checkbox form-type-checkbox">
+<input id="fe-decorative-checkbox" type="checkbox" ng-model="file.is_decorative" class="form-checkbox" />
+<label for="fe-decorative-checkbox" class="option">This image is decorative</label>
+</div>
+<div class="display_inline two_blocks">
+<label for="fe-alt-text">Alt Text</label>
+<input id="fe-alt-text" type="text" ng-model="file.image_alt" ng-class="{error: (invalidAlt && !file.is_decorative)}" ng-required="required" class="form-text" />
+<div class="description">Appears when the image is loading or fails to load, important for accessibility.</div>
+</div>
+<div class="display_inline two_blocks">
+<label for="fe-title-text">Title Text</label>
+<input id="fe-title-text" type="text" ng-model="file.image_title" class="form-text" />
+<div class="description">Appears when the user mouses over the image.</div>
+</div>

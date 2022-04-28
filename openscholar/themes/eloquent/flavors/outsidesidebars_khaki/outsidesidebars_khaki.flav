@@ -1,0 +1,5 @@
+name = Outside Sidebars - Khaki
+description = A khaki version of the eloquent theme with the sidebars outside of the content area
+screenshot = screenshot.png
+
+css[] = outsidesidebars_khaki.css

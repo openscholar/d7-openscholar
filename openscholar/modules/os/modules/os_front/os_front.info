@@ -1,0 +1,6 @@
+name = OS Front Page
+description = The front page of an OpenScholar install.
+core = 7.x
+package = OpenScholar
+dependencies[] = boxes
+

@@ -1,0 +1,472 @@
+<?php
+// $Id$
+
+/**
+ * Test case for the OpenScholar profile
+ */
+class OSProfileTestCase extends DrupalWebTestCase {
+
+  protected $profile = 'openscholar';
+  protected $profile_flavor = 'personal';
+  protected $multi_tenant = TRUE;
+  protected $load_all_modules = FALSE;
+
+  /**
+   * Clone of DrupalWebTestCase::setup() to work with profiles
+   *
+   * Generates a random database prefix, runs the install scripts on the
+   * prefixed database and enable the specified modules. After installation
+   * many caches are flushed and the internal browser is setup so that the
+   * page requests will run on the new prefix. A temporary files directory
+   * is created with the same name as the database prefix.
+   *
+   * @param ...
+   *   List of modules to enable for the duration of the test. This can be
+   *   either a single array or a variable number of string arguments.
+   */
+  protected function setUp() {
+    global $user, $language, $conf;
+
+    // Generates a temporary prefixed database to ensure that tests have a clean starting point.
+    $this->databasePrefix = 'simpletest' . mt_rand(1000, 1000000);
+    db_update('simpletest_test_id')->fields(array('last_prefix' => $this->databasePrefix))->condition('test_id', $this->testId)->execute();
+
+    // Clones the current connection and replace the current prefix.
+    $connection_info = Database::getConnectionInfo('default');
+    Database::renameConnection('default', 'simpletest_original_default');
+    foreach ($connection_info as $target => $value) {
+      $connection_info[$target]['prefix'] = array(
+        'default' => $value['prefix']['default'] . $this->databasePrefix,
+      );
+    }
+    Database::addConnectionInfo('default', 'default', $connection_info['default']);
+
+    // Stores necessary current values before switching to prefixed database.
+    $this->originalLanguage = $language;
+    $this->originalLanguageDefault = variable_get('language_default');
+    $this->originalFileDirectory = variable_get('file_public_path', conf_path() . '/files');
+    $this->originalProfile = drupal_get_profile();
+    $clean_url_original = variable_get('clean_url', 0);
+
+    // Sets language to English to prevent exceptions from utf8_truncate() from
+    // t() during install if the current language is not 'en'.
+    // The following array/object conversion is copied from language_default().
+    $language = (object)array('language' => 'en', 'name' => 'English', 'native' => 'English', 'direction' => 0, 'enabled' => 1, 'plurals' => 0, 'formula' => '', 'domain' => '', 'prefix' => '', 'weight' => 0, 'javascript' => '');
+
+    // Saves and cleans shutdown callbacks array because it is static cached and
+    // will be changed by the test run. If we don't, then it will contain
+    // callbacks from both environments. So testing environment will try
+    // to call handlers from original environment.
+    $callbacks = &drupal_register_shutdown_function();
+    $this->originalShutdownCallbacks = $callbacks;
+    $callbacks = array();
+
+    // Prepares test directory ahead of installation so fatal errors and debug
+    // information can be logged during installation process.
+    // Uses temporary files directory with the same prefix as the database.
+    $public_files_directory = $this->originalFileDirectory . '/simpletest/' . substr($this->databasePrefix, 10);
+    $private_files_directory = $public_files_directory . '/private';
+    $temp_files_directory = $private_files_directory . '/temp';
+
+    // Creates the directories
+    file_prepare_directory($public_files_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    file_prepare_directory($private_files_directory, FILE_CREATE_DIRECTORY);
+    file_prepare_directory($temp_files_directory, FILE_CREATE_DIRECTORY);
+    $this->generatedTestFiles = FALSE;
+
+    // Logs fatal errors.
+    ini_set('log_errors', 1);
+    ini_set('error_log', $public_files_directory . '/error.log');
+
+    // Resets all statics and variables to perform tests in a clean environment.
+    $conf = array();
+    drupal_static_reset();
+
+    // Sets the test information for use in other parts of Drupal.
+    $test_info = &$GLOBALS['drupal_test_info'];
+    $test_info['test_run_id'] = $this->databasePrefix;
+    $test_info['in_child_site'] = FALSE;
+
+    // Presets the 'install_profile' system variable, so the first call into
+    // system_rebuild_module_data() (in drupal_install_system()) will register
+    // the test's profile as a module. Without this, the installation profile of
+    // the parent site (executing the test) is registered, and the test
+    // profile's hook_install() and other hook implementations are never invoked.
+    $conf['install_profile'] = $this->profile;
+
+    include_once DRUPAL_ROOT . '/includes/install.inc';
+    drupal_install_system();
+
+    $this->preloadRegistry();
+
+    // Sets path variables.
+    variable_set('file_public_path', $public_files_directory);
+    variable_set('file_private_path', $private_files_directory);
+    variable_set('file_temporary_path', $temp_files_directory);
+
+    // Includes the testing profile.
+    variable_set('install_profile', $this->profile);
+    $profile_details = install_profile_info($this->profile, 'en');
+
+    // Installs the modules specified by the testing profile.
+    $this->install_profile_modules($profile_details['dependencies']);
+
+    // Installs modules needed for this test. This could have been passed in as
+    // either a single array argument or a variable number of string arguments.
+    // @todo Remove this compatibility layer in Drupal 8, and only accept
+    // $modules as a single array argument.
+    $modules = func_get_args();
+    if (isset($modules[0]) && is_array($modules[0])) {
+      $modules = $modules[0];
+    }
+    if ($modules) {
+      $success = module_enable($modules, TRUE);
+      $this->assertTrue($success, t('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
+    }
+
+    // Run the profile tasks.
+    $install_profile_module_exists = db_query("SELECT 1 FROM {system} WHERE type = 'module' AND name = :name", array(
+        ':name' => $this->profile,
+      ))->fetchField();
+    if ($install_profile_module_exists) {
+      module_enable(array($this->profile), FALSE);
+    }
+
+    // Reset/rebuild all data structures after enabling the modules.
+    $this->resetAll();
+
+    // Run cron once in that environment, as install.php does at the end of
+    // the installation process.
+    drupal_cron_run();
+
+    // Log in with a clean $user.
+    $this->originalUser = $user;
+    drupal_save_session(FALSE);
+    $user = user_load(1);
+
+    // Restore necessary variables.
+    variable_set('install_task', 'done');
+    variable_set('clean_url', $clean_url_original);
+    variable_set('site_mail', 'simpletest@example.com');
+    variable_set('date_default_timezone', date_default_timezone_get());
+    // Set up English language.
+    unset($GLOBALS['conf']['language_default']);
+    $language = language_default();
+
+    // Use the test mail class instead of the default mail handler class.
+    variable_set('mail_system', array('default-system' => 'TestingMailSystem'));
+
+    drupal_set_time_limit($this->timeLimit);
+    $this->setup = TRUE;
+  }
+
+  /**
+   * Installation task; install required modules via a batch process.
+   *
+   * @param $modules
+   *   An array of modules to install
+   *
+   * @return
+   *   The batch definition.
+   */
+  protected function install_profile_modules($modules) {
+
+    $files = system_rebuild_module_data();
+
+    // Always install required modules first. Respect the dependencies between
+    // the modules.
+    $required = array();
+    $non_required = array();
+    // Although the profile module is marked as required, it needs to go after
+    // every dependency, including non-required ones. So clear its required
+    // flag for now to allow it to install late.
+    $files[$this->profile]->info['required'] = FALSE;
+    // Add modules that other modules depend on.
+    foreach ($modules as $module) {
+      if ($files[$module]->requires) {
+        $modules = array_merge($modules, array_keys($files[$module]->requires));
+      }
+    }
+
+    $modules = array_unique($modules);
+    foreach ($modules as $module) {
+      if (!empty($files[$module]->info['required'])) {
+        $required[$module] = $files[$module]->sort;
+      }
+      else {
+        $non_required[$module] = $files[$module]->sort;
+      }
+    }
+
+    arsort($required);
+    arsort($non_required);
+
+    module_enable(array_keys($required));
+
+    if ($this->load_all_modules) {
+      module_enable(array_keys($non_required));
+    }
+
+    $this->install_flavor();
+
+    if ($this->multi_tenant) {
+      $this->install_multi_tennant();
+    }
+  }
+
+  /**
+   * Runs install profile tasks associated with the flavor for this test
+   */
+  protected function install_flavor() {}
+
+  /**
+   * Runs install profile tasks associated multi-tennant
+   */
+  protected function install_multi_tennant() {}
+}
+
+/**
+ *
+ */
+class OSWebTestCase extends OSProfileTestCase {
+
+  protected $admin_user = NULL;
+
+  public function getInfo() {
+    return array(
+      'name' => 'OpenScholar Profile Test',
+      'description' => 'Ensure OpenScholar profile configuration.',
+      'group' => 'OpenScholar',
+    );
+  }
+
+  public function setUp() {
+    // $this->profile = 'openscholar';
+    parent::setUp();
+  }
+
+  public function testOpenscholarProfileInstall() {
+    $this->assertTrue(TRUE);
+  }
+}
+/**
+ *
+ */
+class OSMakeAbsoluteLinkTestCase extends DrupalWebTestCase {
+
+  public function getInfo() {
+    return array(
+      'name' => 'Test absolute-to-relative link convertor function',
+      'description' => 'Unit test make_absolute_link_link() function',
+      'group' => 'OpenScholar',
+    );
+  }
+
+  public function setUp() {
+    // $this->profile = 'openscholar';
+    parent::setUp();
+  }
+
+  public function testMakeAbsoluteLink() {
+
+    $vsite_names = array(null, "vsite_name");
+    $hostnames = array(null, "hostname");
+    $schemes = array(null, "http");
+    $urls = array(null,
+                  "foo",
+                  "/foo",
+                  "/foo/",
+                  "../foo/",
+                  "../../foo/",
+                  "/foo/..",
+                  "/foo/../bar",
+                  "/foo/../bar/",
+    );
+
+    foreach ($vsite_names as $vsite_name) {
+      foreach ($hostnames as $hostname) {
+        foreach ($schemes as $scheme) {
+          foreach ($urls as $url) {
+            $base = "$scheme://$hostname/$vsite_name";
+            $abs_url = _os_make_absolute_link($url);
+            print "url: $url, base:$base ==> $abs_url\n";
+          }
+        }
+      }
+    }
+
+    # test 1
+    $markup = '
+      Some content.
+
+      <a href="foo">A link</a>.
+
+      More content.
+
+      <a other-attribute="moo" href="http://www.foo.com/">A second link</a>.
+      <a other-attribute="boo" href="the-quick-brown-fox">A rel link</a>.
+
+      Yet more content.
+
+      <a href="javascript:do_not_touch();">A third link</a>.
+
+      The quick brown fox.
+
+      <a href="/foo">A link</a>.
+
+      - jumped over the lazy dog.
+
+      <a href="google.com/foo">A link</a>.
+
+      <p><a href="../../blog">../../blog</a></p>
+      <p><a href="../../blog/">../../blog/</a></p>
+      <p><a href="../blog">../blog</a></p>
+      <p><a href="../blog/">../blog/</a></p>
+      <p><a href="blog">blog</a></p>
+      <p><a href="blog/">blog/</a></p>
+      <p><a href="/blog">/blog</a></p>
+      <p><a href="/blog/">/blog/</a></p>
+      <p><a href="./blog">./blog</a></p>
+      <p><a href="./blog/">./blog/</a></p>
+      <p><a href="http://absolute.com">http://absolute.com</a></p>
+      <p><a href="ftp://absolute.com">ftp://absolute.com</a></p>
+      <p><a href="gopher://absolute.com">gopher://absolute.com</a></p>
+      <p><a href="torrent://absolute.com">torrent://absolute.com</a></p>
+
+
+      <p><a someOtherAttribute="what-if-there is junk here"  href="../../blog">../../blog</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="../../blog/">../../blog/</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="../blog">../blog</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="../blog/">../blog/</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="blog">blog</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="blog/">blog/</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="/blog">/blog</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="/blog/">/blog/</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="./blog">./blog</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="./blog/">./blog/</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="http://absolute.com">http://absolute.com</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="ftp://absolute.com">ftp://absolute.com</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="gopher://absolute.com">gopher://absolute.com</a></p>
+      <p><a someOtherAttribute="what-if-there is junk here"  href="torrent://absolute.com">torrent://absolute.com</a></p>
+    ';
+
+    # test 2
+    # $markup = '<a href="foo">A link</a>.';
+    # $ret = os_replace_relative_links_with_absolute_links($markup);
+    # print $ret;
+  }
+
+
+  public function testOsWysiwygLinkFilter() {
+
+    $vsite_names = array(null, "vsite_name");
+    $hostnames = array(null, "hostname");
+    $schemes = array(null, "http");
+
+    $data_urls = array(null,
+                  "foo",
+                  "/foo",
+                  "/foo/",
+                  "../foo/",
+                  "../../foo/",
+                  "/foo/..",
+                  "/foo/../bar",
+                  "/foo/../bar/",
+    );
+
+    # foreach ($vsite_names as $vsite_name) {
+    #   foreach ($hostnames as $hostname) {
+    #     foreach ($schemes as $scheme) {
+    #       foreach ($data_urls as $data_url) {
+    #         foreach ($data_urls as $href) {
+
+    #           $attr1 = "href=\"$href\"";
+    #           $attr2 = "data-url=\"$data_url\"";
+    #           $a = "<a $attr1 $attr2> some text <a $attr2 $attr1>";
+
+    #           $found_links = _os_wysiwyg_link_find_links($a);
+    #           print "\na: $a => found_links: " . var_export($found_links, true);
+    #         }
+    #       }
+    #     }
+    #   }
+    # }
+
+    # test 1
+    $markup = '
+      Some content.
+
+      <a href="foo">A link</a>.
+
+      More content.
+
+      <a other-attribute="moo" href="http://www.foo.com/">A second link</a>.
+      <a other-attribute="boo" href="the-quick-brown-fox">A rel link</a>.
+
+      Yet more content.
+
+      <a href="javascript:do_not_touch();">A third link</a>.
+
+      The quick brown fox.
+
+      <a href="/foo">A link</a>.
+
+      - jumped over the lazy dog.
+
+      <a href="google.com/foo">A link</a>.
+
+      <p><a href="../../blog">../../blog</a></p>
+      <p><a href="../../blog/">../../blog/</a></p>
+      <p><a href="../blog">../blog</a></p>
+      <p><a href="../blog/">../blog/</a></p>
+      <p><a href="blog">blog</a></p>
+      <p><a href="blog/">blog/</a></p>
+      <p><a href="/blog">/blog</a></p>
+      <p><a href="/blog/">/blog/</a></p>
+      <p><a href="./blog">./blog</a></p>
+      <p><a href="./blog/">./blog/</a></p>
+      <p><a href="http://absolute.com">http://absolute.com</a></p>
+      <p><a href="ftp://absolute.com">ftp://absolute.com</a></p>
+      <p><a href="gopher://absolute.com">gopher://absolute.com</a></p>
+      <p><a href="torrent://absolute.com">torrent://absolute.com</a></p>
+
+      <p><a href="../../blog" data-url="../../blog">../../blog</a></p>
+      <p><a href="../../blog/" data-url="../../blog/">../../blog/</a></p>
+      <p><a href="../blog" data-url="../blog">../blog</a></p>
+      <p><a href="../blog/" data-url="../blog/">../blog/</a></p>
+      <p><a href="blog" data-url="blog">blog</a></p>
+      <p><a href="blog/" data-url="blog/">blog/</a></p>
+      <p><a href="/blog" data-url="/blog">/blog</a></p>
+      <p><a href="/blog/" data-url="/blog/">/blog/</a></p>
+      <p><a href="./blog" data-url="./blog">./blog</a></p>
+      <p><a href="./blog/" data-url="./blog/">./blog/</a></p>
+      <p><a href="http://absolute.com" data-url="http://absolute.com">http://absolute.com</a></p>
+      <p><a href="ftp://absolute.com" data-url="ftp://absolute.com">ftp://absolute.com</a></p>
+      <p><a href="gopher://absolute.com" data-url="gopher://absolute.com">gopher://absolute.com</a></p>
+      <p><a href="torrent://absolute.com" data-url="torrent://absolute.com">torrent://absolute.com</a></p>
+
+
+      <p><a href="../../blog" data-fid="../../blog">../../blog</a></p>
+      <p><a href="../../blog/" data-fid="../../blog/">../../blog/</a></p>
+      <p><a href="../blog" data-fid="../blog">../blog</a></p>
+      <p><a href="../blog/" data-fid="../blog/">../blog/</a></p>
+      <p><a href="blog" data-fid="blog">blog</a></p>
+      <p><a href="blog/" data-fid="blog/">blog/</a></p>
+      <p><a href="/blog" data-fid="/blog">/blog</a></p>
+      <p><a href="/blog/" data-fid="/blog/">/blog/</a></p>
+      <p><a href="./blog" data-fid="./blog">./blog</a></p>
+      <p><a href="./blog/" data-fid="./blog/">./blog/</a></p>
+      <p><a href="http://absolute.com" data-fid="http://absolute.com">http://absolute.com</a></p>
+      <p><a href="ftp://absolute.com" data-fid="ftp://absolute.com">ftp://absolute.com</a></p>
+      <p><a href="gopher://absolute.com" data-fid="gopher://absolute.com">gopher://absolute.com</a></p>
+      <p><a href="torrent://absolute.com" data-fid="torrent://absolute.com">torrent://absolute.com</a></p>
+    ';
+
+    # test 2
+    # $markup = '<a href="foo">A link</a>.';
+
+    $ret = os_wysiwyg_link_filter($markup);
+
+    print $ret;
+  }
+}

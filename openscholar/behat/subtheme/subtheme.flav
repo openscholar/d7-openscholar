@@ -1,0 +1,12 @@
+;----------// Theme Information
+
+  name        = Dummy SubTheme
+  description = v1.0
+  module      = cleanblue
+  screenshot  = screenshot.png
+
+;----------// Stylesheets
+
+  css[] = css/subtheme.css
+  scripts[] = js/subtheme.js
+

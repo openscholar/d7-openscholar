@@ -1,0 +1,499 @@
+<?php
+
+function cp_toolbar_theme($existing, $type, $theme, $path) {
+  $items['cp_toolbar_drawer_section'] = array(
+    'render element' => 'element',
+  );
+  return $items;
+}
+
+function cp_toolbar_theme_registry_alter(&$theme_registry) {
+  if (isset($theme_registry['toolbar'])) {
+    $theme_registry['toolbar']['template'] = 'cp_toolbar';
+    $theme_registry['toolbar']['path'] = drupal_get_path('module', 'cp_toolbar');
+  }
+}
+function cp_page_alter(&$page) {
+  if (isset($page['page_top']['toolbar'])) {
+    $page['page_top']['toolbar']['#pre_render'] = array('cp_toolbar_pre_render');
+    $page['page_top']['toolbar']['#access'] = $page['page_top']['toolbar']['#access'] || user_is_logged_in();
+  }
+}
+
+function cp_toolbar_pre_render($toolbar) {
+  if(variable_get('admin_panel_enabled', FALSE)) {
+    $toolbar['#access'] = FALSE;
+    return $toolbar;
+  }
+  $toolbar = array_merge($toolbar, cp_toolbar_view());
+  $toolbar['toolbar_drawer'] = array_merge($toolbar['toolbar_drawer'], cp_toolbar_fill_drawer());
+  $toolbar['tooltips'] = cp_toolbar_set_tooltips($toolbar);
+
+  // Let other modules alter the content of the toolbar.
+  drupal_alter('cp_toolbar_pre_render', $toolbar);
+
+  return $toolbar;
+}
+
+/**
+ * Builds the admin menu as a structured array ready for drupal_render().
+ *
+ * @return Array of links and settings relating to the admin menu.
+ */
+function cp_toolbar_view() {
+  global $user;
+
+  $trails = array();
+  foreach(menu_get_active_trail() as $trail) {
+    $trails[] = $trail['href'];
+  }
+
+  $module_path = drupal_get_path('module', 'toolbar');
+  $path = drupal_get_path('module', 'cp_toolbar');
+  $build = array(
+    '#theme' => 'toolbar',
+    '#attached'=> array(
+      'js' => array(
+        $module_path . '/toolbar.js',
+        $path . '/cp_toolbar.js',
+        array(
+          'data' => array('tableHeaderOffset' => 'Drupal.toolbar.height'),
+          'type' => 'setting'
+        ),
+      ),
+      'css' => array(
+        $module_path . '/toolbar.css',
+        $path . '/cp_toolbar.css',
+      ),
+      'library' => array(array('system', 'jquery.cookie')),
+    ),
+  );
+
+  if ($user->uid) {
+    $links = array(
+      'account' => array(
+        'title' => t('<strong>@username</strong>', array('@username' => format_username($user))),
+        'href' => 'user',
+        'html' => TRUE,
+        'description' => t('View or edit your user account'),
+      ),
+      'logout' => array(
+        'title' => t('Log out'),
+        'href' => 'user/logout',
+        'description' => t('Log out of this site'),
+      ),
+    );
+    if (arg(0) == 'user') {
+      $links['account']['attributes']['class'][] = 'active';
+    }
+
+    if (module_exists('vsite') && $vsite = vsite_get_vsite()) {
+      $admin = $vsite->og->uid == $user->uid || og_user_access('node', $vsite->id, 'administer group', $user);
+      if (!$admin && user_access('subscribe as support team')) {
+        if (!og_is_member('node', $vsite->id)) {
+          $links['support_team_subscribe'] = array(
+            'title' => t('Support @purl', array('@purl' => $vsite->group->purl)),
+            'href' => 'group/node/' . $vsite->id . '/subscribe/vsite_support_expire',
+            'description' => t('Subscribe to group for support'),
+            'query' => drupal_get_destination(),
+          );
+        }
+        else {
+          $links['support_team_unsubscribe'] = array(
+            'title' => t('Unsubscribe @purl' , array('@purl' => $vsite->group->purl)),
+            'href' => 'group/node/' . $vsite->id . '/unsubscribe',
+            'description' => t('Un-Subscribe from group'),
+            'query' => drupal_get_destination(),
+          );
+        }
+      }
+    }
+  }
+  else {
+     $links = array(
+      'login' => array(
+        'title' => t('Log in'),
+        'href' => 'user',
+        'description' => t('Log in to this site'),
+      ),
+    );
+  }
+  $build['toolbar_right']['toolbar_user'] = array(
+    '#theme' => 'links__toolbar_user',
+    '#links' => $links,
+    '#attributes' => array('id' => 'toolbar-user'),
+  );
+
+  $base_domain = variable_get('purl_base_domain');
+
+  if (variable_get('vsite_register_welcome_message', FALSE)) {
+    $links = array(
+      'help' => array(
+        'title' => t('Help'),
+        // 'href' => 'admin/help',
+        'href' => '',
+        // 'query' => array('popup'=>'1'),
+        'fragment' => 'overlay=cp/welcome',
+        'external' => TRUE,
+        'html' => TRUE,
+        'description' => t('Get help on various topics'),
+      ),
+    );
+  }
+  else {
+    $links = array(
+      'help' => array(
+        'title' => t('Help'),
+        // 'href' => 'admin/help',
+        'href' => !empty($base_domain) ? $base_domain . '/help/os_help/User-Documentation' : 'help/os_help/User-Documentation',
+        // 'query' => array('popup'=>'1'),
+        'html' => TRUE,
+        'description' => t('Get help on various topics'),
+      ),
+    );
+  }
+
+  $build['toolbar_right']['toolbar_help'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array('id' => 'toolbar-help'),
+  );
+
+  // Add a "home" link.
+  $link = array(
+    'home' => array(
+      'title' => '<span class="home-link">Home</span>',
+      'href' => '<front>',
+      'html' => TRUE,
+      'description' => t('Return to your home page'),
+    ),
+  );
+  $build['toolbar_left']['toolbar_home'] = array(
+    '#theme' => 'links',
+    '#links' => $link,
+    '#attributes' => array('id' => 'toolbar-home'),
+  );
+
+  $links = array();
+  $l = menu_get_item('cp/content');
+  if ($l['access']) {
+    $links['content'] = $l + array(
+      '#paths' => array('node/add'),
+      'attributes' => array(
+        'data-drawer' => 'content-drawer',
+      )
+    );
+  }else{
+    //They have access to add content but not list
+    $l = menu_get_item('cp/content/add');
+    if ($l['access']) {
+      $links['content'] = $l + array(
+        '#paths' => array(),
+        'attributes' => array(
+          'data-drawer' => 'content-drawer',
+        )
+      );
+    }
+  }
+  $l = menu_get_item('cp/build');
+  if ($l['access']) {
+    $l['title'] = t('Build');
+    $links['site'] = $l + array(
+      '#paths' => array(),
+      'attributes' => array(
+        'data-drawer' => 'site-drawer',
+      )
+    );
+  }
+  $l = menu_get_item('cp/appearance');
+  if ($l['access']) {
+    $links['appearance'] = $l + array(
+      '#paths' => array(),
+    );
+  }
+  $l = menu_get_item('cp/settings');
+  if ($l['access']) {
+    $links['settings'] = $l + array(
+      '#paths' => array(),
+    );
+  }
+  $l = menu_get_item('cp/users');
+  if ($l['access']) {
+    $l['title'] = t('People');
+    $links['people'] = $l + array(
+      '#paths' => array(),
+    );
+  }
+  // Make sure the contact module is enabled
+  // before adding in the link for cp/support.
+  if(module_exists('contact')) {
+    $l = menu_get_item('cp/support');
+    if ($l['access']) {
+      $links['support'] = $l + array(
+        '#paths' => array(),
+      );
+    }
+  }
+  if (user_access('access toolbar')) {
+    $links['admin'] = array(
+      'title' => t('Admin'),
+      'href' => 'admin',
+      'html' => TRUE,
+      'attributes' => array('alt' => t('Admin'), 'data-drawer' => 'admin-drawer'),
+      '#paths' => array(),
+      'description' => t('The global administration pages.'),
+    );
+  }
+  foreach($links as $key => $link) {
+    foreach($link['#paths'] as $path) {
+      if (in_array($path, $trails)) {
+        $links[$key]['attributes']['class'][] = 'active';
+      }
+    }
+  }
+
+  $build['toolbar_left']['toolbar_menu'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array('id' => 'toolbar-menu', 'class' => array('drawer-links')),
+  );
+
+  // Add an anchor to be able to toggle the visibility of the drawer.
+  $build['toolbar_toggle'] = array(
+    '#theme' => 'toolbar_toggle',
+    '#collapsed' => _toolbar_is_collapsed(),
+    '#attributes' => array('class' => array('toggle')),
+  );
+
+  return $build;
+}
+
+function cp_toolbar_fill_drawer() {
+  $drawer = array();
+
+  // content links
+  $drawer['content-drawer'] = array(
+    '#theme' => 'cp_toolbar_drawer_section',
+    '#attributes' => array('id' => 'content-drawer'),
+    '#paths' => array(
+      'node/add',
+    )
+  );
+
+  // node types
+  $item = menu_get_item('node/add');
+  $content = system_admin_menu_block($item);
+  // Bypass the node/add listing if only one content type is available.
+
+  $bundles = os_get_bundles(array(1,2));
+  asort($bundles);
+  $links = array();
+  $app_info = os_app_info();
+  foreach ($bundles as $type => $name) {
+    foreach ($app_info as $info) {
+      // A link for adding a node in the CP will not be displayed in case it has
+      // a parent node type or it is defined to be hidden from to toolbar.
+      $require_parent_node = !empty($info['require_parent_node'][$type]);
+      $hide_type = !empty($info['hide from toolbar']) && is_array($info['hide from toolbar']) && in_array($type, $info['hide from toolbar']);
+      if ($require_parent_node || $hide_type) {
+        continue 2;
+      }
+    }
+    $url_str = str_replace('_', '-', $type);
+    foreach ($content as $link) {
+      if ($link['access'] && $link['link_path'] == 'node/add/' . $url_str) {
+        $links[] = $link;
+      }
+    }
+  }
+  $drawer['content-drawer']['add'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array(
+      'class' => 'toolbar-add',
+    ),
+  );
+
+  $links = array();
+  $l = menu_get_item('cp/content/content');
+  if ($l['access']){
+    $links['content'] = $l;
+  }
+  $l = menu_get_item('cp/content/files');
+  if ($l['access']){
+    $links['files'] = $l;
+  }
+  $l = menu_get_item('cp/content/comments');
+  if ($l['access']){
+    $links['comments'] = $l;
+  }
+
+  $drawer['content-drawer']['list'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array(
+      'class' => 'toolbar-list',
+    ),
+  );
+
+  $links = array();
+
+  // Adding the link to the import news.
+  $importers = os_importer_importable_content();
+
+  foreach (array_keys($importers) as $importer) {
+    $l = menu_get_item('cp/os-importer/' . $importer);
+    if ($l['access']) {
+      $links[$importer] = $l;
+    }
+  }
+
+  // Sort alphabetically by title.
+  usort($links, '_cp_toolbar_sort_by_title');
+
+  $drawer['content-drawer']['import'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array(
+      'class' => 'toolbar-import',
+    ),
+  );
+
+  // people links
+  /*
+  $drawer['people-drawer'] = array(
+    '#theme' => 'cp_toolbar_drawer_section',
+    '#attributes' => array('id' => 'people-drawer'),
+    '#paths' => array(
+      'cp/users',
+    ),
+  );
+
+  $links = array();
+  $l = menu_get_item('cp/users');
+  if ($l['access']) {
+    $links['list'] = $l;
+  }
+  $drawer['people-drawer']['list'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array(
+      'class' => 'toolbar-list',
+    ),
+  );*/
+
+  $drawer['site-drawer'] = array(
+    '#theme' => 'cp_toolbar_drawer_section',
+    '#attributes' => array('id' => 'site-drawer'),
+    '#paths' => array(
+      'cp/build',
+    ),
+  );
+
+  $links = array();
+  $l = menu_get_item('cp/build/features');
+  if ($l['access']) {
+    $links['features'] = $l;
+  }
+  $l = menu_get_item('cp/build/layout');
+  if ($l['access']) {
+    $links['layout'] = $l;
+  }
+  $l = menu_get_item('cp/build/menu');
+  if ($l['access']) {
+    $links['menu'] = $l;
+  }
+  $l = menu_get_item('cp/build/taxonomy');
+  if ($l['access']) {
+    $links['taxonomy'] = $l;
+  }
+
+  $drawer['site-drawer']['manage'] = array(
+    '#theme' => 'links',
+    '#links' => $links,
+    '#attributes' => array(
+      'class' => 'toolbar-gear',
+    ),
+  );
+
+  $drawer['admin-drawer'] = array(
+    '#theme' => 'cp_toolbar_drawer_section',
+    '#access' => user_access('access toolbar'),
+    '#attributes' => array('id' => 'admin-drawer'),
+    '#paths' => array(
+       'admin'
+    ),
+  );
+
+  $admin = menu_get_item('admin');
+  $admin_links = system_admin_menu_block($admin);
+  $drawer['admin-drawer']['manage'] = array(
+    '#theme' => 'links',
+    '#attributes' => array(
+      'class' => 'toolbar-gear',
+    ),
+    '#links' => toolbar_menu_navigation_links(toolbar_get_menu_tree()),
+  );
+
+  $trails = array();
+  foreach(menu_get_active_trail() as $trail) {
+    $trails[] = $trail['href'];
+  }
+
+  // Prepare the drawer links CSS classes.
+  $toolbar_drawer_classes = array(
+    'toolbar-drawer',
+    'clearfix',
+  );
+
+  foreach($drawer as $key => $drawer_section) {
+    foreach($drawer_section['#paths'] as $path) {
+      if (in_array($path, $trails)) {
+        $drawer[$key]['#attributes']['class'][] = 'active';
+        $toolbar_drawer_classes[] = 'active';
+      }
+    }
+  }
+
+  $drawer['toolbar_drawer_classes'] = implode(' ', $toolbar_drawer_classes);
+
+  return $drawer;
+}
+
+/**
+ * usort callback function for ordering the links in alphabetical order.
+ */
+function _cp_toolbar_sort_by_title($link_a, $link_b) {
+  return strnatcmp($link_a['title'], $link_b['title']);
+}
+
+function theme_cp_toolbar_drawer_section($vars) {
+  $element = $vars['element'];
+  $classes = isset($element['#attributes']['class']) ? 'drawer ' . implode(' ', $element['#attributes']['class']) : 'drawer';
+  $output = '<div id="' . $element['#attributes']['id'] . '" class="' . $classes . '">';
+  $output .= drupal_render_children($element);
+  $output .= '</div>';
+  return $output;
+}
+
+function cp_toolbar_set_tooltips(&$parent) {
+  if (!is_array($parent)) return;
+  foreach(element_children($parent) as $child_key) {
+    if (is_array($parent[$child_key]) && isset($parent[$child_key]['#links'])) {
+      foreach($parent[$child_key]['#links'] as $key => $link) {
+        $tooltip = '';
+        if (isset($link['description'])) {
+          $tooltip = $link['description'];
+        }
+        elseif (isset($link['attributes']['title'])) {
+          $tooltip = $link['attributes']['title'];
+        }
+        unset($link['attributes']['title']);
+
+        $parent[$child_key]['#links'][$key]['attributes']['data-tooltip'] = $tooltip;
+      }
+    }
+    cp_toolbar_set_tooltips($parent[$child_key]);
+  }
+  return true;
+}

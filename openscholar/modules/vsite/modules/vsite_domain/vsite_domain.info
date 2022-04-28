@@ -1,0 +1,10 @@
+name = Vsite Domain
+description = "This creates a domain handler for scholar that overides the default purl domain handler.  It also also provides an admin form for creating domains for vsites"
+core = 7.x
+package = "OpenScholar vsite"
+php = "5.2.4"
+dependencies[] = ctools
+dependencies[] = vsite
+files[] = includes/VsitePathHandling.trait.inc
+files[] = plugins/purl_vsite_domain.inc
+files[] = plugins/purl_vsite_path.inc

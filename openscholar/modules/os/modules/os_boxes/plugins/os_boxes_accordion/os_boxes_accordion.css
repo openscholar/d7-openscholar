@@ -1,0 +1,19 @@
+/**
+ * @file
+ * Theme override for jQuery.ui.accordion.
+ *
+ * Using alternate method for hiding accordion content to fix iframe
+ * dimension/sizing issues.
+ */
+
+.accordion .ui-widget-content.os-boxes-accordion-loadfix {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  display: block !important;
+  position: absolute !important;
+  clip: rect(1px 1px 1px 1px);
+  clip: rect(1px,1px,1px,1px);
+  overflow: hidden;
+  height: 1px;
+  z-index: -1;
+}

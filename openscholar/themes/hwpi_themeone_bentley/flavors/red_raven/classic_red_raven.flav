@@ -1,0 +1,6 @@
+name = Red Raven
+description = A monochrome version of the Classic theme
+screenshot = screenshot.png
+
+css[] = red_raven.css
+css[] = responsive.red_raven.css

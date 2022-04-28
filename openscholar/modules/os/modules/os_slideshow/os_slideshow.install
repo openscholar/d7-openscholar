@@ -1,0 +1,108 @@
+<?php
+
+/*
+ * Add og_group_ref to image files attached to slideshow_image nodes
+ */
+function os_slideshow_update_7001() {
+  $query = db_select('node', 'n')
+    ->condition('n.type', 'slideshow_slide'); 
+  $query->join('file_usage', 'f', 'n.nid = f.id');
+  $query->fields('f', array('fid'));
+  $query->join('og_membership', 'og', 'n.nid = og.etid');
+  $query->fields('og', array('gid'));
+  
+  $results = $query->execute();
+  while ($res = $results->fetchAssoc()) {
+    og_group('node', $res['gid'], array(
+      'entity_type' => 'file',
+      'entity' => $res['fid'],
+      'field_name' => OG_AUDIENCE_FIELD,
+    ));
+  }
+}
+
+function os_slideshow_update_7002() {
+  features_revert(array('os_slideshow' => array('field_instance')));
+}
+
+/**
+ * Add alt and title fields to slideshow images
+ */
+function os_slideshow_update_7003() {
+  features_revert(array(
+    'os_slideshow' => array(
+      'field_base',
+      'field_instance'
+    )
+  ));
+  return t('Alt and Title fields adds to slideshow images.');
+}
+
+/**
+ * Fix slideshows that have no group association.
+ */
+function os_slideshow_update_7004(&$ctx) {
+  if (!isset($ctx['data'])) {
+    $q = db_select('node', 'n');
+    $q->leftJoin('og_membership', 'ogm', 'n.nid = ogm.etid AND entity_type = \'node\'');
+    $q = $q->fields('n', array('nid'))
+      ->condition('n.type', 'slideshow_slide')
+      ->condition('gid', NULL);
+    $q = $q->execute();
+    $ctx['data'] = array();
+    foreach ($q as $r) {
+      $ctx['data'][] = $r->nid;
+    }
+    $ctx['progress'] = 0;
+    $ctx['deleted'] = 0;
+    $ctx['count'] = count($ctx['data']);
+    if (!$ctx['count']) {
+      return t('All slideshow slides are in the correct group');
+    }
+  }
+
+  $limit = 20;
+  $set = array_slice($ctx['data'], $ctx['progress'], $limit);
+  foreach ($set as $nid) {
+    $node = node_load($nid);
+    $images = field_get_items('node', $node, 'field_image');
+    if ($images) {
+      foreach ($images[0][OG_AUDIENCE_FIELD][LANGUAGE_NONE] as $group) {
+        $gid = $group['target_id'];
+        og_group('node', $gid, array(
+          'entity_type' => 'node',
+          'entity' => $nid,
+        ));
+      }
+    }
+    else {
+      // slide has no image, look for it in a box
+      $q = db_select('spaces_overrides', 'so')
+        ->fields('so', array('id'))
+        ->condition('value', '%os_slideshow_box%', 'LIKE')
+        ->condition('value', '%s:3:"nid";s:'.strlen($nid).':'.$nid.'%', 'LIKE')
+        ->execute();
+      $orphaned = true;
+      foreach ($q as $r) {
+        $orphaned = false;
+        og_group('node', $r->id, array(
+          'entity_type' => 'node',
+          'entity' => $nid
+        ));
+      }
+      if ($orphaned) {
+        node_delete($nid);
+        $ctx['deleted']++;
+      }
+    }
+    $ctx['progress']++;
+  }
+
+  $ctx['#finished'] = $ctx['progress']/$ctx['count'];
+  if ($ctx['#finished'] >= 1) {
+    return t('@fixed lideshow slides have been grouped with their respective sites. @deleted orphaned slideshow slides have been deleted.', array(
+      '@fixed' => $ctx['count'] - $ctx['deleted'],
+      '@deleted' => $ctx['deleted'],
+    ));
+  }
+}

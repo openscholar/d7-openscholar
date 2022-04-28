@@ -1,0 +1,153 @@
+body {
+background:  #E5E5E4; 
+color: #333333;
+font-family:helvetica, arial, verdana;
+font-size:14px;
+line-height:22px;
+}
+
+#content-column a,
+#content-column a:visited {color:#4E84C4 !important;}
+
+.two-sidebars #header-container {padding:0 200px;}
+.one-sidebar.sidebar-second #header-container {padding:0 200px 0 0;}
+.one-sidebar.sidebar-first #header-container {padding:0 0 0 200px;}
+
+.container {
+    width: 95%;
+}
+
+/* HEADER CONTAINER */
+
+#header-container {
+  color: #444;
+  }
+
+#header-container h1,
+#header-container h2,
+#header-container p {
+  text-shadow: none;
+  }
+
+#header-container h1 {
+  margin-bottom: 0;
+  font-size: 32px;
+  text-shadow: none;
+  color: #444;
+  }
+
+
+
+#header-container a,
+#header-container a:visited,
+#header-container h2,
+#header-container p {
+    color: #444;
+    }
+
+#header-container a:hover {
+    color:#444;
+    }
+
+
+#columns {
+  background: none;
+  -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  }
+  
+#menu-bar {
+    margin-bottom: 3px;
+}
+
+#menu-bar a, 
+#menu-bar a:visited {
+    color: #444;
+    font-weight: bold;
+}
+
+#menu-bar a:hover {
+    color: #444;
+    text-decoration:underline;
+}
+
+#menu-bar ul.nice-menu ul {
+    margin: -8px 0 0 -12px;
+}
+
+#menu-bar ul.nice-menu ul li a:hover {
+	background:#777;
+}
+
+.lt-ie9 #columns { border: none;}
+
+#content-column .content-inner {
+  background: #fff;
+  -moz-box-shadow: 0 3px 1em #ccc;
+  -webkit-box-shadow: 0 3px 1em #ccc;
+  box-shadow: 0 3px 1em #ccc;
+  padding: 20px;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px;
+  border: 1px solid #E5E5E4;
+  padding:0 10px 0 10px;
+  }
+  
+  
+.region-sidebar-first, 
+.region-sidebar-first ul.menu {
+    text-align: right;
+} 
+
+.sidebar a {
+    color: #293352;
+    text-decoration:underline;
+}
+
+.sidebar a:hover {
+    text-decoration:none;
+}
+
+
+.sidebar li.expanded, 
+.sidebar li.collapsed, 
+.sidebar li.leaf {
+    padding: .3em 0;
+}
+
+.sidebar #block-os-custom-menu ul li a,
+.sidebar #block-os-primary-menu ul li a, 
+.sidebar #block-os-secondary-menu ul li a {
+  display:block;
+  text-decoration: none !important;
+  padding: .5em .2em;
+  color:#444;
+  font-weight:bold;
+  line-height: 18px;
+  text-transform: none;
+}
+
+
+.sidebar #block-os-custom-menu ul li a:hover,
+.sidebar #block-os-primary-menu ul li a:hover,
+.sidebar #block-os-secondary-menu ul li a:hover {
+  background-color: #f1f1f1;
+  text-decoration: none !important;
+    -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+}
+
+h1#page-title {
+    font-style: normal;
+}
+
+h2.block-title {
+    margin-bottom: 0.5em;
+}
+#footer .footer-login:hover {
+    color: #4A4A4A;
+}
+

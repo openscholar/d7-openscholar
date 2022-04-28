@@ -1,0 +1,16 @@
+{
+  "name": "TheScholr",
+  "require": {
+    "openscholar/thescholr" : "1.11.6"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@bitbucket.org:openscholar/thescholr.git"
+    }
+  ],
+  "config": {
+    "vendor-dir": "~/src/amazon/web/sites/thescholr.com/modules",
+    "discard-changes": true
+  }
+}

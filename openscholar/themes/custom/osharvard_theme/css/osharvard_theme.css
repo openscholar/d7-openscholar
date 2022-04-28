@@ -1,0 +1,712 @@
+@import url(https://fonts.googleapis.com/css?family=Roboto);
+
+#branding_footer, #branding_header {
+    display:none;
+}
+
+body  {
+	font-family: 'Roboto',Baskerville,Palatino,'Palatino Linotype','Book Antiqua','Times New Roman',serif;
+    font-size: 14px;
+    background: #F6F6F6;
+ }
+ 
+ 
+  #content-column p {
+	font-family: 'Roboto', arial;
+   
+ }
+
+
+.hg-container {
+    width: 100%;
+}
+
+#footer {
+    background: #202020 !important;
+
+}
+
+
+
+.front #content-panels .region {
+    clear: both !important;
+    float: none !important;
+    width:100% !important;
+    display: block !important;
+}
+
+.front #content-panels .region .region-inner,
+.front #content-panels .region .region-inner[style] {
+    min-height: 200px !important;
+    position: relative;
+}
+
+
+
+#menu-bar .block-boxes-os_boxes_html,
+body.front.no-sidebars #content-panels .region-inner {
+    margin: 0 auto;
+    width: 980px;
+}
+
+.front.no-sidebars .region-content-top:after {
+    background: #373737;
+    bottom: auto;
+    content: "";
+    display: block;
+    height: 100%;
+    left: -1000px;
+    position: absolute;
+    right: auto;
+    top: 0;
+    width: 3000px;
+    z-index: 0;
+}
+
+
+
+#header,
+#menu-bar,
+#columns {
+    background:#F6F6F6;
+    background-image: none;
+}
+
+#columns {
+margin-bottom: -20px;
+}
+
+#header-container h1 {
+  width:292px;
+  height: 78px;
+  text-indent: -999em;
+  background: url('../images/osatharvardlogo.png') no-repeat 0 0 transparent;
+  margin: -20px 0 0 5px;
+  }
+  
+#header-container h1 a, #header-container h1 a:visited {
+  display:block;
+  width:279px;
+  height: 31px;
+  }
+
+#header-container h2, #header-container p {
+  display:none;
+  }  
+ 
+ .region-header-third ul.nice-menu a {
+    font: 14px 'Roboto',sans-serif;
+    text-decoration: underline !important;
+    text-transform: none;
+} 
+  /*
+.region-header-third ul.nice-menu a {
+    font: normal 16px 'Roboto',sans-serif;
+    text-transform: none;
+}  
+
+.region-header-third ul.nice-menu li a {
+  background:url('../images/mainnav_sidearrow.png') no-repeat 283px 7px transparent;
+  padding-right: 23px;
+  }
+  */
+#menu-bar {
+    padding: 0 0 10px;
+}  
+  
+#menu-bar nav {
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+}  
+
+.lt-ie9 #menu-bar nav {
+    border:none !important;
+}
+
+#menu-bar ul a, #menu-bar ul.nice-menu a, #menu-bar ul.nice-menu .menuparent a {
+    font-family: 'Roboto',Baskerville,Palatino,'Palatino Linotype','Book Antiqua','Times New Roman',serif;
+   padding: 8px 15px;
+   font-size: 18px;
+}
+
+
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+    background-position: 2px -373px;
+}
+
+
+.front #content-panels .block {
+    -moz-box-sizing: none;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none !important;
+}
+
+.front #content-panels .block-content, 
+.sidebar .block-content {
+border-top: none;
+}
+
+
+/* SLIDESHOW OVERRIDES */
+#layout_16_9_side .slide {
+    background: #373737 !important;
+}
+
+#layout_16_9_side .slide-copy h2 {
+    font: bold 25px arial,sans-serif;
+}
+
+/*
+body.no-sidebars .content-top-slideshow-enabled #content-panels .region-content-top .block {
+    padding: 15px 0;
+}
+*/
+
+#layout_16_9_side .slide-copy {
+    padding-top: 25px;
+}
+
+/* SPECIAL CSS FOR CUSTOM BLOCKS FOR OSHARVARD SITE */
+
+.region-content-top .block-boxes-os_boxes_html:nth-of-type(1) {float:left;}
+
+.custhtml h3.custheader {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.custhtml h3.custheader a {
+    color: #000000;
+    font: 25px/1.4em "Helvetica","Arial","sans-serif";
+    text-decoration: none !important;
+}
+
+.custhtml.sample h3.custheader a {
+    color: #FFF;
+}
+
+
+.bythenumbs {
+	width: 980px;
+	margin:0 auto;
+}
+
+.custhtml.bythenumbs h3.custheader {
+	margin-bottom: 13px;
+}
+
+.getsite {
+	z-index:2;
+	position:relative;
+	color:#FFF;
+}
+
+.getsite a {
+	color:#FFF;
+	text-decoration:underline;
+}
+
+
+.getsite_link {cursor:pointer;}
+
+
+
+.getsite_content {
+	display:none;
+	background:#FFF;
+    margin: -6px 0 0 4px;
+    width: 150px;
+	border:1px solid #ccc;
+	padding:10px;
+	font-size:14px;
+	line-height: 17px;
+}
+
+
+.getsite_content a {
+	text-decoration: none !important;
+color: #215990;
+margin-left: 2px;
+line-height: 24px;
+}
+
+
+.getsite h3 {
+	font: bold 25px arial,sans-serif;
+    margin-bottom: 12px;
+    text-shadow: 0 1px 0 rgba(37, 37, 37, 0.75);
+}
+
+.getsite .textside {
+    margin: 70px 0 0 0;
+    background:#373737;
+    }
+
+.getsite .textside p {
+	font:18px arial,sans-serif;
+    margin-bottom: 12px;
+    text-shadow: 0 1px 0 rgba(37, 37, 37, 0.75);
+}
+
+.sitecount {
+	font: bold 22px arial,sans-serif;
+	 text-shadow: 0 1px 0 rgba(37, 37, 37, 0.75);
+
+}
+
+.custhtml h4.benefheader {
+	color: #000000;
+    font: 18px/1.2em "Helvetica","Arial","sans-serif";
+}
+
+.region-content-first {
+	background:#FFF !important;
+	}
+
+.region-content-second {
+	background:#F6F6F6 !important;
+	}
+	
+.region-content-bottom {
+	background:#3973ac !important;
+	margin-top:-20px !important;
+	color:#FFF;
+	}
+
+
+.whyuse .benef2colwrapper,
+.whyuse .activitywrapper {
+	display: inline-block;
+	text-align:center;
+	}
+.whyuse .benef2colwrapper {
+	padding-right: 15px;
+    width: 66%;
+	}
+	
+.whyuse .activitywrapper {
+	 margin-left: 18px;
+    width: 30%;
+	}
+	
+.whyuse .benef2colwrapper .twocolleft,
+.whyuse .benef2colwrapper .twocolright {
+	display: inline-block;
+	width:48%;
+}
+
+.whyuse .benef2colwrapper .twocolright {
+	margin-left:15px;
+	top:7px;
+	position:relative;
+}
+
+.whyuse .whynotech,
+.whyuse .drag {height:270px;}
+.whyuse .drag {top:-45px;position:relative;}
+
+
+.whyuse .apps,
+.whyuse .custdomains,
+.activitywrapper .search {height:270px;}
+.whyuse .custdomains {top:-52px;position:relative;}
+
+.activitywrapper .search {top:-30px;position:relative;}
+.activitywrapper .analytics {top:-24px;position:relative;}
+
+.whyuse .themes,
+.whyuse .social {height:230px;}
+.whyuse .social {top:-53px;position:relative;}
+
+.whyuse .support {
+	top:-65px;
+	position:relative;
+	border:1px solid #ccc;
+	background:#dfdfdf;
+	padding:6px;
+	}
+	
+	@-moz-document url-prefix() { 
+	.whyuse .support {
+	top:-61px;
+		}
+	}
+	
+	.lt-ie9 .whyuse .support {
+	top:-47px;
+	}
+
+.whyuse .block-content {
+	padding-top:35px !important;
+}
+
+.sample img {
+	margin:0 20px;
+}
+
+
+.sample .sitesheader {
+	margin-left:22px;
+	font-size:16px;
+}
+
+
+.stats {
+ 	color:#fff;
+	position: absolute;
+    right: 381px;
+	top: 137px;
+    z-index: 20;
+}
+
+/* STATS SECTION */
+
+
+#realtime-vis,
+#top-stats {
+	display:inline-block;
+	clear:none;
+}
+
+#realtime-vis {
+	width:188px;
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/real-time-bg.png') no-repeat #F6F6F6;
+	vertical-align:top;
+	height:248px;
+}
+
+.ossap-stats-real-time-visitors {
+font-size: 2.5em;
+color: #818181;
+display: block;
+margin: 70px auto 0 auto;
+text-align: center;
+font-weight: bold;
+}
+
+.ossap-stats-weekly-visitors,
+.ossap-stats-monthly-visitors {
+font-size: 1.25em;
+color: #FFF;
+display: block;
+text-align: center;
+font-weight: bold;
+margin-top: 67px;
+}
+
+.ossap-stats-monthly-visitors {
+margin-top: 20px;
+}
+
+#osactivity,
+ul#firstset,
+ul#secondset {
+	background:#F6F6F6;
+	width: 780px;
+	
+}
+
+
+
+ul#firstset {
+    width: 780px;
+	
+	
+}
+
+ul#secondset {
+	background:#FFF;
+}
+
+ul#secondset,
+ul#firstset {
+	margin: 0 0 .2em 8px;
+}
+
+ul#secondset li,
+ul#firstset li {
+	color: #555555;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: bold;
+    height: 54px;
+    list-style-type: none;
+    margin: 8px 8px 8px 0;
+    padding: 3px 0 0 65px;
+    
+	width: 180px;
+}
+
+li#websites {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/websites.png') no-repeat;
+	}
+	
+li#publications {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/publications.png') no-repeat;
+	}
+	
+li#posts {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/posts.png') no-repeat;
+	}
+	
+li#users {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/users.png') no-repeat -2px 0;
+	}
+	
+li#files {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/files.png') no-repeat -3px 0;
+	}
+	
+li#diskspace {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/diskspace.png') no-repeat 2px 0;
+	}					
+
+
+ul#secondset li {
+	margin: 8px 8px 0 0;
+    padding: 0;
+    
+	width: 189px;
+    position:relative;
+ 	
+	height: 90px;
+ 	
+	float:left;
+}
+
+li#pageviews {
+	background: url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/total-views.png') 25px 0px #F6F6F6 no-repeat;
+	}
+
+li#pageviews div {
+font-size: 14px;
+margin: 20px auto 0 auto;
+text-align: center;
+	}
+	
+li#pageviews div.ossap-stats-monthly-pv {
+		margin-top:10px;
+	}
+
+li#version {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/currentrel_version.png') no-repeat #F6F6F6 1px 18px;
+	margin-right:0 !important;
+	width:144px;
+	}
+	
+li#version span {
+	margin: 0 0 0 20px;
+top: 32px;
+position: relative;
+	}
+
+
+li#newposts {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/newpoststoday.png') no-repeat #F6F6F6 15px 14px;
+	}
+	
+li#newposts span {
+	margin: 0 0 0 22px;
+top: 60px;
+position: relative;
+	}
+	
+li#newsites {
+	background:url('/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/newsitestoday.png') no-repeat #F6F6F6 15px 14px;
+
+	}
+	
+li#newsites span {
+	margin: 0 0 0 25px;
+top: 60px;
+position: relative;
+	}	
+		
+
+	
+#osactivity {
+ padding: 2px 12px 5px;
+margin-top: 9px;
+margin-bottom: 7px;
+
+ width: 955px;
+}
+
+#most-viewedpages h4,
+#most-viewedsites h4,
+#osactivity h4 {
+	display:block;
+	margin:0 auto;
+	font-size:12px;
+	text-align:center;
+	margin-bottom: 3px;
+}
+
+#most-viewedpages ul,
+#most-viewedsites ul,
+#osactivity ul {
+margin-left:0;
+margin-bottom:0;
+}
+
+#osactivity ul li {
+list-style-type:none;
+background: url("/profiles/openscholar/themes/custom/osharvard_theme/images/statsbgs/activitylibg.png") no-repeat;
+padding-left:35px;
+}
+
+#osactivity .time {float:left;color:#666;margin-right:5px;}
+
+
+
+
+.top-visited ul {
+	height:225px;
+	/* width: 380px; */
+	overflow:auto;
+}
+
+#most-viewedpages,
+#most-viewedsites {
+	background:#F6f6f6;
+ padding: 2px 12px 5px;
+margin-top: 3px;
+
+	width: 460px;
+display:inline-block;
+vertical-align: top;
+font-size:12px;
+}
+
+#most-viewedpages a,
+#most-viewedsites a {
+	margin-right:8px;
+	font-size:1.2em;
+}
+
+#most-viewedsites {
+margin-right:8px;
+}
+
+#most-viewedsites ul.displayed li,
+#most-viewedpages ul.displayed li {
+margin-bottom:5px;
+}
+
+
+#most-viewedsites ul.displayed li {
+list-style-type:none;
+background: url("/profiles/openscholar/themes/custom/osharvard_theme/images/sprite.png") 0 0 no-repeat;
+padding-left:35px;
+}
+
+#most-viewedpages ul.displayed li {
+list-style-type:none;
+background: url("/profiles/openscholar/themes/custom/osharvard_theme/images/sprite.png") 0 -30px no-repeat;
+padding-left:35px;
+}
+
+
+#tabs,
+#tabs2 {
+  padding-right: 2px;
+   margin-top: 10px;
+   
+  margin-left: 115px !important;
+height: 30px;
+}
+
+a {cursor:pointer;}
+
+#tabs li,
+#tabs2 li {
+    float:left; 
+    list-style:none; 
+    margin-right:5px; 
+}
+
+#tabs li a, 
+#tabs2 li a {
+    font-family:Arial, Helvetica, sans-serif; 
+    font-size: small;
+    font-weight: bold; 
+    color: #fff;;
+  padding: 1px 5px;
+    display:block; 
+    background: #6E6E6E;
+  text-decoration:none !important;
+ border:1px solid #6E6E6E;
+  
+}
+
+#tabs li a:hover,
+#tabs2 li a:hover {
+	color: #fff; 
+}
+
+#tabs li a.inactive,
+#tabs2 li a.inactive {
+    color:#215990;
+    background: #FFF;
+   outline:none;
+   border:1px solid #DDD;
+}
+
+
+.container-wrapper,
+.container-wrapper2 {
+clear:both;           
+    width:100%; 
+    text-align:left;
+  padding-top: 10px;
+
+}
+
+
+.region-content-first .block-boxes .os-embed-link {
+    width: 250px;
+}
+
+
+.region-content-top .block-boxes .os-embed-link {
+	 right: -160px;
+     z-index: 1000;
+     color:#fff;
+     width:250px;
+}
+
+
+.block-boxes-os_boxes_html.os-boxes-embedded .getsite .textside {
+margin: 5px 0 0 0 !important;
+padding:12px;
+min-height:450px;
+}
+
+
+
+/* ROADMAP PAGE STYLES */
+.page-roadmap #columns {
+     background: none repeat scroll 0% 0% #FFFFFF;
+}
+
+.page-roadmap #content-column {
+     float: none;
+     margin: 0px auto;
+     width: 990px;
+}
+
+.page-node.page-roadmap #content-column .content-inner, .not-front.page-roadmap .content-inner {
+     background: none repeat scroll 0% 0% #FFFFFF;
+     border-radius: 0px;
+     border: medium none;
+     box-shadow: none;
+     padding: 0px;
+}
+
+.page-roadmap ul.tabs.primary {
+     padding: 10px 0px 0.5em ! important;
+}

@@ -1,0 +1,220 @@
+<?php
+
+/**
+ * Perform any needed search setup functions
+ */
+function os_search_solr_install() {
+
+  // Set the default search page to search/site
+  variable_set('apachesolr_search_default_search_page', 'core_search');
+
+  // Disable node and user search and enable solr search
+  variable_set('search_active_modules', array(
+      'apachesolr_search'
+  ));
+
+  // Set the default search module to solr
+  variable_set('search_default_module', 'apachesolr_search');
+
+  // Let the solr server parse/extract attachments
+  variable_set('apachesolr_attachments_extract_using', 'solr');
+
+  // Change the facets terms hard limit to unlimited.
+  variable_set('apachesolr_query_class', array(
+    'file' => 'Solr_Base_Query',
+    'module' => 'apachesolr',
+    'class' => 'OsSolrBaseQuery'));
+
+  // Enable the facets
+  if(module_exists('facetapi')) {
+  	$searcher_name = '';
+  	$realm_name = 'block';
+  	$status = 1;
+  	$weight = 0;
+  	$facet_array = array('created' => 'created','bundle' => 'bundle','sm_og_group_ref' => 'sm_og_group_ref');
+	  // Get the searcher info.
+    $searcher_array = facetapi_get_searcher_info();
+    foreach($searcher_array as $search) {
+      if(array_key_exists('name', $search)) {
+        $searcher_name = $search['name'];
+      }
+    }
+    // Make sure none of the facets are already enabled.
+    $enabled_facets = facetapi_get_enabled_facets($searcher_name);
+    foreach($facet_array as $facets) {
+	  if(array_key_exists($facets, $enabled_facets)) {
+		unset($facet_array[$facets]);
+	  }
+    }
+    // Load the adapter.
+    $adapter = facetapi_adapter_load($searcher_name);
+    // Load the realm.
+    $realm = facetapi_realm_load($realm_name);
+    // Load all facets
+    $facet_info_array = facetapi_get_facet_info($searcher_name);
+    // Loop the facet array and if they're found in the facet info array, enable them.
+    foreach($facet_array as $facet) {
+      if(array_key_exists($facet, $facet_info_array)) {
+      	// Enable the facet.
+      	facetapi_save_facet_status($adapter, $realm, $facet_info_array[$facet], $status, $weight, TRUE);
+      }
+    }
+  }
+
+  drupal_flush_all_caches();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function os_search_solr_uninstall() {
+  variable_del('os_search_solr_reindex_by_bundles');
+  variable_del('os_search_og_vocabulary_operator');
+}
+
+/**
+ * Change the facets terms hard limit to unlimited.
+ */
+function os_search_solr_update_7000() {
+  foreach (array_keys(facetapi_get_searcher_info()) as $searcher) {
+    $adapter = facetapi_adapter_load($searcher);
+    $realm = facetapi_facet_load('sm_og_vocabulary', $searcher);
+    $global_settings = $adapter->getFacetSettingsGlobal($realm);
+    $global_settings->settings['hard_limit'] = -1;
+    ctools_export_crud_save('facetapi', $global_settings);
+  }
+}
+
+/**
+ * Change the facetAPI handler.
+ */
+function os_search_solr_update_7001() {
+  variable_set('apachesolr_query_class', array(
+    'file' => 'Solr_Base_Query',
+    'module' => 'apachesolr',
+    'class' => 'OsSolrBaseQuery'));
+}
+
+/**
+ * Migrate search blocks to boxes.
+ */
+function os_search_solr_update_7002() {
+  if (!boxes_box::factory('os_search_solr_search_box', array())) {
+    throw new Exception('The new search plugin does not exist. Please clear the cache and re trigger this update path.');
+  }
+
+  $overrides = db_select('spaces_overrides', 'so')
+    ->fields('so', array('object_id', 'value', 'id'))
+    ->condition('object_type', 'context')
+    ->condition('object_id', '%reaction:block', 'LIKE')
+    ->condition('value', '%site-search%', 'LIKE')
+    ->orderBy('so.id')
+    ->execute();
+
+  foreach ($overrides as $override) {
+    $blocks = unserialize($override->value);
+
+    // In case the view is used, create a new block that will replace it.
+    unset($blocks['blocks']['os_search_db-site-search']);
+
+    $key = 'os_search_solr-site-search';
+    $new_key = 'boxes-solr_search_box';
+    if (in_array($key, array_keys($blocks['blocks']))) {
+
+      // Replace the old one with the new instance.
+      $old_block = $blocks['blocks'][$key];
+      $blocks['blocks'][$new_key] = array(
+        'module' => 'boxes',
+        'delta' => 'solr_search_box',
+        'region' => $old_block['region'],
+        'weight' => $old_block['weight'],
+      );
+      unset($blocks['blocks'][$key]);
+    }
+
+    $override->value = serialize($blocks);
+
+    db_update('spaces_overrides')
+      ->fields(array('value' => $override->value))
+      ->condition('id', $override->id)
+      ->condition('object_type', 'context')
+      ->condition('object_id', $override->object_id)
+      ->execute();
+
+    $text = t('Updating object id @object in vsite @id', array('@object' => $override->object_id, '@id' => $override->id));
+    if (drupal_is_cli()) {
+      drush_log($text, 'success');
+    }
+    else {
+      drupal_set_message($text);
+    }
+
+  }
+}
+
+/**
+ * Removing os_search_solr-site-search instances.
+ */
+function os_search_solr_update_7003() {
+
+  $overrides = db_select('spaces_overrides', 'so')
+    ->fields('so', array('object_id', 'value', 'id'))
+    ->condition('object_type', 'context')
+    ->condition('object_id', '%reaction:block', 'LIKE')
+    ->condition('value', '%site-search%', 'LIKE')
+    ->orderBy('so.id')
+    ->execute();
+
+  foreach ($overrides as $override) {
+    $blocks = unserialize($override->value);
+    $key = 'os_search_solr-site-search';
+    if (in_array($key, array_keys($blocks['blocks']))) {
+      if ($blocks['blocks'][$key]['module'] == 'boxes') {
+        // Replacing 'os_search_solr-site-search' key with 'boxes-solr_search_box' if those are alreadey migrated to boxes
+        $blocks['blocks']['boxes-solr_search_box'] = $blocks['blocks'][$key];
+        unset($blocks['blocks'][$key]);
+      }
+    }
+    $override->value = serialize($blocks);
+    db_update('spaces_overrides')
+      ->fields(array('value' => $override->value))
+      ->condition('id', $override->id)
+      ->condition('object_type', 'context')
+      ->condition('object_id', $override->object_id)
+      ->execute();
+  }
+}
+
+/**
+ * Remove any trace to the old search box.
+ */
+function os_search_solr_update_7004() {
+  features_revert(array('vsite' => array('context', 'spaces_presets')));
+  features_revert(array('os' => array('context',  'spaces_presets')));
+}
+
+/**
+ * Update apache solr field bias label.
+ */
+function os_search_solr_update_7005() {
+  // @see: drupal_load()
+  if (!function_exists('apachesolr_default_environment')) {
+    include_once dirname(__FILE__) . '/apachesolr.module';
+  }
+
+  $env_id = apachesolr_default_environment();
+  $fb = apachesolr_environment_variable_get($env_id, 'field_bias', array());
+  if ($fb['label'] < '21.0') {
+    $fb['label'] = '21.0';
+  }
+  apachesolr_environment_variable_set($env_id, 'field_bias', $fb);
+}
+
+/**
+ * Remove any trace to the old search box.
+ */
+function os_search_solr_update_7006() {
+
+  // Remove the search blocks that were added since this ran.
+  os_search_solr_update_7002();
+}

@@ -1,0 +1,39 @@
+.cp-add-new-user {
+  margin: 1em 0;
+  clear: both;
+}
+
+.cp-user-float-right {
+  float: right;
+}
+
+.cp-user-change-site-owner {
+  float: right;
+  margin-right: 5px; /* LTR */
+}
+
+.os-green-button {
+  padding: 5px 10px;
+  border:none;
+  font-size:13px;
+  font-weight:bold;
+  color: rgb(230, 230, 230);
+  text-shadow: 0px -1px 0px rgba(30, 30, 30, 0.25);
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  background: rgb(61, 155, 19);
+  background: -moz-linear-gradient(90deg, rgb(61, 155, 19) 30%, rgb(61, 132, 19) 70%);
+  background: -webkit-linear-gradient(90deg, rgb(61, 155, 19) 30%, rgb(61, 132, 19) 70%);
+  background: -o-linear-gradient(90deg, rgb(61, 155, 19) 30%, rgb(61, 132, 19) 70%);
+  background: -ms-linear-gradient(90deg, rgb(61, 155, 19) 30%, rgb(61, 132, 19) 70%);
+  background: linear-gradient(180deg, rgb(61, 155, 19) 30%, rgb(61, 132, 19) 70%);
+  -webkit-box-shadow: 0px 1px 1px rgba(50, 50, 50, 0.5);
+  -moz-box-shadow:    0px 1px 1px rgba(50, 50, 50, 0.5);
+  box-shadow:         0px 1px 1px rgba(50, 50, 50, 0.5);
+}
+
+.cp-user-top-buttons {
+  margin: 1em 0;
+  clear: both;
+}

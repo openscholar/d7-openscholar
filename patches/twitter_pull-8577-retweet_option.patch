@@ -1,0 +1,254 @@
+diff --git a/twitter_pull.admin.inc b/twitter_pull.admin.inc
+new file mode 100644
+index 0000000..db0bb34
+--- /dev/null
++++ b/twitter_pull.admin.inc
+@@ -0,0 +1,62 @@
++<?php
++
++/**
++ * @file twitter_pull.admin.inc
++ *
++ * Configuration settings page for twitter_pull module.
++ */
++
++function twitter_pull_config_page() {
++
++  // check for twitter-api-php library
++  $lib = libraries_get_path('twitter-api-php');
++  if (!$lib) {
++    drupal_set_message(t('Please install TwitterAPIExchange as a library.  http://github.com/j7mbo/twitter-api-php'), 'error');
++  }
++
++  $desc =<<<EOF
++Using twitter_pull with v1.1 of the Twitter api requires you register your site as a twitter app.  To do this, please
++visit https://dev.twitter.com/apps/new and create an application.  Click "Create my access token" at the bottom of the
++page.  Then copy the Consumer key, Consumer secret, Access token, and Access token secret into the fields below.
++EOF;
++
++  $form = array(
++    'twitter_api_key' => array(
++      '#type' => 'fieldset',
++      '#collapsible' => FALSE,
++      '#description' => t($desc),
++      '#title' => t('Twitter v1.1 API keys'),
++
++      'twitter_pull_consumer_key' => array(
++        '#type' => 'textfield',
++        '#required' => TRUE,
++        '#default_value' => variable_get('twitter_pull_consumer_key', ''),
++        '#title' => t('Consumer Key'),
++      ),
++
++      'twitter_pull_consumer_secret' => array(
++        '#type' => 'textfield',
++        '#required' => TRUE,
++        '#default_value' => variable_get('twitter_pull_consumer_secret', ''),
++        '#title' => t('Consumer Secret'),
++      ),
++
++      'twitter_pull_oauth_access_token' => array(
++        '#type' => 'textfield',
++        '#required' => TRUE,
++        '#default_value' => variable_get('twitter_pull_oauth_access_token', ''),
++        '#title' => t('Access Token'),
++      ),
++
++      'twitter_pull_oauth_access_token_secret' => array(
++        '#type' => 'textfield',
++        '#required' => TRUE,
++        '#default_value' => variable_get('twitter_pull_oauth_access_token_secret', ''),
++        '#title' => t('Access Token Secret'),
++      ),
++    )
++  );
++
++
++  return system_settings_form($form);
++}
+\ No newline at end of file
+diff --git a/twitter_pull.class.inc b/twitter_pull.class.inc
+index 623fdc3..4150e97 100644
+--- a/twitter_pull.class.inc
++++ b/twitter_pull.class.inc
+@@ -9,6 +9,7 @@ class twitter_puller {
+
+   var $twitkey;
+   var $num_items;
++  var $exclude_retweets;
+   var $tweets;
+
+   /**
+@@ -16,12 +17,14 @@ class twitter_puller {
+   *     Twitter key, which can be a username (prepended with @) or hashtag (prepended with #)
+   * @param $num_items
+   *     maximum number of tweets to pull from Twitter.
++  * @param $exclude_retweets
++  *     whether to exclude retweets from tweet list
+   */
+-  function __construct($twitkey, $num_items) {
++  function __construct($twitkey, $num_items, $exclude_retweets) {
+
+     $this->twitkey = $twitkey;
+     $this->num_items = $num_items;
+-
++    $this->exclude_retweets = $exclude_retweets;
+     $this->check_arguments();
+
+   }
+@@ -49,46 +52,66 @@ class twitter_puller {
+     if ($prefix == '@' && $slash !== FALSE) {
+       $username = drupal_substr($this->twitkey, 1, $slash - 1);
+       $listname = drupal_substr($this->twitkey, $slash + 1);
+-      $url = 'http://api.twitter.com/1/' . urlencode($username) . '/lists/' . urlencode($listname) . '/statuses.json?per_page=' . $num;
++      $url = 'https://api.twitter.com/1.1/lists/show.json';
++      $query = '?slug=' . urlencode($listname);
+     }
+     // if the first character is @, then consider the key a username
+     elseif ($prefix == "@") {
+       $key = drupal_substr($this->twitkey, 1);
+-      $url = 'http://api.twitter.com/1/statuses/user_timeline.json?screen_name='. urlencode($key) .'&include_rts=true&count='. $num;
++      $url = 'https://api.twitter.com/1.1/statuses/user_timeline.json';
++      if ($this->exclude_retweets) {
++        $query = "?screen_name=${key}&count=${num}&include_rts=false";
++      }
++      else {
++        $query = "?screen_name=${key}&count=${num}&include_rts=true";
++      }
+     }
+     // if the first character is ~, then consider the key a favorites feed
+     elseif ($prefix == "~") {
+       $key = drupal_substr($this->twitkey, 1);
+-      $url = 'http://api.twitter.com/1/favorites/'.urlencode($key).'.json?count='.$num;
++      $url = 'https://api.twitter.com/1.1/favorites/list.json';
++      $query = "?screen_name=${key}&count=${num}";
+     }
+     // otherwise, use the key as a search term
+     else {
+       if ($num > 100) {
+         $num = 100;
+       }
+-      $url = 'http://search.twitter.com/search.json?q=' . urlencode($this->twitkey) . '&rpp=' . $num;
++      $url = 'https://api.twitter.com/1.1/search/tweets.json';
++      if ($this->exclude_retweets) {
++        $query = '?q=-filter:retweets+' . urlencode($this->twitkey) ."&include_entities=true&count=${num}";
++      }
++      else {
++        $query = '?q=' . urlencode($this->twitkey) ."&include_entities=true&count=${num}";
++      }
+     }
+
+-    $ret = drupal_http_request($url, array('timeout' => 2));
++    // http://github.com/j7mbo/twitter-api-php
++    $lib = libraries_get_path('twitter-api-php');
++    if (!$lib) {
++      drupal_set_message(t('Please install TwitterAPIExchange as a library.  http://github.com/j7mbo/twitter-api-php'), 'error');
++      return;
++    }
++    require_once($lib . '/TwitterAPIExchange.php');
+
+-    if ($ret->code < 200 || $ret->code > 399) {
+-      $errmsg = t('An unknown error occurred.');
+-      if (isset($ret->error) && !empty($ret->error)) {
+-        $errmsg = check_plain($ret->error);
+-      }
+-      elseif (isset($ret->data) && !empty($ret->data)) {
+-        $errdata = json_decode($ret->data);
+-        if (isset($errdata->error) && !empty($errdata->error)) {
+-          $errmsg = check_plain($errmsg->error);
+-        }
+-      }
+-      if ($ret->code == 400) {
+-        $errmsg .= ' ' . t('This site may be subject to rate limiting. For more information, see: http://apiwiki.twitter.com/Rate-limiting');
+-      }
+-      throw new Exception(t('Could not retrieve data from Twitter.') . ' ' . $errmsg);
++    $settings = array();
++    foreach (array('consumer_key', 'consumer_secret', 'oauth_access_token', 'oauth_access_token_secret') as $var) {
++      $settings[$var] = variable_get('twitter_pull_'.$var, FALSE);
+     }
+
+-    $items = json_decode($ret->data);
++    if (in_array(FALSE, $settings, TRUE)) {
++      drupal_set_message('Twitter has not been configured yet.  Please contact your admin.', 'error');
++      return;
++    }
++
++    $url = '' . $url;
++
++    $twitter = new TwitterAPIExchange($settings);
++    $req = $twitter->setGetfield($query)
++      ->buildOauth($url, 'GET')
++      ->performRequest();
++    $items = json_decode($req);
++
+     $this->parse_items($items);
+
+   }
+@@ -97,8 +120,8 @@ class twitter_puller {
+     $tweets = array();
+
+     //-- If search response then items are one level lower.
+-    if (isset($items->results) && is_array($items->results)) {
+-      $items = $items->results;
++    if (isset($items->statuses) && is_array($items->statuses)) {
++      $items = $items->statuses;
+     }
+
+     if (is_array($items)) {
+diff --git a/twitter_pull.module b/twitter_pull.module
+index c356d3f..e79d172 100644
+--- a/twitter_pull.module
++++ b/twitter_pull.module
+@@ -34,6 +34,16 @@ function twitter_pull_menu() {
+     'access arguments' => array('access content'),
+   );
+
++  $items['admin/config/twitter_pull'] = array(
++    'page callback' => 'drupal_get_form',
++    'page arguments' => array('twitter_pull_config_page'),
++    'access arguments' => array('administer site configuration'),
++    'file' => 'twitter_pull.admin.inc',
++    'type' => MENU_NORMAL_ITEM,
++    'description' => t('Configure twitter_pull module.'),
++    'title' => 'twitter_pull',
++  );
++
+   return $items;
+ }
+
+@@ -91,7 +101,7 @@ function twitter_pull_preprocess(&$variables, $hook) {
+  * @param $lazy_load
+  *     Use javascript to retrieve the twitter results once the page is loaded.
+  */
+-function twitter_pull_render($twitkey, $title = NULL, $num_items = NULL, $themekey = NULL, $lazy_load = FALSE) {
++function twitter_pull_render($twitkey, $title = NULL, $num_items = NULL, $themekey = NULL, $lazy_load = FALSE, $exclude_retweets = 0) {
+   drupal_add_css(drupal_get_path('module', 'twitter_pull') . '/twitter-pull-listing.css');
+
+   //-- Set the lazy load id. Encode the twitkey and title to make sure the they don't contain dashes.
+@@ -103,7 +113,7 @@ function twitter_pull_render($twitkey, $title = NULL, $num_items = NULL, $themek
+   $num_items = empty($num_items) ? twitter_pull_num_items() : $num_items;
+
+   if (!$lazy_load) {
+-    $tweets = twitter_pull_retrieve($twitkey, $num_items);
++    $tweets = twitter_pull_retrieve($twitkey, $num_items, $exclude_retweets);
+   }
+   else {
+     $tweets = NULL;
+@@ -136,7 +146,7 @@ function twitter_pull_render($twitkey, $title = NULL, $num_items = NULL, $themek
+  * @param $num_items
+  *     Number of tweets to retrieve from Twitter. Can't be more than 200.
+  */
+-function twitter_pull_retrieve($twitkey, $num_items = NULL) {
++function twitter_pull_retrieve($twitkey, $num_items = NULL, $exclude_retweets = 0) {
+   global $is_https;
+
+   // If $num_items is not set, use the default value.
+@@ -154,7 +164,7 @@ function twitter_pull_retrieve($twitkey, $num_items = NULL) {
+   }
+   else {
+     try {
+-      $puller = new twitter_puller($twitkey, $num_items);
++      $puller = new twitter_puller($twitkey, $num_items, $exclude_retweets);
+       $puller->get_items();
+       $tweets = $puller->tweets;
+     }

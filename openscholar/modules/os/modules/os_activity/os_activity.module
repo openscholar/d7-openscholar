@@ -1,0 +1,211 @@
+<?php
+
+/**
+ * @file
+ * OS Activity module file.
+ */
+include_once 'os_activity.features.inc';
+
+/**
+ *
+ */
+function os_activity_menu() {
+  $items = array();
+
+  $items['activity.json'] = array(
+    'title' => 'Activity',
+    'page callback' => 'drupal_goto',
+    'page arguments' => array('api/v1/activities'),
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function os_activity_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'restful') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function os_activity_node_insert($node) {
+  if (!og_get_entity_groups('node', $node)) {
+    return;
+  }
+  os_activity_message_node_create($node, 'insert');
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function os_activity_node_update($node) {
+  if (!og_get_entity_groups('node', $node)) {
+    return;
+  }
+
+  // Check if such message was created in the past 24, to prevent
+  // multiple messages from multiple edits.
+  $time_ago = strtotime(date('r', time()) . '-1 day');
+
+  $query = new entityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'message')
+    ->propertyCondition('type', 'os_edit_node')
+    ->propertyCondition('timestamp', $time_ago, '>=')
+    ->fieldCondition('field_node_reference', 'target_id', $node->nid)
+    ->count()
+    ->execute();
+
+  if ($result) {
+    // A message already exists.
+    return;
+  }
+
+  os_activity_message_node_create($node, 'update');
+}
+
+/**
+ * Implements hook_message_view().
+ *
+ * Register a message when it is viewed.
+ */
+function os_activity_message_view($message, $view_mode, $langcode) {
+  os_activity_register_message($message);
+}
+
+/**
+ * Implements hook_views_pre_render().
+ *
+ * Register a message when it is viewed. Views might not render the full
+ * Message entity, so we have to look if the base table of the view is
+ * {message}.
+ */
+function os_activity_views_pre_render(&$view) {
+  if ($view->base_table != 'message' || empty($view->result)) {
+    return;
+  }
+
+  // Adding css for the os activity view.
+  drupal_add_css(drupal_get_path('module', 'os_activity') . '/css/os_activity.css');
+
+  $mids = array();
+  foreach ($view->result as $item) {
+    $mids[$item->mid] = $item->mid;
+  }
+
+  $messages = message_load_multiple($mids);
+  foreach ($messages as $message) {
+    os_activity_register_message($message);
+  }
+}
+
+/**
+ * Register a viewed message by group ID.
+ *
+ * @param $message
+ *   The message entity.
+ *
+ * @return
+ *   If $mid is empty, function will return the registered message
+ *   IDS.
+ */
+function os_activity_register_message(Message $message = NULL) {
+  $cache = &drupal_static(__FUNCTION__, array());
+  if (empty($message)) {
+    return $cache;
+  }
+
+  if (!empty($message) && !isset($message->field_group)) {
+    // Message is not related to a specific group.
+    return;
+  }
+
+  // We don't use a wrapper for performance reasons.
+  $gid = $message->field_group[LANGUAGE_NONE][0]['target_id'];
+  if (empty($cache[$gid])) {
+    $cache[$gid] = $message->mid;
+  }
+
+  if ($message->mid > $cache[$gid]) {
+    $cache[$gid] = $message->mid;
+  }
+}
+
+/**
+ * Implements hook_exit().
+ *
+ * Save the last viewed message ID on the user's OG-membership.
+ */
+function os_activity_exit() {
+  global $user;
+  if (!$user->uid) {
+    return;
+  }
+
+  if (!$cache = os_activity_register_message()) {
+    return;
+  }
+  $user_gids = og_get_entity_groups();
+  if (empty($user_gids['node'])) {
+    return;
+  }
+
+  $og_memberships = og_membership_load_multiple(array_keys($user_gids['node']));
+
+  foreach ($cache as $gid => $mid) {
+    // Get the OG membership ID.
+    if (!$id = array_search($gid, $user_gids['node'])) {
+      continue;
+    }
+    $wrapper = entity_metadata_wrapper('og_membership', $og_memberships[$id]);
+
+    $last_id = $wrapper->field_message->value(array('identifier' => TRUE));
+
+    if (!$last_id || $mid > $last_id) {
+      // Save the last message.
+      $wrapper->field_message->set($mid);
+      $wrapper->save();
+    }
+  }
+}
+
+/**
+ * Helper function; Create a message when a node is created or updated.
+ */
+function os_activity_message_node_create($node, $op) {
+  $node_wrapper = entity_metadata_wrapper('node', $node);
+
+  $message_type = $op == 'insert' ? 'os_create_node' : 'os_edit_node';
+  $values = array(
+    'uid' => $node->uid,
+  );
+
+  // We treat title differently, as some content types, such as biblio use a
+  // title field, so we need to sanitize it accordingly.
+  $allowed_html_elements = variable_get('html_title_allowed_elements', array('em', 'sub', 'sup'));
+  $values['arguments']['!title'] = !empty($node_wrapper->title_field) ? filter_xss($node_wrapper->title_field->value->value(), $allowed_html_elements) : $node->title;
+
+  $message = message_create($message_type, $values);
+  $wrapper = entity_metadata_wrapper('message', $message);
+  $wrapper->field_node_reference->set($node);
+
+  // Set reference to the group.
+  $group_wrapper = og_is_group('node', $node) ? $node : $node_wrapper->{OG_AUDIENCE_FIELD}->get(0);
+  $wrapper->field_group->set($group_wrapper->value());
+
+  if (isset($group_wrapper->{VSITE_ACCESS_FIELD})) {
+    $is_private = (int) ($group_wrapper->{VSITE_ACCESS_FIELD}->value() != VSITE_ACCESS_PUBLIC);
+  }
+  else {
+    $is_private = TRUE;
+  }
+
+  $wrapper->field_private_message->set($is_private);
+  $wrapper->save();
+}

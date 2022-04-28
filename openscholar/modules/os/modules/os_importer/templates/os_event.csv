@@ -1,0 +1,5 @@
+Title,Body,Start date,End date,Location,Registration,Files,Created date,Path
+Event with registration(including hour),This is event with registration,Nov 24 2013 3:20pm,Nov 24 2013 3:50pm,Boston,On,http://college.harvard.edu/sites/default/files/harvard-fy.pdf,2014-01-01
+Event without registration(including hour),This is event without registration,Nov 24 2013 3:20pm,Nov 24 2013 3:50pm,Tel aviv,,http://college.harvard.edu/sites/default/files/harvard-fy.pdf,2014-01-01
+Event with registration,This is event with registration,Nov 24 2013,Nov 24 2013,Boston,On,http://college.harvard.edu/sites/default/files/harvard-fy.pdf,2014-01-01
+Event without registration,This is event without registration,Nov 24 2013,Nov 24 2013,Tel aviv,,http://college.harvard.edu/sites/default/files/harvard-fy.pdf,2014-01-01

@@ -1,0 +1,1296 @@
+/**
+ * @file
+ * Page Styling
+ *
+ * Style the markup found in page.tpl.php. Also includes some styling of
+ * miscellaneous Drupal elements that appear in the $content variable, such as
+ * ul.links, .more-link, etc.
+ */
+/*
+ * Wrappers
+ */
+
+html {} body {} #page
+/* Page wrapper, includes the .container class which sets the overall page or section width. */
+
+{
+    margin-bottom: 30px;
+}
+#header-container {
+    padding: 0 10px 10px;
+}
+/* bigscreen three_col_grail */
+
+#columns {
+    min-height: 300px;
+}
+#content-column .content-inner
+/* Floats the main content column. */
+
+{
+    position: relative;
+}
+.page-node #content-column .content-inner
+/* Adds a little padding to page node when main-content div is not present */
+
+{
+    padding: 10px;
+}
+#main-content
+/* Wraps the main-content-header, the content region and feed-icons. */
+
+{
+    padding-top: 20px;
+    position: relative;
+}
+#content .contextual-links-region {
+    min-height: 10px;
+}
+#footer
+/* Main site footer. */
+
+{} .region
+/* Region wrapper - anything that adds width or positioning can break the layout. */
+
+{} .region-inner
+/* By default this sets up 20px gutters i.e. margin: 0 10px. */
+
+{
+    padding-top: 15px;
+}
+.region-page-bottom .region-inner
+/* Remove white horizontal bar at bottom after login */
+
+{
+    padding-top: 0;
+}
+.region-page-top .region-inner
+/* Remove ugly space between branding region and toolbar */
+
+{
+    padding-top: 0;
+}
+.region-inner .region-inner
+/* Strip nested region-inner margins by default. */
+
+{
+    margin: 0;
+}
+.region-sidebar-first .block,
+.region-sidebar-second .block {
+    clear: both;
+    margin-bottom: 1.5em;
+}
+.block {
+    position: relative;
+}
+/* Modify gutters */
+
+.block-inner,
+.pane-inner,
+.menu-wrapper,
+.branding-elements,
+.breadcrumb-wrapper,
+.attribution,
+.at-panel .rounded-corner {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+.block-boxes-os_boxes_site_logo .block-inner {
+    margin-left: 0;
+    margin-right: 0;
+}
+#main-content {
+    margin-left: 15px;
+    margin-right: 15px;
+}
+/*** COLUMNS WIDGET MARGIN ASSIGNMENTS AND WIDTH OVERRIDES ***/
+
+.block-boxes-os_boxes_columns .region {
+    margin: 0 1.75%;
+}
+.block-boxes-os_boxes_columns .panel-row.row-2 .region,
+.block-boxes-os_boxes_columns .panel-row.row-1 .region,
+.block-boxes-os_boxes_columns .panel-row .region {
+    margin: 0 3.25%;
+}
+.block-boxes-os_boxes_columns .five-5x20 .panel-row.row-2 .region {
+    margin: 0 3%;
+}
+.block-boxes-os_boxes_columns .five-5x20 .panel-row.row-1 .region {
+    margin: 0 4.5%;
+}
+.block-boxes-os_boxes_columns .panel-row.row-1 .region:first-of-type,
+.block-boxes-os_boxes_columns .region:first-child {
+    margin-left: 0;
+}
+.block-boxes-os_boxes_columns .panel-row.row-2 .region:last-of-type,
+.block-boxes-os_boxes_columns .region:last-child {
+    margin-right: 0;
+}
+.five-5x20 > .row-2 > .region {
+    width: 28.3%;
+}
+.four-4x25 > .panel-row > .region {
+    width: 45%;
+}
+.two-50 > .region {
+    width: 48.2%;
+}
+.two-66-33 > .region-two-66-33-first,
+.two-33-66 > .region-two-33-66-second {
+    width: 63.1%;
+}
+.three-3x33 > .region {
+    width: 31%;
+}
+.three-50-25-25 > .region-three-50-25-25-first,
+.three-25-50-25 > .region-three-25-50-25-second,
+.three-25-25-50 > .region-three-25-25-50-third,
+.five-5x20 > .row-1 .region {
+    width: 43%;
+}
+/** FIX'S FOR IE8 **/
+
+.lt-ie9 .five-5x20 > .row-2 > .region {
+    width: 26.3%;
+}
+.lt-ie9 .four-4x25 > .panel-row > .region {
+    width: 43%;
+}
+.lt-ie9 .two-50 > .region {
+    width: 46.2%;
+}
+.lt-ie9 .two-66-33 > .region-two-66-33-first,
+.lt-ie9 .two-33-66 > .region-two-33-66-second {
+    width: 61.1%;
+}
+.lt-ie9 .three-3x33 > .region {
+    width: 29%;
+}
+.lt-ie9 .three-50-25-25 > .region-three-50-25-25-first,
+.lt-ie9 .three-25-50-25 > .region-three-25-50-25-second,
+.lt-ie9 .three-25-25-50 > .region-three-25-25-50-third,
+.lt-ie9 .five-5x20 > .row-1 .region {
+    width: 41%;
+}
+/*** FRONTPAGE PANELS ***/
+
+.content-left .at-panel .region.region-content-first,
+.content-right .at-panel .region.region-content-second {
+    width: 100%;
+    float: none;
+}
+.content-left.content-right .at-panel .region.region-content-first,
+.content-left.content-right .at-panel .region.region-content-second {
+    float: left;
+    clear: none;
+    display: inline;
+    width: 49%;
+    margin: 15px 0;
+}
+.content-left.content-right .at-panel .region.region-content-first {
+    margin-right: 2%;
+    border-right: 1px solid #CCC;
+    width: 48%;
+}
+.at-panel .region.region-content-top,
+.at-panel .region.region-content-bottom {
+    width: 100%;
+    clear: both;
+    float: none;
+}
+/* FOR DISPLAYING EMBEDDABLE BLOCK OF CONTENT THROUGH <embed> */
+
+body#widget {
+    display: inline-block;
+}
+/* Footer panels */
+
+.at-panel.footer .region-footer {
+    width: 100%;
+}
+.at-panel.footer .region {
+    display: inline-block;
+}
+.at-panel.footer .region.region-footer-bottom {
+    display: block !important;
+}
+.footer.footer-right .region-footer,
+.footer-left.footer .region-footer {
+    width: 74%;
+}
+.footer-left.footer.footer-right .region-footer {
+    width: 49%;
+}
+.footer-left.footer.footer-right .region-footer-first,
+.footer-left.footer.footer-right .region-footer-third,
+.footer.footer-right .region-footer-third,
+.footer-left.footer .region-footer-first,
+.footer-left.footer-right .region-footer-first,
+.footer-left.footer-right .region-footer-third,
+.footer-left .region-footer-first,
+.footer-right .region-footer-third {
+    width: 25%;
+}
+.footer-left.footer-right .at-panel .region.region-footer-third,
+.footer-right .at-panel .region.region-footer-third {
+    float: right;
+}
+/* MAKE IT POSSIBLE TO HAVE WIDGETS IN THE LEFT AND RIGHT HEADER REGIONS ONLY */
+
+.header-left.header-main.header-right .region-header-first,
+.header-left.header-main .region-header-first {
+    margin-left: -100%;
+}
+.header-left.header-right .region-header-first {
+    margin-left: 0;
+}
+.header-left.header-right .region-header-third {
+    float: right !important;
+}
+.header-left .region-header-first {
+    margin-left: 0;
+}
+.header-right .region-header-third {
+    float: right !important;
+}
+/*
+ * Branding
+ */
+
+#powerby-login {
+    float: right;
+    clear: both;
+    margin-right: 10px;
+    min-width: 165px;
+}
+.os-powered-link,
+#os-powered-by {
+    float: right;
+    bottom: -48px;
+    position: relative;
+}
+.logged-in .os-powered-link,
+.logged-in #block-os-powered-by {
+    bottom: -29px;
+}
+#powered-by a {
+    background: url("../images/scholarbase-sprite.png?123") no-repeat scroll -14px -521px transparent;
+    border: medium none !important;
+    display: block;
+    height: 26px;
+    padding: 0 !important;
+    text-decoration: none !important;
+    text-indent: -999em;
+    width: 85px;
+    margin-right: 8px;
+    float: right;
+    display: inline;
+}
+#logo
+/* Wrapping link for logo */
+
+{
+    padding: 10px 0;
+}
+#scholar-shield {
+    margin: 0 auto;
+    text-align: center;
+    width: 75px;
+}
+#name-and-slogan
+/* hgroup wrapper for website name and slogan, be careful with display properties as this can be hidden */
+
+{} #site-name
+/* The name of the website */
+
+{} #site-name a:link,
+#site-name a:visited {
+    text-decoration: none;
+}
+#site-name a:hover,
+#site-name a:focus {
+    text-decoration: underline;
+}
+#site-slogan
+/* The slogan (or tagline) of a website. */
+
+{} .region-header
+/* Wrapper for any blocks placed in the header region. */
+
+{} .region-highlighted {} #main-content-header
+/* Wraps the page title, tabs and actions links. */
+
+{} h1#page-title
+/* The title of the page. */
+
+{
+    margin-bottom: 1em;
+}
+
+
+div.status
+/* Normal priority messages */
+
+{} 
+div.warning,
+tr.warning
+/* Medium priority messages */
+
+{
+    /* border: 1px solid #f0c020; Drupal core uses: 1px solid #f0c020 */
+}
+div.error,
+tr.error
+/* High priority messages. See also the .error declaration below. */
+
+{} .error
+/* Errors that are separate from div.messages status messages. */
+
+{
+    /* color: #e55; Drupal core uses a #e55 background */
+}
+.warning
+/* Warnings that are separate from div.messages status messages. */
+
+{
+    /* color: #e09010; Drupal core uses a #e09010 background */
+    
+    padding: 1.5em 10px;
+}
+
+
+
+
+.node-unpublished,
+.comment-unpublished
+/* Unpublished nodes */
+
+{
+    /* background-color: #fff4f4; Drupal core uses a #fff4f4 background */
+}
+.node-unpublished p.unpublished,
+.comment-unpublished p.unpublished
+/* The word "Unpublished" displayed underneath the content. */
+
+{
+    color: #fff;
+    color: rgba(239, 170, 170, 0.4);
+    font-family: Impact, "Arial Narrow", Helvetica, sans-serif;
+    font-size: 75px;
+    font-weight: bold;
+    height: 0;
+    line-height: 1.2;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    text-align: center;
+    text-transform: uppercase;
+    word-wrap: break-word;
+}
+a.os_event-moredates-link,
+a.os_event-default-settings-link {
+    font-size: 0.7em;
+    margin-left: 3px;
+    display: inline;
+}
+.lt-ie8 .node-unpublished > *,
+.lt-ie8 .comment-unpublished > * {
+    position: relative;
+    /* Otherwise these elements will appear below the "Unpublished" text. */
+}
+.region-help
+/* Help text on a page */
+
+{} .more-help-link
+/* Link to more help */
+
+{} .region-content
+/* Wrapper for the actual page content */
+
+{} .region-aside
+/* Akin to a content-bottom region */
+
+{} ul.links
+/* List of links generated by theme_links(). */
+
+{
+    margin: 0;
+    padding: 0;
+}
+ul.links.inline {
+    display: block;
+    /* Let the links be inline, but the container be a block. */
+}
+ul.links li {
+    display: inline;
+    list-style-type: none;
+    padding: 0 10px 0 0;
+    /* LTR */
+}
+/* BOOKLET ICONS */
+
+.node-book .links li a.book_add_child {
+    background: url("../images/scholarbase-sprite.png") 0 -492px no-repeat;
+    color: #3A6A8C;
+    padding-left: 15px;
+}
+.node-book .links li a.book_printer {
+    background: url("../images/scholarbase-sprite.png") 0 -507px no-repeat;
+    color: #3A6A8C;
+    padding-left: 15px;
+}
+.node-book .links li span a {
+    background: url("../images/scholarbase-sprite.png") 0 -524px no-repeat;
+    color: #3A6A8C;
+    padding-left: 15px;
+}
+/* ADD CLASS ICON */
+
+ul.class_material_field_class {
+    list-style: none;
+    margin-left: 0;
+}
+ul.class_material_field_class a.class_material_field_class_anchor {
+    background: url("../images/scholarbase-sprite.png") 0 -489px no-repeat;
+    padding-left: 15px;
+}
+/* BLOG COMMENT ICON */
+
+.links li a.os-add-comment:before {
+    background: url("../images/scholarbase-sprite.png") 0 -538px no-repeat;
+    padding-left: 15px;
+    content: '';
+}
+/* MEDIA WIDGET ICONS */
+
+.media-widget a {
+    margin-right: 10px;
+}
+.media-widget a#edit-select,
+.media-widget a.button.launcher {
+    background: url("../images/scholarbase-sprite.png") 0 -492px no-repeat;
+    color: #3A6A8C;
+    padding-left: 16px;
+}
+.media-widget a.ctools-modal-media-file-edit {
+    background: url("../images/scholarbase-sprite.png") 0 -451px no-repeat;
+    color: #3A6A8C;
+    padding-left: 20px;
+}
+.media-widget a.remove {
+    background: url("../images/scholarbase-sprite.png") 0 -471px no-repeat;
+    color: #3A6A8C;
+    padding-left: 17px;
+}
+.media-gallery-collection a.media-gallery-thumb,
+.media-gallery-media a.media-gallery-thumb,
+.media-gallery-thumb img {
+    display: block;
+    overflow: hidden;
+    position: relative;
+}
+.file-video-oembed .oembed,
+.os-files-video-single .oembed {
+    position: relative;
+}
+.video-indicator {
+    background-image: url("../images/scholarbase-sprite.png");
+    background-position: -42px -85px;
+    height: 42px;
+    width: 48px;
+    margin: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+.file-video {
+    clear: both;
+}
+.file-video-oembed {
+    clear: both;
+}
+.file-video-oembed .list-view-teaser .oembed {
+    position: relative;
+    float: left;
+}
+.file-video-oembed .list-view-teaser .oembed img {
+    width: 200px;
+    margin-right: 15px;
+    display: block;
+    margin-bottom: 20px;
+}
+.file-video-oembed .view-mode-teaser p {
+    display: inline;
+}
+.file-video-oembed .view-mode-teaser .read-more {
+    margin-left: 5px;
+    font-size: 13px;
+}
+.list-view-teaser .oembed .video-indicator {
+    bottom: 20px;
+}
+.media-gallery-item:hover .video-indicator {
+    background-position: -44px -133px;
+}
+.draggable-wrapper .draggable-handle {
+    background-image: url("../images/scholarbase-sprite.png");
+    background-position: 0 -45px;
+}
+/* VIDEO ATTACHED TO A NODE  */
+
+.node-content .oembed {
+    background: none repeat scroll 0 0 #EEEEEE;
+    border-color: #ccc;
+    border-radius: 0 0 0 0;
+    border-style: solid;
+    border-width: 1px;
+    color: #555555;
+    text-align: center;
+    width: 250px;
+}
+.oembed .oembed-title {
+    color: #005C9C;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    text-align: left;
+    text-shadow: none;
+}
+.os-files-video-single {
+    max-width: none !important;
+}
+#cboxContent .oembed {
+    float: none !important;
+    text-align: center !important;
+    border: 0;
+    background-color: transparent;
+}
+.feed_item {
+    margin-bottom: 8px;
+}
+.feed_item span {
+    margin-right: 4px;
+}
+.more-link
+/* Aggregator, blog, and forum more link */
+
+{
+    float: right;
+}
+#content-column ol.search-results
+/* Search results are an ordered list so we reset the margin */
+
+{
+    list-style-type: none;
+    margin-left: 0;
+}
+.search-results .search-snippet-info {
+    padding-left: 0;
+}
+.views-row {
+    margin-bottom: 1.5em;
+}
+.block-boxes-os_search_solr_more_like_this .item-list ul li,
+.block-boxes-os_sv_list_box .item-list ul li,
+.block-boxes .block-boxes-os_boxes_manual_list ul li {
+    margin-bottom: .9em;
+}
+/*
+ * First sidebar (on left in LTR languages, on right in RTL)
+ *
+ * Remember to NOT add padding or margin to your .region-sidebar-first.
+ */
+
+.region-sidebar-first {}
+/*
+ * Second sidebar (on right in LTR languages, on left in RTL)
+ *
+ * Remember to NOT add padding or margin to your .region-sidebar-second.
+ */
+
+.region-sidebar-second {}
+/*
+ * Full Width Wrappers - these are used in the optional page--full-width-wrappers.tpl.php template.
+ */
+
+#page-wrapper {} #leaderboard-wrapper {} #header-wrapper {
+    background: #ddd;
+    /* Debug style, is this working? */
+}
+#nav-wrapper {} #breadcrumb-wrapper {} #messages-help-wrapper {} #secondary-content-wrapper {} #content-wrapper {} #tertiary-content-wrapper {} #footer-wrapper {
+    background: #666;
+    /* Debug style, is this working? */
+    
+    color: #fff;
+    /* Debug style, is this working? */
+}
+/* Devel Module */
+
+.dev-query {
+    background: #eee;
+    padding: 30px;
+}
+/* CTools MODAL OVERRIDES */
+
+#modalContent {
+    top: 0 !important;
+    color: #666;
+    position: fixed !important;
+}
+div.ctools-modal-content {
+    color: #555;
+    margin: 0;
+    text-align: left;
+    background: #fff;
+    -moz-box-shadow: 0 4px 26px rgba(0, 0, 0, 0.5);
+    -webkit-box-shadow: 0 4px 26px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 26px rgba(0, 0, 0, 0.5);
+}
+div.ctools-modal-content .modal-title {
+    color: #666;
+    font-size: 20px;
+    font-weight: normal;
+     white-space: nowrap;
+    text-overflow: ellipsis;
+
+    display: block;
+    overflow: hidden;
+}
+
+div.ctools-modal-content {
+    height: 100% !important;
+    border: none;
+}
+div.ctools-modal-content .modal-header {
+    background: #EFEFEF;
+    border-bottom: 2px solid #C4C2C2;
+    height: 24px;
+    padding: 10px;
+}
+div.ctools-modal-content .modal-header a {
+    float: right;
+    color: transparent;
+    background: url('../images/scholarbase-sprite.png') no-repeat 0 -770px;
+    width: 30px;
+    height: 30px;
+}
+div.ctools-modal-content .modal-content {
+    padding: 12px 12px 0 12px;
+    overflow: auto;
+    width: 575px;
+    height: 400px;
+    overflow-x: hidden;
+}
+
+
+.modal-content {
+ 
+    height: auto !important;
+   
+}
+
+div.ctools-modal-content .modal-content .messages {
+    width: 95%;
+    padding: 0;
+}
+#modalContent .spaces-customize-form .buttons input.form-submit {
+    margin-right: 140px;
+}
+div.ctools-modal-content .button-div-wrapper {
+    display: inline;
+}
+div.ctools-modal-content a.close:hover {
+    text-decoration: none;
+}
+div.ctools-modal-content a.close img {
+    position: relative;
+    top: 1px;
+    display: none;
+}
+div.ctools-modal-content .modal-content .modal-throbber-wrapper {
+    text-align: center;
+}
+div.ctools-modal-content .modal-content .modal-throbber-wrapper img {
+    margin-top: 160px;
+}
+.contextual-links-region:hover .contextual-links-region a.contextual-links-trigger {
+    display: none;
+}
+.contextual-links-region .contextual-links-region:hover a.contextual-links-trigger {
+    display: block;
+}
+.region-content-top .contextual-links-region:first-child .contextual-links-wrapper {
+    right: 35px;
+}
+.node-type-page .region-content-top .contextual-links-region:first-child .contextual-links-wrapper {
+    right: 150px;
+}
+/** OVERLAY MODAL OVERRIDES **/
+/* The overlay should never be open with os_basetheme. This is here in case we miss
+ * a path that needs the cp_theme activated */
+
+#overlay-close,
+#overlay-close:hover {
+    background: url('../images/scholarbase-sprite.png') no-repeat 0 -770px;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    margin: -38px;
+}
+#overlay-titlebar {
+    padding: 7px 10px 17px;
+    position: relative;
+    white-space: nowrap;
+    z-index: 100;
+    background: #EFEFEF;
+    border-bottom: 2px solid #C4C2C2;
+    height: 24px;
+}
+#overlay-title {
+    float: left;
+    margin: 0;
+    padding: 0.3em 0;
+    color: #666;
+    font-size: 20px;
+    font-weight: normal;
+}
+#overlay-tabs {
+    margin: -30px 0 0;
+    right: 50px;
+}
+div[aria-describedby^="event-popover-"],
+div[aria-describedby*=" event-popover-"] {
+    border: 1px solid #CCC;
+    -webkit-box-shadow: 5px 5px 5px 0px rgba(50, 50, 50, 0.4);
+    -moz-box-shadow: 5px 5px 5px 0px rgba(50, 50, 50, 0.4);
+    box-shadow: 5px 5px 5px 0px rgba(50, 50, 50, 0.4);
+}
+.popover-pointer {
+    background: url('../images/event-popover_arrow.png') no-repeat center center;
+    bottom: -12px;
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    left: 140px;
+}
+div[aria-describedby^="event-popover-"] .ui-icon-closethick,
+div[aria-describedby*=" event-popover-"] .ui-icon-closethickt {
+    background: url('../images/scholarbase-sprite.png') no-repeat 0 -474px;
+}
+div[aria-describedby^="event-popover-"] .ui-widget-header .ui-state-default:hover,
+div[aria-describedby^="event-popover-"] .ui-widget-header .ui-state-default:hover,
+div[aria-describedby^="event-popover-"] .ui-widget-header .ui-state-default {
+    border: none;
+    background: none;
+   
+}
+.logged-in div[aria-describedby^="event-popover-"] .ui-widget-header .ui-state-default {
+  
+    right:-15px;
+    top:-22px;
+}
+div[aria-describedby^="event-popover-"] .ui-dialog-titlebar,
+div[aria-describedby*=" event-popover-"] .ui-dialog-titlebar,
+div[aria-describedby^="event-popover-"] .ui-dialog-content,
+div[aria-describedby*=" event-popover-"] .ui-dialog-content {
+    padding: 0 1em;
+    overflow: initial;
+    background: none !important;
+    border-bottom: none;
+}
+div[id^=event-popover] .event-title a {
+    outline: none;
+    color: #215990;
+}
+/** MODAL OVERRIDES for OS ORG ROADMAP PAGE **/
+
+.page-roadmap .ui-dialog {
+    z-index: 500;
+    -webkit-box-shadow: 5px 5px 5px 0px rgba(50, 50, 50, 0.4);
+    -moz-box-shadow: 5px 5px 5px 0px rgba(50, 50, 50, 0.4);
+    box-shadow: 5px 5px 5px 0px rgba(50, 50, 50, 0.4);
+}
+.page-roadmap .ui-dialog-titlebar {
+    padding: 7px 10px 17px;
+    position: relative;
+    white-space: nowrap;
+    z-index: 100;
+    background: #EFEFEF !important;
+    border-bottom: 2px solid #C4C2C2;
+    height: 24px;
+}
+.page-roadmap .ui-dialog-title {
+    float: left;
+    margin: 0;
+    padding: 0.3em 0;
+    color: #666;
+    font-size: 24px;
+    font-weight: normal;
+    font: "Lucida Grande", "Lucida Sans Unicode", sans-serif;
+}
+.page-roadmap .roadmap-gs-link {
+    display: block;
+    margin-bottom: 20px;
+}
+.page-roadmap .ui-dialog .ui-dialog-content {
+    padding: 2em;
+    width: 93% !important;
+}
+@-moz-document url-prefix() {
+    .page-roadmap .ui-dialog .ui-dialog-content {
+        width: calc(100% - 4em) !important;
+    }
+}
+.page-roadmap .ui-icon-closethick {
+    background: url('../images/scholarbase-sprite.png') no-repeat 0 -770px;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    margin: -5px -20px;
+}
+.page-roadmap .ui-button.ui-widget.ui-state-default {
+    border: none;
+    background: none;
+}
+.page-roadmap strong:first-child {
+    font-size: 18px;
+}
+.page-roadmap .ui-dialog-content {
+    max-height: 570px !important;
+}
+.page-roadmap .ui-dialog-content strong:first-child {
+    display: block;
+    margin: 15px 0;
+    font-size: 16px;
+}
+/** MEDIA BROWSER MODAL OVERRIDES **/
+
+#mediaBrowser {
+    padding: 0;
+    border-radius: 0;
+    background: #FFF;
+    -moz-box-shadow: 0 4px 26px rgba(0, 0, 0, 0.5);
+    -webkit-box-shadow: 0 4px 26px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 26px rgba(0, 0, 0, 0.5);
+}
+.ui-corner-all {
+    border-radius: 0;
+    border: 0;
+}
+.ui-dialog.ui-front.media-wrapper {
+    z-index: 500;
+}
+#media-browser-tabset .media-browser-tab {
+    border: none;
+}
+#media-browser-tabset .ui-tabs-nav {
+    border-bottom: 1px solid #AAAAAA;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+}
+.ui-widget-header {
+    background: none !important;
+}
+.ui-dialog.ui-front {
+    z-index: 301;
+}
+/** OS LOGIN CONTAINER STYLES **/
+/** SLIDER **/
+
+.sv-list-biblio.sv-list-view-slide_teaser .biblio-abstract-display.os-slider,
+.os-slider {
+    display: none;
+    color: black;
+    position: static;
+    width: auto;
+    background: #F1F1F1;
+    border: 1px solid #C0C5CC;
+    padding: 1em;
+}
+.sv-list-view-slide_teaser .os-slider,
+.node-type-faq .os-slider,
+.page-faq .os-slider {
+    border: none;
+    padding: 0;
+    background: none !important;
+}
+.sv-list-biblio.sv-list-view-slide_teaser .biblio-abstract-display.os-slider {
+    background: #F1F1F1 !important;
+}
+div.toggle {
+    cursor: pointer;
+}
+.sv-list-person.sv-list-view-slide_teaser .toggle h1.node-title {
+    color: #215990;
+}
+.block-boxes-os_sv_list_box .sv-list-class.sv-list-view-slide_teaser .os-slider li {
+    list-style: none !important;
+}
+.field-name-og-vocabulary a.toggle:before {
+    background: url('../images/scholarbase-sprite.png') 3px -194px no-repeat;
+    padding: 1px 0 3px 14px;
+    content: '';
+}
+.field-name-og-vocabulary a.toggle.expanded:before {
+    background: url('../images/scholarbase-sprite.png') -12px -194px no-repeat;
+    padding: 1px 0 3px 14px;
+    content: '';
+}
+.field-name-og-vocabulary .os-slider a {
+    text-decoration: underline !important;
+}
+.not-logged-in.page-user #footer {
+    width: 540px;
+    margin: 0 auto;
+}
+/**	 QUICK TABS**/
+
+.block-boxes-os_boxes_tabs .ui-widget-content {
+    background: none;
+}
+.block-boxes-os_boxes_tabs .ui-widget {
+    font-family: inherit !important;
+    font-size: inherit !important;
+}
+.ui-tabs .ui-tabs-panel {
+    /* IE10 Consumer Preview */
+    
+    background-image: -ms-linear-gradient(top, #F5F2F2 0%, #FFFFFF 100%);
+    /* Mozilla Firefox */
+    
+    background-image: -moz-linear-gradient(top, #F5F2F2 0%, #FFFFFF 100%);
+    /* Webkit (Safari/Chrome 10) */
+    
+    background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #F5F2F2), color-stop(1, #FFFFFF));
+    /* Webkit (Chrome 11+) */
+    
+    background-image: -webkit-linear-gradient(top, #F5F2F2 0%, #FFFFFF 100%);
+    /* W3C Markup, IE10 Release Preview */
+    
+    background-image: linear-gradient(to bottom, #F5F2F2 0%, #FFFFFF 100%);
+    -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#E0F6F2F2,endColorstr=#E0FFFFFF)";
+    /* IE8 */
+    
+    padding: 10px;
+    -moz-margin-top: 0px;
+    margin-top: 1px;
+    border-top: 1px solid #ccc;
+}
+.ui-tabs .ui-tabs-nav {
+    padding: 0;
+}
+.ui-tabs .ui-tabs-nav li a {
+    padding: 0.15em 1em;
+    text-decoration: none !important;
+}
+.ui-tabs-nav.ui-helper-reset {
+    line-height: 1.3;
+}
+.page-cp #tabs,
+.page-cp #tabs .links {
+    border: none;
+    border-bottom: none;
+}
+/* ACCORDION OVERRIDES */
+
+.ui-accordion .ui-accordion-content {
+    padding: 0.7em;
+}
+.accordion .ui-corner-all,
+.accordion .ui-corner-bottom,
+.accordion .ui-corner-right,
+.accordion .ui-corner-br,
+.accordion .ui-corner-top,
+.accordion .ui-corner-tr {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+}
+.accordion .ui-corner-all,
+.accordion .ui-corner-bottom,
+.accordion .ui-corner-left,
+.accordion .ui-corner-bl,
+.accordion .ui-corner-left,
+.accordion .ui-corner-tl,
+.accordion .ui-corner-top {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+}
+.ui-accordion .ui-accordion-header .ui-accordion-header-icon {
+    left: 0.2em;
+}
+.ui-accordion .ui-accordion-icons {
+    padding-left: 1.55em;
+}
+.accordion .ui-widget-content {
+    background: #fafafa;
+    border: none;
+    color: #333;
+}
+.accordion .ui-state-default,
+.accordion .ui-widget-content .ui-state-default,
+.accordion .ui-widget-header .ui-state-default,
+.accordion .ui-state-active,
+.accordion .ui-widget-content .ui-state-active,
+.accordion .ui-widget-header .ui-state-active {
+    background: #f3f3f1;
+    border: none;
+    color: #333;
+}
+.accordion .ui-widget-content {
+    color: inherit;
+}
+.accordion .ui-widget-content a {
+    color: #215990;
+}
+
+.ui-state-default .ui-icon-triangle-1-e.ui-icon {
+	background-image: url('../images/scholarbase-sprite.png');
+	background-position: 5px -197px;
+	}
+
+.ui-state-default .ui-icon-triangle-1-s.ui-icon {
+	background-image: url('../images/scholarbase-sprite.png');
+	background-position:-9px -197px;
+	}
+
+.ui-widget-content {
+    color: inherit;
+}
+.ui-helper-reset {
+    font-size: 1em;
+    line-height: inherit;
+}
+.ui-widget {
+    font-family: inherit;
+    font-size: 1em;
+}
+/* JCAROUSEL OVERRIDE STYLES */
+
+.jcarousel-skin-default {
+    clear: both;
+}
+.jcarousel-skin-default .jcarousel-container-horizontal {
+    width: 80%;
+    padding: 10px;
+    margin: 0;
+}
+.jcarousel-container {
+    background: #FAFAFA;
+    border: 1px solid #e1e1e1;
+}
+.jcarousel-container .jcarousel-clip-horizontal {
+    width: auto;
+}
+.jcarousel-container a.jcarousel-next {
+    background-image: url('../images/scholarbase-sprite.png');
+    background-color: transparent;
+    background-position: -30px 0;
+    right: -15px;
+    top: 46px;
+    width: 22px;
+    height: 22px;
+}
+.jcarousel-container a.jcarousel-next:hover {
+    background-position: -30px 0;
+}
+.jcarousel-container a.jcarousel-prev {
+    background-image: url('../images/scholarbase-sprite.png');
+    background-position: -54px 0;
+    left: -15px;
+    top: 46px;
+    width: 22px;
+    height: 22px;
+}
+.jcarousel-container a.jcarousel-prev:hover {
+    background-position: -54px 0;
+}
+/* Recent Images Widget */
+
+img.recent-images-list {
+    padding: 4px;
+    background-color: white;
+    border: 1px solid #ADADAD;
+    float: left;
+    clear: none;
+    margin: 0 5px 5px 0;
+}
+img.recent-images-list:hover {
+    background-color: yellow;
+}
+#box-os_image_gallery_latest-page .more-link {
+    clear: both;
+}
+/* Colorbox Slideshow modal - Kill Grey Borders in player */
+
+#cboxWrapper #cboxTopLeft,
+#cboxWrapper #cboxTopCenter,
+#cboxWrapper #cboxTopRight,
+#cboxWrapper #cboxMiddleLeft,
+#cboxWrapper #cboxMiddleRight,
+#cboxWrapper #cboxBottomLeft,
+#cboxWrapper #cboxBottomCenter,
+#cboxWrapper #cboxBottomRight {
+    background: none;
+}
+img.media-element.file-default {
+    padding-right: 15px;
+}
+.lt-ie9 img.media-element.file-default[style*="FLOAT:"][style*="RIGHT;"],
+img.media-element.file-default[style*="float:"][style*="right;"] {
+    padding-left: 15px;
+    padding-right: 0;
+}
+
+img ~ figcaption {
+color: #555;
+    font-style: italic;
+    clear: both;
+    max-width:100%;
+}
+
+
+.node-person.node-teaser figure figcaption {
+	display:none;
+}
+
+.lt-ie9 img.media-element.file-default[style*="FLOAT:"][style*="RIGHT;"] ~ figcaption,
+img.media-element.file-default[style*="float:"][style*="right;"] ~ figcaption {
+padding-left: 15px;
+}
+
+.block-boxes-os_sv_list_box .os_sv_list_box.sv-list-link.sv-list-view-links h1 a {
+    font-weight: normal;
+    font-size: initial;
+}
+.node-news .field-name-field-photo.view-mode-sidebar_teaser,
+.node-news.node-teaser .field-name-field-photo {
+    float: left;
+    margin: 0 1.5em .5em 0;
+}
+/** IMAGE GALLERY STYLE OVERRDIES **/
+
+.mg-gallery img.stack-image {
+    display: none;
+}
+.media-collection-item-wrapper {
+    padding: 0;
+}
+.gallery-thumb-inner .iframe {
+    display: block;
+}
+.article.node-media-gallery.node-teaser .node-content {
+    height: auto;
+}
+/**
+LIST OF POSTS - PERSON TEASER IN SIDEBAR
+ */
+
+.block-boxes-os_sv_list_box h1.node-title {
+    margin-bottom: 0;
+}
+.block-boxes-os_sv_list_box .sv-list-person.sv-list-view-full h1.node-title {
+    font-size: 1.5em;
+}
+.block-boxes-os_sv_list_box .node.node-news.node-promoted .field-type-image.view-mode-sidebar_teaser,
+.block-boxes-os_sv_list_box .node.node-person.article.with-person-photo .pic-bio,
+.block-boxes-os_sv_list_box .node.node-person.article.modified-in-os_profiles_process_node .pic-bio,
+.node.node-person .field-name-field-person-photo {
+    float: left;
+    margin-right: 1em;
+}
+.sidebar .block-boxes-os_sv_list_box .node.node-person.article.modified-in-os_profiles_process_node .pic-bio {
+    float: none;
+}
+.sidebar .block-boxes-os_sv_list_box .node.node-person.article.modified-in-os_profiles_process_node .pic-bio.people-sidebar-teaser {
+    float: left;
+}
+.block-boxes-os_sv_list_box .node.node-news.node-promoted.article .field-type-image ~ .node-content {
+    display: block;
+    margin-left: 85px;
+}
+.block-boxes-os_sv_list_box .node.node-news.node-promoted.article .field-type-image ~ .node-content {
+    margin-left: 65px;
+}
+.block-boxes-os_sv_list_box .node.node-news.node-promoted.article .node-header ~ .node-content {
+    margin-left: 0;
+}
+.sv-list-image.sv-list-view-os_files_thumbnail.sv-list-layout-list .file {
+    display: block;
+    border-bottom: none !important;
+    clear: both;
+}
+
+.block-element {
+    display: block;
+}
+
+.os-trim-text p {
+    display: inline;
+}
+.not-logged-in:not(.page-user) div.messages {
+    display: none;
+}
+div.messages {
+    margin: 0 0 10px;
+    padding: 0;
+    border: none;
+    font-size: 15px;
+    line-height: 20px;
+}
+
+div.messages .message-wrapper {
+    padding: 10px;
+ 
+}
+
+
+div.messages .message-wrapper h2 {
+    margin-top: 0;
+}
+
+
+div.error {
+    border: none;
+    background-image: none;
+    background-color: #f2dede;
+    color: #a94442;
+    padding: 10px 30px 10px 20px;
+    border-left: 5px solid #a94442;
+}
+div.status {
+background-image: none;
+color: #008000;
+background-color:#dff0d8;
+padding:10px 30px 10px 20px;
+    border-left:5px solid #008000;
+}
+.error .dismiss, .messages .dismiss, div.status .dismiss {
+    border: none;
+    display: block;
+    position: absolute;
+    top: 5px;
+    right: 4px;
+    font-size: 0;
+    background: transparent;
+    text-shadow: none;
+    text-decoration: none;
+    border-radius: none;
+    box-shadow: none;
+    opacity: none;
+    cursor: pointer;
+    -webkit-transition: none;
+    -moz-transition: none;
+    -ms-transition: none;
+    -o-transition: none;
+    transition: none;
+    background: url(/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png) 0 -926px no-repeat transparent;
+    width: 20px;
+    height: 20px;
+    background-color: transparent;
+}
+

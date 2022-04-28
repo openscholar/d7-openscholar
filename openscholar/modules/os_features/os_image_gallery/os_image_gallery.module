@@ -1,0 +1,589 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ */
+
+include_once ('os_image_gallery.features.inc');
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_image_gallery_os_app_info() {
+  $apps = array();
+
+  $apps['os_image_gallery'] = array(
+    'path' => 'galleries',
+    'nodetypes' => array(
+      'slideshow_slide',
+      'media_gallery',
+    ),
+    'hide from toolbar' => array(
+      'slideshow_slide',
+    ),
+    'views tabs' => array(
+      'os_image_gallery' => array('page'),
+    ),
+    'importers' => array(
+      'media_gallery' => array(
+        'csv' => 'os_gallery',
+      ),
+    ),
+    'browse_pages' => array(
+      'media_gallery' => array(
+        'url' => 'browse/gallery',
+        'title' => t('Media Galleries'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'galleries',
+      ),
+    ),
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_cron().
+ */
+function os_image_gallery_cron() {
+  $last_fid = variable_get('os_last_un_compress_fid');
+  $recent_fid = variable_get('os_last_processed_fid', NULL);
+
+  if ($last_fid == $recent_fid) {
+    // We processed all the existing images before the image using resmushit.it.
+    return;
+  }
+
+  require_once drupal_get_path('module', 'imageapi_optimize') . '/services/resmushit.inc';
+
+  $query = new EntityFieldQuery();
+  $query
+    ->entityCondition('entity_type', 'file')
+    ->propertyCondition('type', 'image');
+
+  if ($recent_fid) {
+    $query->propertyCondition('fid', [$recent_fid, $last_fid], 'BETWEEN');
+  }
+  else {
+    $query->propertyCondition('fid', $last_fid, '<=');
+  }
+
+  $result = $query
+    ->propertyOrderBy('fid', 'ASC')
+    ->range(0, 25)
+    ->execute();
+
+  $files = file_load_multiple(array_keys($result['file']));
+
+  foreach ($files as $file) {
+    os_image_gallery_image_optimize(NULL, $file->uri);
+  }
+
+  variable_set('os_last_processed_fid', $file->fid);
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function os_image_gallery_menu_alter(&$items) {
+  // The media gallery path when removing an image from the gallery.
+  $menu_path = 'media-gallery/detail/%media_gallery_mg_node/%media_gallery_mg_item/remove';
+  $items[$menu_path]['theme callback'] = 'cp_theme_name';
+  $items['media-gallery/detail/%media_gallery_mg_node/%media_gallery_mg_item']['page callback'] = 'os_image_gallery_media_gallery_detail_page';
+}
+
+/**
+ * Implement hook_menu_local_tasks_alter().
+ */
+function os_image_gallery_menu_local_tasks_alter(&$tasks, $item, $path) {
+  if ($path == 'media-gallery/detail/%/%/remove') {
+    $tasks['tabs'] = [];
+    return;
+  }
+}
+
+/**
+ * Implements hook_contextual_links_view_alter
+ *
+ * OS and media_gallery both add contextuals.  Clean that up.
+ */
+function os_image_gallery_contextual_links_view_alter(&$element, $items) {
+  if (isset($element['#contextual_links']['media_gallery'])) {
+    unset($element['#links']['media-gallery-edit']);
+    unset($element['#links']['file-delete']);
+  }
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_image_gallery_vsite_og_node_type_info() {
+  return array(
+    'media_gallery' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Removes block option from media_gallery node edit.  OS blocks are managed by layout CP.  This shouldn't be exception.
+ */
+function os_image_gallery_form_media_gallery_node_form_alter(&$form, &$form_state) {
+  $form['block']['#type'] = 'hidden';
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Makes sure that os_image_gallery alters the media_gallery form after media_gallery, but before vsite
+ */
+function os_image_gallery_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter' && isset($implementations['media_gallery'], $implementations['os_image_gallery'])) {
+    $os_image_gallery = $implementations['os_image_gallery'];
+    unset($implementations['os_image_gallery']);
+    $implementations['os_image_gallery'] = $os_image_gallery;
+
+    if (isset($implementations['vsite'])) {
+      $vsite = $implementations['vsite'];
+      unset($implementations['vsite']);
+      $implementations['vsite'] = $vsite;
+    }
+  }
+}
+
+/**
+ * Implements hook_field_attach_create_bundle().
+ */
+function os_image_gallery_field_attach_create_bundle($entity_type, $bundle) {
+  if ($entity_type == 'node' && $bundle == 'media_gallery') {
+    $instance = field_info_instance($entity_type, 'og_vocabulary', $bundle);
+    // Checking whether og_vocab is set in the full view mode of image gallery node.
+    if (is_array($instance) && $instance['display']['full']['type'] != 'og_vocab') {
+      $instance['display']['full'] = array(
+        'label' => 'hidden',
+        'type' => 'og_vocab',
+        'weight' => 10,
+        'settings' => array('concatenate' => 1),
+        'module' => 'vsite_vocab',
+      );
+      field_update_instance($instance);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function os_image_gallery_node_view($node, $view_mode) {
+  if ($node->type !== 'media_gallery') {
+    return;
+  }
+  $duplicated_fids = [];
+  // Removes the duplication
+  foreach ($node->media_gallery_file[LANGUAGE_NONE] as $delta => $file) {
+    if (isset($duplicated_fids[$file['fid']])) {
+      unset($node->media_gallery_file[LANGUAGE_NONE][$delta]);
+      unset($node->content['media_gallery_file'][$delta]);
+    }
+    $duplicated_fids[$file['fid']] = 1;
+  }
+  $node->media_gallery_file_original = $node->media_gallery_file;
+
+  // Invokes media_gallery_view(), since this feature "owns" the media_gallery
+  // node type.
+  media_gallery_view($node, $view_mode);
+
+  // Attaches custom CSS to this node view page.
+  $node->content['os_image_gallery'] = array(
+    '#attached' => array(
+      'css' => array(
+        'type' => 'file',
+        'data' => drupal_get_path('module', 'os_image_gallery') . '/os_image_gallery.css',
+      ),
+    ),
+  );
+
+  if (isset($node->content['add_media_link'])) {
+    if (module_exists('os_common')) {
+      $field_info = field_info_instance('node', 'media_gallery_file', 'media_gallery');
+      $max = $field_info['settings']['max_filesize'];
+
+      os_common_angular_apps('media-gallery-public');
+      $node->content['os_image_gallery']['#attached']['js'][] = drupal_get_path('module', 'os_image_gallery').'/apps/media-gallery-public.js';
+      $node->content['os_image_gallery']['#attached']['library'][] = array('os_common', 'FileEditorModal');
+      $node->content['os_image_gallery']['#attached']['library'][] = array('media', 'media_browser');
+      $node->content['os_image_gallery']['#attached']['js'][] = array(
+        'type' => 'setting',
+        'data' => array(
+          'mediaGalleryMaxFilesize' => $max,
+          'mediaGalleryMaxFilesizeRaw' => parse_size($max)
+        )
+      );
+    }
+
+    //Update link title so users know they can upload more than just images
+    if (isset($node->content['add_media_link']['select']) && $node->content['add_media_link']['select']['#title'] == t('Add New Image')) {
+      $node->content['add_media_link']['select']['#title'] = t('Add New Media');
+    }
+  }
+
+  // Gets the fids of images on this page
+  if (isset($node->media_gallery_file[$node->language]) && count($node->media_gallery_file[$node->language])) {
+    $keep_fids = array();
+    foreach ($node->media_gallery_file as $lang) {
+      foreach ($lang as $media) {
+        $keep_fids[] = $media['fid'];
+      }
+    }
+
+
+    // Removes the rest
+    foreach ($node->content['media_gallery_file'] as $delta => $media) {
+      if (is_numeric($delta) && !in_array($media['#file']->fid, $keep_fids)) {
+        unset($node->content['media_gallery_file'][$delta]);
+      }
+    }
+  }
+
+  $node->allow_binding = OS_COMMON_NONBIND_CONTENT;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function os_image_gallery_form_alter(&$form, &$form_state, $form_id) {
+  if (@is_array($form_state['build_info']['args'][0]) && @$form_state['build_info']['args'][0]['id'] == 'media_gallery') {
+    $field_info = field_info_instance('node', 'media_gallery_file', 'media_gallery');
+    $max = parse_size($field_info['settings']['max_filesize']);
+    $form['upload']['#upload_validators']['file_validate_size'][0] = min($max, $form['upload']['#upload_validators']['file_validate_size']);
+
+    $form['upload']['#upload_validators']['os_image_gallery_upload_filesize'] = array();
+  }
+}
+
+/**
+ * @function os_image_gallery_upload_filesize
+ *
+ * #upload_validator ensures max filesize used in media gallery uploads
+ */
+function os_image_gallery_upload_filesize($file) {
+  $errors = array();
+  $info = field_info_instance('node', 'media_gallery_file', 'media_gallery');
+
+  $max = parse_size($info['settings']['max_filesize']);
+  if (is_numeric($max) && 0 < $max && $max < $file->filesize) {
+    $errors[] = t('The file size limit for media gallery files is !max', array('!max' => $info['settings']['max_filesize']));
+  }
+
+  return $errors;
+}
+
+/**
+ * Implements hook_file_delete
+ *
+ * When an image is deleted, remove it from media_gallery nodes first.
+ */
+function os_image_gallery_file_delete($file) {
+  $query = new EntityFieldQuery();
+  $query
+    ->entityCondition('entity_type', 'node')
+    ->fieldCondition('media_gallery_file', 'fid', $file->fid, '=');
+  $result = $query->execute();
+
+  if (isset($result['node'])) {
+    $nids = array_keys($result['node']);
+    $nodes = entity_load('node', $nids);
+    foreach ($nodes as $node) {
+      media_gallery_remove_item_from_gallery($node, $file);
+    }
+  }
+}
+
+/**
+ * Media item thumbnails of flash videos should be images.  Full display should show flash.
+ */
+function os_image_gallery_theme_registry_alter(&$registry){
+  array_unshift($registry['media_gallery_media_item_thumbnail']['preprocess functions'], 'os_image_gallery_preprocess_media_item_thumbnail');
+
+  // the defualt function is very inflexible
+  if (isset($registry['media_gallery_item'])) {
+    $registry['media_gallery_item'] = array(
+        'function' => 'theme_os_image_gallery_media_gallery_item',
+        'file' => 'os_image_gallery.thene.inc',
+        'includes' => array(
+          drupal_get_path('module', 'os_image_gallery') .'/os_image_gallery.theme.inc',
+        ),
+        'theme path' => drupal_get_path('module', 'os_image_gallery'),
+      ) + $registry['media_gallery_item'];
+  }
+}
+
+/**
+ * Implements hook_preprocess_media_item_thumbnail
+ *
+ * Sets a flag that we're viewing a thumbnail.  Further down the line this will change
+ * What theme function renders this file field.
+ *
+ * Also change the cache key so thumbnail and lightbox view don't get html from same cache
+ */
+function os_image_gallery_preprocess_media_item_thumbnail(&$vars) {
+  $vars['attributes_array']['media-gallery-item'] = '';
+  if ($vars['element']['#bundle'] == 'video') {
+    $vars['element']['file']['#display'] = 'thumbnail';
+    $vars['element']['file']['#cache']['keys'][] = 'os_image_gallery_thumbnail_' . $vars['element']['#file']->fid;
+  }
+}
+
+/**
+ * Implements hook_preprocess_media_gallery_item().
+ *
+ * Keep this separate for now.
+ */
+function os_image_gallery_preprocess_media_gallery_item(&$vars) {
+  $vars['attributes_array']['ng-non-bindable'] = '';
+}
+
+/**
+ * Template preprocess for media_gallery_item.
+ */
+function template_process_media_gallery_item(&$vars) {
+  $vars['attributes'] = drupal_attributes($vars['attributes_array']);
+}
+
+/**
+ * Impelements hook_element_info_alter
+ *
+ * Gives oembed a final pre_render function.  oembed_element_info has already
+ * provided a retheme pre_render function that overrides any theme I may have set.
+ * This overrides that.
+ */
+function os_image_gallery_element_info_alter(&$type) {
+  if (isset($type['oembed'])) {
+    $type['oembed']['#pre_render'][] = 'os_image_gallery_oembed_pre_render_retheme';
+  }
+}
+
+/**
+ * @function os_image_gallery_oembed_pre_render_retheme
+ *
+ * oembed's pre_render function sets the theme.  this undoes that change so we can use our own themeing function to get
+ * flash to display in something that isn't an iframe.
+ */
+function os_image_gallery_oembed_pre_render_retheme(&$element) {
+  if (isset($element['#display']) && ($element['#display'] == 'thumbnail')) {
+    $element['#theme'] = 'os_image_gallery_file_field_inline';
+    //array_unshift($element['#cache']['keys'], 'image_gallery_thumbnail'); //too late
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_theme
+ */
+function os_image_gallery_theme($existing, $type, $theme, $path) {
+  return array('os_image_gallery_file_field_inline' => array(
+    'function' => 'theme_os_image_gallery_file_field_inline',
+    'render element' => 'element',
+  ));
+}
+
+/**
+ * Implements theme_MODULE_hook
+ *
+ * Theme function for thumbnails of flash objects.
+ */
+function theme_os_image_gallery_file_field_inline($variables) {
+  $embed = (array)$variables['element']['#embed'];
+  $img = $embed['thumbnail_url'];
+  $clear = drupal_get_path('module', 'os_image_gallery') . '/trans.gif';
+
+  $attributes = array('style' => "background: url('$img') no-repeat center; background-size: auto 100%;");
+  $indicator = '<span class="video-indicator"> </span>';
+  return theme('image', array('path'=>$clear, 'attributes' => $attributes)) . $indicator;
+}
+
+/**
+ * Implements hook_preprocess_media_gallery_meta.
+ *
+ * Replaces media_title with the filename
+ */
+function os_image_gallery_preprocess_media_gallery_meta(&$vars) {
+  $frags = explode('/', $vars['link_path']);
+  if ($file = file_load($frags[3])) {
+    $vars['title'] = $file->filename;
+  }
+}
+
+/**
+ * Adds contextual links to the Galleries view
+ *
+ * The View is constructed using the Fields option, instead of rendering the whole node with a view mode. We need to
+ * add the contextual links manually.
+ */
+function os_image_gallery_preprocess_views_view_list(&$vars) {
+  if ($vars['view']->name == 'os_image_gallery') {
+    // To resize colorbox images after loading
+    drupal_add_js(drupal_get_path('module', 'media_gallery') . '/colorbox-display.js');
+    drupal_add_css(drupal_get_path('module', 'media_gallery') . '/media_gallery.css');
+    // at this point, the rows are already rendered, we need to build, render and prepend the contextual links to the
+    // html
+    foreach ($vars['rows'] as $k => $str) {
+      // I'm hoping that the rows are in the same order as the results on the view. I don't see any reason they wouldn't
+      $nid = $vars['view']->result[$k]->nid;
+      // this is what the contextual module builds for itself when it's used normally.
+      // except #element isn't an empty array normally.
+      $psuedo = array(
+        '#type' => 'contextual_links',
+        '#contextual_links' => array(array('node', array($nid))),
+        '#element' => array(),
+      );
+      // render out the contextual links and prepend to the existing html.
+      $vars['rows'][$k] = drupal_render($psuedo).$str;
+      // add the class or none of the css will work.
+      // Despite the name, classes_array is just a string at this point.
+      $vars['classes_array'][$k] .= ' contextual-links-region field-name-media-gallery-file';
+    }
+  }
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function os_image_gallery_node_update($node) {
+  $original_wrapper = entity_metadata_wrapper('node', $node->original);
+  $wrapper = entity_metadata_wrapper('node', $node);
+
+  if ($wrapper->getBundle() != 'media_gallery' || !$wrapper->__isset('media_gallery_file')) {
+    return;
+  }
+
+  if ($wrapper->media_gallery_file->value() == $original_wrapper->media_gallery_file->value()) {
+    return;
+  }
+
+  if (!$new_files = drupal_array_diff_assoc_recursive($wrapper->media_gallery_file->value(), $original_wrapper->media_gallery_file->value())) {
+    return;
+  }
+
+  // Field API order the values by their key in the array. That mean that 3,1,2
+  // will be ordered as 1,2,3. Using array merge will set 3,1,2 as 1,2,3 and
+  // insure us the new images at the beginning of the array.
+  $menu_item = menu_get_item();
+  if ($menu_item['path'] != 'media-gallery/sort/gallery/%/%') {
+    $wrapper->media_gallery_file->set(array_merge($new_files, $original_wrapper->media_gallery_file->value()));
+  }
+}
+
+/**
+ * Implements hook_entity_prepare_view.
+ */
+function os_image_gallery_entity_prepare_view($entities, $type, $langcode) {
+  // Iterating through $entities object for altering media_title property value by reference.
+  foreach ($entities as $entity) {
+    if (!empty($entity->filename)) {
+      $entity->media_title[LANGUAGE_NONE][0]['value'] = filter_xss(trim($entity->filename));
+      $entity->media_title[LANGUAGE_NONE][0]['safe_value'] = filter_xss(trim($entity->filename));
+    }
+  }
+}
+
+/**
+ * Implements hook_os_entity_view_modes_alter
+ **/
+function os_image_gallery_os_entity_view_modes_alter(&$info) {
+  $info['node']['media_gallery'] = array_diff($info['node']['media_gallery'], array('slide_teaser'));
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function os_image_gallery_form_media_gallery_remove_item_form_alter(&$form, &$form_state) {
+  $form['description']['#markup'] = t('The file will still be available to be used in elsewhere on this site.');
+  // Overriding $form['#submit'] callbacks order so that 'os_image_gallery_remove_item_form_submit' is executed first.
+  $form_submit_callbacks = $form['#submit'];
+  $form['#submit'] = array_merge(array('os_image_gallery_remove_item_form_submit'), $form_submit_callbacks);
+}
+
+/**
+ * Submit handler for removing a media item from a gallery.
+ */
+function os_image_gallery_remove_item_form_submit($form, &$form_state) {
+  $file = new stdClass();
+  $file->fid = $form_state['values']['fid'];
+  // Adding self reference for the file in file_usage table to prevent file deletion.
+  file_usage_add($file, 'media', 'file', $file->fid);
+}
+
+/**
+ * Implements hook_views_pre_view() for os_image_gallery view.
+ */
+function os_image_gallery_views_pre_view(&$view, &$display_id, &$args) {
+  if ($view->name == 'os_image_gallery' && variable_get('os_taxonomy_display_term_under_content_media_gallery', 0)) {
+    $view->add_item($view->current_display, 'field', 'field_data_og_vocabulary', 'og_vocabulary', array(
+      'table' => 'field_data_og_vocabulary',
+      'label' => '',
+      'type'  => 'og_vocab',
+      'alter' => array('text' => ''),
+      'element_class' => 'field-name-og-vocabulary',
+      'element_default_classes' => 1,
+      'settings' => array('concatenate' => 1),
+    ), 'og_vocabulary');
+    drupal_add_js(drupal_get_path('module', 'os').'/theme/os_toggle.js');
+  }
+}
+/**
+ * Implements hook_imageapi_optimize_info_alter().
+ */
+function os_image_gallery_imageapi_optimize_info_alter(&$info) {
+  $info['services']['resmushit']['callbacks']['process'] = 'os_image_gallery_image_optimize';
+}
+
+/**
+ * Overriding the original resmush.it callback function.
+ *
+ * @param $image
+ *   The name of the image.
+ * @param $dst
+ *   The destination.
+ *
+ * @return bool
+ */
+function os_image_gallery_image_optimize($image, $dst) {
+  // Call to the original function.
+  $results = imageapi_optimize_services_resmushit($image, $dst);
+
+  if (!$results) {
+    return false;
+  }
+
+  // Triggering a watchdog.
+  $explode = explode("/", $dst);
+  $params = array(
+    '@name' => end($explode),
+  );
+
+  watchdog('os_image_gallery', t('The image @name has been compressed.', $params));
+  return TRUE;
+}
+
+/**
+ * Overriding the page callback for displaying a single image item.
+ */
+function os_image_gallery_media_gallery_detail_page($gallery_node, $file) {
+  $content = media_gallery_detail_page($gallery_node, $file);
+
+  // The original function "Replace non letters or numbers with a single space"
+  // and much more which remove special characters and a white space. Setting
+  // the default file name is what we would like to display in that case.
+  drupal_set_title($file->filename);
+
+  return $content;
+}
+
+function os_image_gallery_preprocess_node(&$vars) {
+  if ($vars['type'] == 'media_gallery') {
+    $vars['allow_binding'] = OS_COMMON_NONBIND_CONTENT;
+  }
+}

@@ -1,0 +1,10 @@
+name = Citation Distribute                                                                                                                                                                                                                     
+description = Framework allows plugins to define services for distributing biblio citations
+core = 7.x 
+dependencies[] = flag
+version = 7.x-1.0
+
+files[] = plugins/service/citation_distribute_service.inc
+files[] = plugins/service/citation_distribute_service_googlescholar.inc
+files[] = plugins/service/citation_distribute_service_repec.inc
+files[] = plugins/service/citation_distribute_service_sword.inc

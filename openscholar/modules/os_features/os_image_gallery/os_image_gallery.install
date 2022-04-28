@@ -1,0 +1,101 @@
+<?php 
+
+/**
+ * Implements hook_install
+ */
+function os_image_gallery_install() {
+  _os_image_gallery_hide_media_description_label();
+}
+
+/*
+ * media_gallery renamed one of its fields.  FR needed.
+ */
+function os_image_gallery_update_7000() {
+  features_revert(array('os_image_gallery' => array('field')));
+}
+
+/**
+ * os_files error corrupted format info on media_descriptions.  Restore format.  
+ * https://github.com/openscholar/openscholar/issues/2192
+ */
+function os_image_gallery_update_7001() {
+  foreach (array('field_data_media_description', 'field_revision_media_description') as $table) {
+    db_update($table)
+      ->fields(array('media_description_format' => 'filtered_html', 'media_description_value' => ''))
+      ->condition('media_description_format', 'filtered_html', '!=')
+      ->execute();
+  }
+  
+  return t('Fixed media_gallery descriptions'); 
+}
+
+/**
+ * Hide media_gallery files' description label  
+ */
+function os_image_gallery_update_7002() {
+  return _os_image_gallery_hide_media_description_label();
+}
+
+/**
+ * Add documents file type to media gallery
+ */
+function os_image_gallery_update_7003() {
+  features_revert(array('os_image_gallery' => array('field')));
+}
+
+/**
+ * @function _os_image_gallery_hide_media_description_label()
+ */
+function _os_image_gallery_hide_media_description_label() {
+  $results = db_select('field_config_instance', 'f')
+    ->condition('field_name', 'media_description')
+    ->fields('f', array('data', 'id'))
+    ->execute();
+  
+  $instances = 0;
+    
+  while ($row = $results->fetchAssoc()) {
+    $data = unserialize($row['data']);
+    foreach ($data['display'] as $name => $display) {
+      $data['display'][$name]['label'] = 'hidden';
+    }
+    $data = serialize($data);
+    
+    $instances += db_update('field_config_instance')
+      ->fields(array('data' => $data))
+      ->condition('id', $row['id'])
+      ->execute();
+  }
+  
+  return $instances;
+}
+
+/**
+ * Update the image file.
+ */
+function os_image_gallery_update_7004() {
+  features_revert(array('os_image_gallery' => array('field_instance')));
+}
+
+/**
+ * Turn on the og_vocabulary field display for full view of image gallery.
+ */
+function os_image_gallery_update_7005() {
+  $instance = field_info_instance('node', 'og_vocabulary', 'media_gallery');
+  $instance['display']['full'] = array(
+    'label' => 'hidden',
+    'type' => 'og_vocab',
+    'weight' => 10,
+    'settings' => array('concatenate' => 1),
+    'module' => 'vsite_vocab',
+  );
+  field_update_instance($instance);
+}
+
+/**
+ * Update the image file.
+ */
+function os_image_gallery_update_7006() {
+  features_revert(array('os_image_gallery' => array('views_view')));
+}
+

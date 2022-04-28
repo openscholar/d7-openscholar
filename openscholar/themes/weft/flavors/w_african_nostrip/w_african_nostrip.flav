@@ -1,0 +1,5 @@
+name = West African Flavor Without a Strip
+description = A West African theme without a strip
+screenshot = screenshot.png
+
+css[] = w_african_nostrip.css

@@ -1,0 +1,13 @@
+diff --git a/registration.module b/registration.module
+index 45e88e4..a301dce 100644
+--- a/registration.module
++++ b/registration.module
+@@ -915,7 +915,7 @@ function registration_entity_settings($entity_type, $entity_id, $reset = FALSE)
+ function registration_theme() {
+   return array(
+     'registration_link' => array(
+-      'variables' => array('label' => NULL, 'path' => NULL),
++      'variables' => array('label' => NULL, 'path' => NULL, 'entity_type' => NULL, 'entity' => NULL),
+     ),
+     'registration_state_overview_form' => array(
+       'file' => 'includes/registration.forms.inc',

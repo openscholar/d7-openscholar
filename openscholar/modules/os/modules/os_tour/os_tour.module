@@ -1,0 +1,302 @@
+<?php
+
+/**
+ * @file
+ * os_tour.module
+ */
+
+/**
+ * The default maximum number of feed items to display in the Notifications tab.
+ */
+define('OS_TOUR_NOTIFICATIONS_MAX_DEFAULT', 3);
+
+/**
+ * Implements hook_menu().
+ */
+function os_tour_menu() {
+  $items = array();
+
+  $path = drupal_get_path('module', 'os_tour') . '/includes';
+  $items['os/tour/user/%user/%'] = array(
+    'title' => 'AJAX update notifications last read timestamp',
+    'page callback' => 'os_tour_user_edit_ajax',
+    'page arguments' => array(3, 4),
+    'access callback' => 'user_edit_access',
+    'access arguments' => array(3),
+    'type' => MENU_CALLBACK,
+    'file' => 'os_tour.pages.inc',
+    'file path' => $path,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_library().
+ */
+function os_tour_library() {
+  $libraries = array();
+
+  $path = libraries_get_path('hopscotch');
+  $settings = array(
+    'group' => JS_LIBRARY,
+    'scope' => 'header',
+    'type' => 'file',
+  );
+  $libraries['hopscotch'] = array(
+    'title' => 'Hopscotch',
+    'website' => 'http://linkedin.github.io/hopscotch',
+    'version' => '0.1.2',
+    'js' => array(
+      "$path/js/hopscotch-0.1.2.js" => $settings
+    ),
+    'css' => array(
+      "$path/css/hopscotch-0.1.2.min.css" => $settings,
+    ),
+  );
+
+  $os_tour_path = drupal_get_path('module', 'os_tour');
+  $libraries['os_tour'] = array(
+    'title' => 'Os Tour',
+    'version' => '1.0',
+    'js' => array(
+      "{$os_tour_path}/theme/os_tour.notifications.js" => array(),
+      array(
+        'data' => array(
+          'os_notifications' => os_tour_get_tour_settings(),
+        ),
+        'type' => 'setting',
+      )
+    ),
+    'css' => array(
+      $os_tour_path."/theme/os_tour.notifications.css",
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for os_settings_form.
+ */
+function os_tour_form_os_settings_form_alter(&$form, &$form_state, $form_id) {
+  $form['os_tour'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Tours'),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['os_tour']['notifications'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Platform notifications'),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $form['os_tour']['notifications']['os_tour_notifications_feeds'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Feed URLs'),
+    '#default_value' => variable_get('os_tour_notifications_feeds', ''),
+    '#description' => t('Enter one or more RSS feeds to create a "Notifications" tab in the Admin Toolbar. Use commas to separate.'),
+  );
+
+  $default = OS_TOUR_NOTIFICATIONS_MAX_DEFAULT;
+  $form['os_tour']['notifications']['os_tour_notifications_max'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max'),
+    '#default_value' => variable_get('os_tour_notifications_max', $default),
+    '#description' => t('Maximum amount of notification items to list for users.'),
+  );
+}
+
+function os_tour_get_tour_settings($user = false) {
+  if (!$user) {
+    $user = $GLOBALS['user'];
+  }
+
+  // Only continues if there are feeds to attempt to display from.
+  $feeds = variable_get('os_tour_notifications_feeds', '');
+  if (empty($feeds)) {
+    return array();
+  }
+  // @TODO explode feeds value by comma and validate URLs.
+  $url = $feeds;
+
+  if (isset($user->data['os_tour']['notifications_read'])) {
+    $last_read = $user->data['os_tour']['notifications_read'];
+  }
+  else {
+    // Default to 1 month before user's registration time.
+    $month_in_seconds = 60 * 60 * 24 * 30;
+    $last_read = $user->created - $month_in_seconds;
+  }
+
+  $default = OS_TOUR_NOTIFICATIONS_MAX_DEFAULT;
+  $max = variable_get('os_tour_notifications_max', $default);
+
+  return array(
+    'url' => $url,
+    'max' => $max,
+    'uid' => $user->uid,
+    'last_read' => $last_read,
+  );
+}
+
+/**
+ * Implements hook_preprocess_toolbar().
+ */
+function os_tour_preprocess_toolbar(&$vars) {
+
+  $settings = os_tour_get_tour_settings();
+  if (!count($settings)) {
+    //No feeds
+    return;
+  }
+
+  // Adds the Notifications link to the Admin toolbar.
+  $path = drupal_get_path('module', 'os_tour');
+  $vars['toolbar']['toolbar_right']['os_tour_notifications'] = array(
+    '#theme' => 'links',
+    '#links' => array(
+      0 => array(
+        'title' => t('Notifications'),
+        'href' => '',
+        'html' => TRUE,
+        'attributes' => array(
+          'id' => 'os-tour-notifications-menu-link',
+          'data-tooltip' => t('Learn about updates that affect your site')
+        ),
+      ),
+    ),
+    '#attached' => array(
+      'js' => array(
+        $path . '/theme/os_tour.toolbar.js',
+      ),
+      'library' => array(
+        array('os_tour', 'hopscotch'),
+        array('os_tour', 'os_tour'),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_implements_alter()
+ */
+function os_tour_module_implements_alter(&$implementations, $hook) {
+  switch ($hook) {
+    case 'process_page':
+      $group = $implementations['os_tour'];
+      unset($implementations['os_tour']);
+      $implementations['os_tour'] = $group;
+      break;
+  }
+}
+
+/**
+ * Implements hook_process_HOOK() for page.tpl.php.
+ */
+function os_tour_process_page(&$variables) {
+  _os_tour_process_page_help($variables);
+}
+
+/**
+ * Adds "Take a tour" link to certain pages' help region.
+ */
+function _os_tour_process_page_help(&$variables) {
+  if (!user_access('access control panel')) {
+    return;
+  }
+  $tour_info = _os_tour_help();
+  if (empty($tour_info)) {
+    return;
+  }
+
+  $attached = isset($tour_info['attached']) ? $tour_info['attached'] : array();
+  $attached += array(
+    'library' => array(
+      array('os_tour', 'hopscotch'),
+    ),
+  );
+
+  $original = '';
+  if (isset($variables['page']['help']) && is_string($variables['page']['help'])) {
+    $original = $variables['page']['help'];
+  }
+
+  $build = array(
+    '#title' => t($tour_info['title']),
+    '#type' => 'link',
+    '#href' => '',
+    '#options' => array(
+      'attributes' => array(
+        'id' => $tour_info['id'],
+      ),
+    ),
+    '#attached' => $attached,
+  );
+  $markup = drupal_render($build);
+
+  $variables['page']['help'] = "{$original}{$markup}";
+}
+
+/**
+ * Provides tour settings depending on Drupal menu path.
+ */
+function _os_tour_help() {
+  $tour_info = FALSE;
+
+  // Provides tour for "cp/build/layout*".
+  if (arg(0) == 'cp' && arg(1) == 'build' && arg(2) == 'layout') {
+    $path = drupal_get_path('module', 'os_tour');
+    $tour_info = array(
+      'id' => 'os-tour-cp-build-layout',
+      'title' => t('Take a tour'),
+      'attached' => array(
+        'css' => array(
+          "$path/theme/os_tour.cp_build_layout.css",
+        ),
+        'js' => array(
+          "$path/theme/os_tour.cp_build_layout.js",
+        ),
+      ),
+    );
+  }
+
+  // Provides tour for "cp/users*".
+  if (arg(0) == 'cp' && arg(1) == 'users') {
+    $path = drupal_get_path('module', 'os_tour');
+    $tour_info = array(
+      'id' => 'os-tour-cp-users',
+      'title' => t('Take a tour'),
+      'attached' => array(
+        'css' => array(
+          "$path/theme/os_tour.cp_users.css",
+        ),
+        'js' => array(
+          "$path/theme/os_tour.cp_users.js",
+        ),
+      ),
+    );
+  }
+
+  // Provides tour for "node/add/page".
+  if (arg(0) == 'node' && arg(1) == 'add' && arg(2) == 'page') {
+    $path = drupal_get_path('module', 'os_tour');
+    $tour_info = array(
+      'id' => 'os-tour-node-add-page',
+      'title' => t('Take a tour'),
+      'attached' => array(
+        'css' => array(
+          "$path/theme/os_tour.node_add_page.css",
+        ),
+        'js' => array(
+          "$path/theme/os_tour.node_add_page.js",
+        ),
+      ),
+    );
+  }
+
+  return $tour_info;
+}

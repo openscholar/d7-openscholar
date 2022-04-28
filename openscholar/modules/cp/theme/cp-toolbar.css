@@ -1,0 +1,187 @@
+
+body.toolbar {
+  padding-top: 2.2em;
+}
+body.toolbar-drawer {
+  padding-top: 5.3em;
+}
+
+/**
+ * Aggressive resets so we can achieve a consistent look in hostile CSS
+ * environments.
+ */
+#cp-toolbar,
+#cp-toolbar * {
+  border: 0;
+  font-size: 100%;
+  line-height: inherit;
+  list-style: none;
+  margin: 0;
+  outline: 0;
+  padding: 0;
+  text-align: left; /* LTR */
+  vertical-align: baseline;
+}
+
+/**
+ * Base styles.
+ *
+ * We use a keyword for the toolbar font size to make it display consistently
+ * across different themes, while still allowing browsers to resize the text.
+ */
+#cp-toolbar {
+  background: #000;
+  color: #FFF;
+  font: normal small "Lucida Grande", Verdana, sans-serif;
+  margin: 0 -20px;
+  padding: 0 20px;
+  z-index: 600;
+  top: 0px;
+  left: 0;
+  right: 0;
+  position: fixed;
+}
+
+.toolbar-drawer #cp-toolbar {
+  top: 65px;
+}
+
+.toolbar #page-wrapper,
+.toolbar #page {
+	margin-top:35px;
+}
+
+.toolbar.toolbar-drawer #page-wrapper {
+	margin-top:40px;
+}
+
+
+#cp-toolbar div.collapsed {
+  display: none;
+  visibility: hidden;
+}
+#cp-toolbar a {
+  color: #fff;
+  font-size: .81em;
+  text-decoration: none;
+}
+
+
+#cp-toolbar ul li,
+#cp-toolbar ul li a {
+  float: left; /* LTR */
+}
+
+#cp-toolbar ul li {
+  margin: 0 18px 0 0;
+}
+
+#cp-toolbar #toolbar-user ul li {
+  margin: 0 0 0 18px;
+}
+
+#cp-toolbar ul#toolbar-menu li a {
+  background: url("images/topmenu-icons.png") no-repeat -30px 0;
+  padding-left: 30px !important;
+  height: 25px;
+  font-style: normal;
+}
+
+#cp-toolbar ul li a#toolbar-link-cp-build {
+  background-position: 0 0;
+}
+
+#cp-toolbar ul li a#toolbar-link-cp-appearance {
+ background-position: 0 -27px;
+}
+
+#cp-toolbar ul li a#toolbar-link-cp-settings {
+ background-position: 0 -52px;
+}
+
+#cp-toolbar ul li a#toolbar-link-cp-content {
+ background-position: 0 -76px;
+}
+
+#cp-toolbar ul li a#toolbar-link-cp-users {
+ background-position: 0 -101px;
+}
+
+#cp-toolbar ul li a#toolbar-link-cp-account {
+ background-position: 0 -156px;
+}
+
+/**
+ * Administration menu.
+ */
+#cp-toolbar div.toolbar-menu {
+  background: #000;
+  line-height: 20px;
+  padding: 5px 10px 5px 10px; /* LTR */
+  position: relative;
+}
+#toolbar-home a span {
+  background: url(toolbar.png) no-repeat 0 -45px;
+  display: block;
+  height: 14px;
+  margin: 3px 0px;
+  /*text-indent: -9999px;*/
+  vertical-align: text-bottom;
+  width: 11px;
+}
+#toolbar-user {
+  float: right; /* LTR */
+}
+#toolbar-menu {
+  float: left; /* LTR */
+}
+#cp-toolbar div.toolbar-menu a.toggle {
+  background: url(toolbar.png) 0 -20px no-repeat;
+  bottom: 0;
+  cursor: pointer;
+  height: 25px;
+  overflow: hidden;
+  position: absolute;
+  right: 10px; /* LTR */
+  text-indent: -9999px;
+  width: 25px;
+}
+#cp-toolbar div.toolbar-menu a.toggle:focus,
+#cp-toolbar div.toolbar-menu a.toggle:hover {
+  background-position:  -50px -20px;
+}
+#cp-toolbar div.toolbar-menu a.toggle-active {
+  background-position:  -25px -20px;
+}
+#cp-toolbar div.toolbar-menu a.toggle-active.toggle:focus,
+#cp-toolbar div.toolbar-menu a.toggle-active.toggle:hover {
+  background-position:  -75px -20px;
+}
+#cp-toolbar div.toolbar-menu ul li a {
+  padding: 0 10px;
+
+}
+
+
+/**
+ * Collapsed drawer of additional toolbar content.
+ */
+#cp-toolbar div.toolbar-drawer {
+  position: relative;
+  padding: 0 10px;
+}
+
+/**
+ * IE 6 Fix.
+ *
+ * IE 6 shows elements with position:fixed as position:static so we replace
+ * it with position:absolute; toolbar needs its z-index to stay above overlay.
+ */
+* html #cp-toolbar {
+  left: -20px;
+  margin: 0;
+  padding-right: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+}

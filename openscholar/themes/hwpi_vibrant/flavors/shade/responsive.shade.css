@@ -1,0 +1,62 @@
+@media (max-width: 1008px) {
+  .region-header-third #block-os-secondary-menu.opened,
+  .region-header-third .os-custom-menu.opened {
+    background-color: #FFF;
+  }
+
+  .region-header-third ul.nice-menu a {
+    color: #A61D31 !important;
+  }
+
+  .region-header-third .os-custom-menu li, .region-header-third #block-os-secondary-menu li {
+    border-top: 1px solid #f4f4f4 !important;
+  }
+
+  #menu-bar {
+    padding: 0 15px !important;
+    background: #fff;
+    border-bottom: none;
+  }
+
+  #menu-bar ul.nice-menu li {
+    background-color: #A61D31 !important;
+    color:#FFF !important;
+  }
+
+  #menu-bar #block-os-primary-menu a {
+    color: #fff !important;
+  }
+
+  #menu-bar #block-os-primary-menu li {
+    border-bottom: 1px solid #f4f4f4!important;
+    border-top: none!important;
+  }
+
+  .link-count-mobi-main a {
+    background-color: #A61D31;
+  }
+
+  .link-count-mobi-util a {
+    background-position: -52px -527px;
+  }
+
+  .link-count-mobi-util a {
+    background-color: #F7F7F7;
+  }
+
+  .link-count-mobi-main a {
+    background-color:#293352;
+  }
+
+  .link-count-mobi-search a {
+    background-color: #333 !important;
+  }
+
+  .mobi-util a {
+    background: #F7F7F7;
+  }
+
+  .mobile-buttons a {
+    color: #fff !important;
+  }
+}

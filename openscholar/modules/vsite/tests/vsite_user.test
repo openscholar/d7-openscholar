@@ -1,0 +1,197 @@
+<?php
+/**
+ * Tests for OS User API
+ */
+class VsiteUser extends OSProfileTestCase {
+
+  // The profile to install as a basis for testing.
+  protected $profile = 'openscholar';
+
+  protected $user1;
+
+  protected $user2;
+
+  //A vsite to load
+  protected $group_1;
+
+  //Second utility vsite
+  protected $group_2;
+
+  /**
+   * Test info.
+   */
+  public static function getInfo(){
+    return array(
+        'name' => t('Vsite User'),
+        'description' => t('Test User API functions, adding, grouping, roles.'),
+        'group' => t('vsite')
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp(){
+    parent::setUp('spaces', 'og', 'spaces_og', 'vsite', 'ctools');
+
+    // Create a basic user
+    $this->user1 = $this->drupalCreateUser();
+
+    // Create another basic user
+    $this->user2 = $this->drupalCreateUser();
+
+    //Create A Group Node with user 1 as admin
+    $group1 = array(
+        'title' => 'My Test Site',
+        'type' => 'personal',
+        'purl' => 'group1',
+        'uid' => 1
+    );
+    $this->group_1 = $this->drupalCreateNode($group1);
+
+    //Create A secondary Group Node with user 1 as admin
+    $group2 = array(
+        'title' => 'My Test Site 2',
+        'type' => 'personal',
+        'purl' => 'group2',
+        'uid' => 1
+    );
+    $this->group_2 = $this->drupalCreateNode($group2);
+
+    $this->group_1 = spaces_load('og', $this->group_1->nid);
+    $this->group_2 = spaces_load('og', $this->group_2->nid);
+
+    //Set the Group context
+    spaces_set_space($this->group_1);
+  }
+
+  /**
+   * Run Add User test
+   */
+  public function testAddUser(){
+
+    $new_user = array(
+        'name' => 'newUser1',
+        'mail' => 'test@test.com'
+    );
+
+    ctools_include('user', 'os');
+
+    //Add an account without group membership
+    $account = os_user_create($new_user);
+
+    $this->assertNotNull($account->uid, "The new account was created via 'os_create_user'");
+
+    $this->assertFalse(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $account->uid), "User was not added to the Group, as expected");
+
+    $new_user2 = array(
+        'name' => 'newUser2',
+        'mail' => 'test2@test.com'
+    );
+
+    //Add an account with group membership
+    $account = os_user_create($new_user2);
+    $user = user_load($account->uid);
+
+    $this->assertNotNull($user->uid, "The second account was created correctly and loaded via user_load");
+
+    $this->assertTrue(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $account->uid), "User was correctly added to the Group");
+
+  }
+
+  /**
+   * Test User Membership Functions
+   */
+  public function testUserMembership(){
+    ctools_include('user', 'os');
+
+    $this->assertFalse(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $this->user1->uid), "User1 was not initially part of the Group");
+
+    //Add to the active Group
+    module_load_include('inc', 'vsite', 'includes/user');
+    vsite_user_add($$this->user1);
+    $this->assertTrue(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $this->user1->uid), "User1 was added in the active Group");
+
+    $this->assertFalse((og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $this->user2->uid) || og_is_member($this->group_2->group_type, $this->group_2->id, 'user', $this->user2->uid)), "User2 was not initially part of the Group 1 or 2");
+
+    //Add user2 to an inactive Group
+    vsite_user_add($this->user2, $this->group_2->id);
+    $this->assertTrue(og_is_member($this->group_2->group_type, $this->group_2->id, 'user', $this->user2->uid), "User2 was added to the inactive Group");
+
+    $this->assertFalse(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $this->user2->uid), "User2 was NOT added to the active Group");
+
+    //Remove User2 from the inactive group
+    os_user_remove($this->user2->uid, $this->group_2->id);
+    $this->assertFalse(og_is_member($this->group_2->group_type, $this->group_2->id, 'user', $this->user2->uid), "User2 was removed from the inactive Group");
+
+    //Remove User1 from the active group
+    os_user_remove($this->user1->uid, $this->group_2->id);
+    $this->assertTrue(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $this->user1->uid), "User1 was not removed from the active Group");
+
+    //Remove User1 from the active group
+    os_user_remove($this->user1->uid);
+    $this->assertFalse(og_is_member($this->group_1->group_type, $this->group_1->id, 'user', $this->user1->uid), "User1 was removed from the active Group");
+
+
+  }
+
+  /**
+   * Test User Role Functions
+   */
+  public function testUserRoles(){
+
+    $test_role = 'vsite user';
+
+    //A little sanity checking to make sure that the roles we will be using exist
+    $roles = og_roles($this->group_1->group_type, 'personal', $this->group_1->id);
+    $exists = false;
+    foreach ($roles as $rid => $role) {
+      if($role == $test_role){
+        $exists = true;
+        break;
+      }
+    }
+    $this->assertTrue($exists,"The role [{$test_role}] exists and can be used for testing.");
+
+    ctools_include('user','os');
+    $roles = og_get_user_roles($this->group_1->group_type, $this->group_1->id, $this->user1->uid);
+    $this->assertFalse(in_array($test_role,$roles),"User1 does not already have the role.");
+
+    //Add role to the user in the active group
+    os_role_grant($this->user1->uid,$test_role);
+
+    $roles = og_get_user_roles($this->group_1->group_type, $this->group_1->id, $this->user1->uid);
+    $this->assertTrue(in_array($test_role,$roles), "User1 recieved the new role in the active Group");
+
+    $g1_roles = og_get_user_roles($this->group_1->group_type, $this->group_1->id, $this->user2->uid);
+    $g2_roles = og_get_user_roles($this->group_2->group_type, $this->group_2->id, $this->user2->uid);
+    $this->assertFalse((in_array($test_role,$g1_roles) || in_array($test_role,$g2_roles)), "User2 does not have the role in Group 1 or 2");
+
+    //Add the role for user2 to an inactive Group
+    os_role_grant($this->user2->uid, $test_role, $this->group_2->id);
+
+    $roles = og_get_user_roles($this->group_2->group_type, $this->group_2->id, $this->user2->uid);
+    $this->assertTrue(in_array($test_role,$roles), "User2 was given the role in the inactive Group");
+
+    $roles = og_get_user_roles($this->group_1->group_type, $this->group_1->id, $this->user2->uid);
+    $this->assertFalse(in_array($test_role,$roles), "User2 was NOT given the role in the active Group");
+
+    //Remove the role from User2 in the inactive group
+    os_role_revoke($this->user2->uid, $test_role, $this->group_2->id);
+
+    $roles = og_get_user_roles($this->group_2->group_type, $this->group_2->id, $this->user2->uid);
+    $this->assertFalse(in_array($test_role,$roles), "User2 no longer has the role in the inactive Group");
+
+    //Revoke Role from User1 in the inactive group
+    os_role_revoke($this->user1->uid, $test_role, $this->group_2->id);
+
+    $roles = og_get_user_roles($this->group_1->group_type, $this->group_1->id, $this->user1->uid);
+    $this->assertTrue(in_array($test_role,$roles), "Role was NOT revoked from User1 in the active Group");
+
+    //Remove role from User1 in the active group
+    os_role_revoke($this->user1->uid, $test_role);
+    $roles = og_get_user_roles($this->group_1->group_type, $this->group_1->id, $this->user1->uid);
+    $this->assertFalse(in_array($test_role,$roles), "Role was revoked from User1 in the active Group");
+
+  }
+}

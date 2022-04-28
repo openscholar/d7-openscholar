@@ -1,0 +1,147 @@
+/*FRONT PAGE */
+
+.front,
+.front #columns
+ {
+  background: #4d300e;
+  }
+
+ #extradiv {
+  display:none;
+  }
+
+.front.no-sidebars.navbar-off #block-boxes-site-info {
+	margin-left:100px;
+}
+
+.front #header-container {
+    width: 800px;
+}
+
+.os-rbates-map {
+	width: 800px;
+	margin:0 auto;
+	}
+	
+	
+
+#bg {
+	width: 800px;
+	height: 600px;
+	background: url('map.jpg');
+	margin: 0 auto;
+	position: relative;
+	padding-top: 1px;
+	}
+
+#map {
+	width: 458px;
+	height: 185px;
+	background: url('map-sprite.png') -800px -600px transparent no-repeat;
+	padding: 0;
+	margin: 56px 0 0 168px;
+	}
+
+#map.map-publications {
+	background-position: 0px 0px;
+	}
+
+#map.map-bio {
+  height: 205px;
+	background-position: 0px -185px;
+	margin-top: 172px;
+	}
+
+#map.map-data {
+  height: 150px;
+	background-position: 0px -392px;
+	margin-top: 213px;
+	}
+
+#map.map-classes {
+	height: 100px;
+	background-position: 0px -546px;
+	margin-top: 355px;
+	}
+
+#map.map-contact {
+  height: 115px;
+	background-position: 0px -646px;
+	margin-top: 447px;
+	}
+
+/*
+#map.map-links {
+	background-position: -800px -1200px;
+	}
+*/
+
+#map li {
+	position: absolute;
+	list-style:none;
+	background: url('front-text.png') no-repeat transparent;
+	margin: 0;
+	padding: 0;
+	}
+
+#map li a {
+	display:block;
+	text-indent: -999em;
+	}
+
+#map li.publications,
+#map li.publications a {
+	width: 388px;
+	height: 123px;
+	left: 200px;
+	top: 103px;
+	}
+
+#map li.bio,
+#map li.bio a {
+	width: 252px;
+	height: 126px;
+	left: 173px;
+	top: 194px;
+	background-position: 36px -83px;
+	}
+
+#map li.data,
+#map li.data a {
+	width: 139px;
+	height: 126px;
+	left: 444px;
+	top: 222px;
+	background-position: -226px -128px;
+	}
+
+#map li.classes,
+#map li.classes a {
+	width: 186px;
+	height: 82px;
+	left: 353px;
+	top: 362px;
+	background-position: -142px -261px;
+	}
+
+#map li.contact,
+#map li.contact a {
+	width: 149px;
+	height: 94px;
+	left: 360px;
+	top: 454px;
+	background-position: -150px -351px;
+	}
+/*
+#map li.links, #map li.links a {
+	width: 54px;
+	height: 85px;
+	left: 565px;
+	top: 398px;
+	}
+*/
+
+#map li a {
+	left: auto !important;
+	top: auto !important;
+	}

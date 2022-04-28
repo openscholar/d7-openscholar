@@ -1,0 +1,17 @@
+name = OpenScholar: Files
+description = Standardizes OpenScholar File handling
+core = 7.x
+package = OpenScholar
+dependencies[] = features
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[variable][] = colorbox_inline
+features[variable][] = media__file_extensions
+features[variable][] = media__show_deprecated_view_modes
+features[variable][] = media__wysiwyg_allowed_types
+features[variable][] = media__wysiwyg_browser_plugins
+files[] = plugins/os_public_stream_wrapper.inc
+files[] = includes/views/os_files.views.inc
+files[] = includes/views/handler/os_files_handler_field_file_uri_copy.inc
+files[] = includes/views/handler/os_files_filter_title_file_name.inc

@@ -1,0 +1,54 @@
+diff --git a/biblio.module b/biblio.module
+index f1e713e..c5dc48c 100644
+--- a/biblio.module
++++ b/biblio.module
+@@ -136,14 +136,20 @@ function biblio_locale_refresh_types($tid = NULL) {
+   }
+ }
+ 
++/**
++ * Implements hook_init().
++ */
+ function biblio_init() {
+   global $user, $conf;
+   drupal_add_css(drupal_get_path('module', 'biblio') . '/biblio.css');
+ 
+-  if ($user->uid === 0) { // Prevent caching of biblio pages for anonymous users so session variables work and thus filering works
++  // Prevent caching of biblio pages for anonymous users so session
++  // variables work and thus filering works.
++  if ($user->uid === 0 && variable_get('biblio_prevent_anon_cache', TRUE)) {
+     $base = variable_get('biblio_base', 'biblio');
+-    if (drupal_match_path($_GET['q'], "$base\n$base/*"))
++    if (drupal_match_path($_GET['q'], "$base\n$base/*")) {
+       $conf['cache'] = FALSE;
++    }
+   }
+ }
+ 
+diff --git a/includes/biblio.pages.inc b/includes/biblio.pages.inc
+index ed19e55..4d177f6 100644
+--- a/includes/biblio.pages.inc
++++ b/includes/biblio.pages.inc
+@@ -336,11 +336,11 @@ function biblio_build_query($arg_list) {
+     $arg_list['o'] = strtolower(variable_get('biblio_order', 'desc'));
+   }
+ 
+-  if (!isset($_SESSION['biblio_filter']) || !is_array($_SESSION['biblio_filter'])) {
++  if ($user->uid && (!isset($_SESSION['biblio_filter']) || !is_array($_SESSION['biblio_filter']))) {
+     $_SESSION['biblio_filter'] = array();
+   }
+ 
+-  $session = &$_SESSION['biblio_filter'];
++  $session = !empty($_SESSION['biblio_filter']) ? $_SESSION['biblio_filter'] : array();
+ 
+   if (!in_array('no_filters', $arg_list)) {
+     foreach ($session as $filter) {
+@@ -545,7 +545,7 @@ function _biblio_filter_info_line($args = array()) {
+   $filtercontent = '';
+   $search_content = '';
+   $base =  variable_get('biblio_base', 'biblio');
+-  $session = &$_SESSION['biblio_filter'];
++  $session = !empty($_SESSION['biblio_filter']) ? $_SESSION['biblio_filter'] : array();
+   // if there are any filters in place, print them at the top of the list
+   $uri = drupal_parse_url(request_uri());
+   $uri['path'] = variable_get('biblio_base', 'biblio');

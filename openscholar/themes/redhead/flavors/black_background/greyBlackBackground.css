@@ -1,0 +1,125 @@
+ 
+body {
+color: #FFF;
+background:#000;
+}  
+   
+.search-block-form input.form-submit, 
+.search-block-form #edit-submit,
+#search-block-form input.form-submit, 
+#search-block-form #edit-submit, 
+#search-form #edit-submit {
+	background-color: #000;
+}
+   
+   
+.ui-tabs .ui-tabs-panel ,
+.calendar-calendar td,
+.calendar-calendar td a,   
+li a.active,   
+.ui-tabs .ui-state-default a, 
+.ui-tabs .ui-state-default a:link,   
+ul.nice-menu a,   
+a, a:visited,
+.biblio-separator-bar,
+a:hover {
+    color:#FFF;
+    }
+    
+.biblio-title a, .biblio-title-chicago a {
+    color:#FFF !important;
+    }    
+
+.ui-tabs ul.ui-tabs-nav li.ui-tabs-active,
+#columns .accordion ul.nice-menu a:hover,
+#columns .os-custom-menu a:hover,
+#columns #block-os-primary-menu a:hover, 
+#columns #block-os-secondary-menu a:hover,
+#menu-bar ul.nice-menu ul,
+#menu-bar ul.nice-menu .menuparent.over > a,
+#menu-bar ul.nice-menu .menuparent a:hover,
+#menu-bar ul.nice-menu .menuparent a.active,
+#menu-bar ul.nice-menu a.active, 
+#menu-bar ul.nice-menu a:hover,
+#header,
+#header-container, 
+#menu-bar {
+  background: #888 !important;
+}
+
+
+.node-class .field-name-field-semester, 
+.node-class .field-name-field-offered-year, 
+.node-class .field-name-field-class-link, 
+.node-class-material .field-name-field-class,
+.jcarousel-container,
+.os-files-other-list tr, 
+.os-files-other-list td,
+#footer,
+#footer a  {
+    color:#FFF;
+    background: #000;
+    }
+    
+  ul.primary li a,  
+  ul.primary li.active a,  
+ .ui-tabs ul.ui-tabs-nav li,   
+.accordion .ui-state-default, 
+.accordion .ui-widget-content .ui-state-default, 
+.accordion .ui-widget-header .ui-state-default,
+.accordion .ui-state-active, 
+.accordion .ui-widget-content .ui-state-active, 
+.accordion .ui-widget-header .ui-state-active {
+    background: #444;
+    border: none;
+    color: #fff;
+}
+
+#columns .accordion ul.nice-menu li,
+#columns .os-custom-menu ul.nice-menu li,
+#columns #block-os-primary-menu ul.nice-menu li, 
+#columns #block-os-secondary-menu ul.nice-menu li,
+#columns .os-custom-menu ul.menu li,
+#columns #block-os-primary-menu ul.menu li, 
+#columns #block-os-secondary-menu ul.menu li {
+	list-style: none;
+	background-color: #444 !important;
+	text-align: left;
+	float:none;
+}
+
+
+columns .accordion ul.nice-menu li a, 
+#columns .os-custom-menu ul.nice-menu li a, 
+#columns #block-os-primary-menu ul.nice-menu li a, 
+#columns #block-os-secondary-menu ul.nice-menu li a, 
+#columns .os-custom-menu ul.menu li a, 
+#columns #block-os-primary-menu ul.menu li a, 
+#columns #block-os-secondary-menu ul.menu li a {
+border-bottom: 2px solid #000 !important;
+}
+
+
+#columns .os-custom-menu, 
+#columns #block-os-primary-menu, 
+#columns #block-os-secondary-menu {
+border: 1px solid #000;
+}
+
+.ui-tabs .ui-tabs-panel,
+#content-column .block.block-boxes-os_boxes_manual_list,
+.accordion .ui-widget-content {
+background: #222;
+}
+
+
+.calendar-calendar tr {
+background-color: #444;
+}
+
+
+
+
+.calendar-calendar tr td.today {
+	color:#000;
+}

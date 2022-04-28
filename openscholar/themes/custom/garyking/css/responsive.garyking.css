@@ -1,0 +1,63 @@
+@media (max-width: 1008px) {
+   #boxes-box-site_info h1 {
+    font-size: 28px;
+}
+
+#menu-bar ul.nice-menu a {
+  
+    font-size: 16.3px;
+}
+
+
+
+
+}
+/*--------------------------------------------------------*/
+
+@media (max-width: 768px) {
+#menu-bar {
+    position: relative !important;
+
+}
+
+#boxes-box-site_info h1 {
+    padding: 0;
+}
+
+#block-os-primary-menu .nice-menu li.last a {
+	display:none !important;
+}
+
+.front #columns {
+ 
+    margin-top: 0;
+}
+
+.front .content-left.content-right.content-bottom #content-panels .region {
+    margin-bottom: 2px;
+   
+}
+
+.sidebar {
+    margin-top: 0;
+}
+
+
+}
+
+
+@media (max-width: 600px) {
+.research-by-topic li.term-applications,
+.research-by-topic li.term-methods {
+    float: none;
+    width: 100%;
+}
+}
+
+
+
+
+@media (max-width: 479px) {
+
+
+}

@@ -1,0 +1,134 @@
+<?php
+
+/**
+ * Revert field.  Change trim length on person nodes.
+ */
+function os_profiles_update_7000() {
+  features_revert(array('os_profiles' => array('field')));
+  return t('Reverted os_profiles fields.');
+}
+
+/**
+ * Enable the field_redirection module
+ */
+function os_profiles_update_7001() {
+if (module_exists('field_redirection')) {
+    module_enable(array('field_redirection'));
+  }
+}
+
+/**
+ * Add description to image fields
+ */
+function os_profiles_update_7002() {
+  features_revert(array('os_profiles' => array('field_instance')));
+}
+
+/**
+ * Remove the "file_upload" field but keep the existing files.
+ */
+function os_profiles_update_7003() {
+  $instance = field_info_instance('node', 'field_upload', 'person');
+  
+  // Mark the field instance for deletion.
+  // We avoid using field_delete_instance() as it deletes the instance data
+  // which is the file in this case.
+  db_update('field_config_instance')
+    ->fields(array('deleted' => 1))
+    ->condition('field_name', $instance['field_name'])
+    ->condition('entity_type', $instance['entity_type'])
+    ->condition('bundle', $instance['bundle'])
+    ->execute();
+
+  // Clear the cache.
+  field_cache_clear();
+}
+
+/**
+ * Adding the field prefix to the os profile bundle.
+ */
+function os_profiles_update_7004() {
+  features_revert(array('os_profiles' => array('field_base', 'field_instance', 'feeds_tamper')));
+}
+
+/**
+ * Adding child site reference.
+ */
+function os_profiles_update_7005() {
+  features_revert(array('os_profiles' => array('field_base', 'field_instance')));
+}
+
+/**
+ * Add title field to the people view.
+ */
+function os_profiles_update_7006() {
+  features_revert(array('os_profiles' => array('views_view')));
+}
+
+/**
+ * Updating description to profile photo
+ */
+function os_profiles_update_7007() {
+ features_revert(array('os_profiles' => array('field_instance')));
+}
+
+/**
+ * Updating website title max character limit from 128 to 75
+ */
+function os_profiles_update_7008() {
+ features_revert(array('os_profiles' => array('field_instance')));
+}
+
+/**
+ * Adding office hours field.
+ */
+function os_profiles_update_7049() {
+  features_revert(array('os_profiles' => array('field', 'field_base', 'field_instance')));
+}
+
+/**
+ * Removing extra People link from primary menu
+ */
+function os_profiles_update_7050() {
+ features_revert(array('os_profiles' => array('views_view')));
+}
+
+/**
+ * Update sync URLs from the old %.json format to the new api\v1\profiles format
+ */
+function os_profiles_update_7051() {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'os_profiles') . '/updates/update7051.php',
+  ));
+}
+
+function os_profiles_update_7052(&$sandbox) {
+  os_set_update_batch($sandbox, array(
+    'batch' => 250,
+    'entity' => 'node',
+    'path' => drupal_get_path('module', 'os_profiles') . '/updates/update7052.php',
+  ));
+}
+
+/**
+ * Order the fields in the profile forms to match the profile view.
+ */
+function os_profiles_update_7053() {
+  features_revert(array('os_profiles' => array('variable')));
+}
+
+/**
+ * Change the formatter for profile teaser.
+ */
+function os_profiles_update_7054() {
+  features_revert(array('os_profiles' => array('field', 'field_base', 'field_instance')));
+}
+
+/**
+ * Restore missing path i.e people/glossary.
+ */
+function os_profiles_update_7055() {
+  features_revert(array('os_profiles' => array('views_view')));
+}

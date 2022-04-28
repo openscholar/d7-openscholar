@@ -1,0 +1,77 @@
+<?php 
+
+/**
+ * Implements hook_block_info().
+ */
+function os_search_db_block_info(){
+  $blocks = array();
+
+  $blocks['site-search'] = array(
+      'info' => t('Site Search'),
+      'weight' => '10',
+      //'cache' => DRUPAL_CACHE_CUSTOM
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ *
+ * Generate a block with a promotional link to openscholar.harvard.edu and
+ * all os menu blocks.
+ */
+function os_search_db_block_view($delta = ''){
+  $block = array();
+  switch ($delta) {
+  	case 'site-search' :
+      // The db-search block will be displayed in the front page when Solr is
+      //  not running or on other pages as needed (e.g in widgets).
+      if (!module_exists('os_search_solr') && drupal_is_front_page() || !drupal_is_front_page()) {
+        $block['subject'] = NULL;
+        $block['content'] = drupal_get_form('search_block_form');
+      }
+      return $block;
+
+  	default:
+  	  break;
+  }
+}
+
+/**
+ * hook os_widget
+ *
+ * Exposes blocks as OpenScholar widgets.
+ */
+function os_search_db_os_widget(){
+  $items = array();
+
+  // Displays site search box
+  $items['os_search_db-site-search'] = array(
+      'module' => 'os_search_db',
+      'delta' => 'site-search',
+      'weight' => '-10',
+      'info' => 'Search Box'
+  );
+
+  return $items;
+}
+
+/**
+ * Alter the standard node db search query
+ * @param QueryAlterableInterface $query
+ */
+function os_search_db_query_alter(QueryAlterableInterface $query) {
+  if(module_exists('vsite') && ($vsite = spaces_get_space())){
+    // I only want to see items in this site
+    if (!($query instanceof PagerDefault) ) return;
+
+    $tables = $query->getTables();
+    if(isset($tables['i']) && $tables['i']['table'] == 'search_index' && isset($tables['n'])){
+      $query->innerJoin('og_membership', 'ogmem', 'ogmem.etid = n.nid');
+      $query->condition('ogmem.gid', $vsite->id, '=');
+      $query->condition('ogmem.group_type', $vsite->group_type, '=');
+      $query->condition('ogmem.entity_type', "node", '=');
+    }
+  }
+}

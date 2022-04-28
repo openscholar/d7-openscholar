@@ -1,0 +1,52 @@
+@media (max-width: 1008px) {
+    .link-count-mobi-main a {
+        background-color: #FFF;
+        color: #FFFFFF;
+    }
+    .region-header-third ul.nice-menu a {
+        color: #215990 !important;
+    }
+    #menu-bar #block-os-primary-menu a {
+        color: #333;
+    }
+    /*Dropdown menu*/
+    
+    .region-header-third .os-custom-menu.opened,
+    .region-header-third #block-os-secondary-menu.opened,
+    #menu-bar ul.nice-menu ul,
+    #menu-bar #block-os-primary-menu a:hover,
+    #menu-bar #block-os-primary-menu a:focus,
+    #menu-bar ul.nice-menu a.active,
+    #menu-bar ul.nice-menu a:hover,
+    #menu-bar #block-os-primary-menu {
+        background: #FFF;
+    }
+    #menu-bar #block-os-primary-menu li {
+        border-bottom: 1px solid #CCC !important;
+        border-left: 1px solid #CCC !important;
+        display: block;
+    }
+    #menu-bar #block-os-primary-menu li li {
+        border-bottom: none !important;
+        border-left: none !important;
+    }
+    .region-header-third .os-custom-menu li,
+    .region-header-third #block-os-secondary-menu li {
+        border-bottom: 1px solid #CCC !important;
+        border-top: 1px solid #fff !important;
+        margin-left: 0 !important;
+        border-left: 1px solid #CCC !important;
+    }
+    .link-count-mobi-main a {
+        background-position: 0 -521px;
+    }
+    .link-count-mobi-util a {
+        background-position: -57px -530px;
+    }
+    .link-count-mobi-util a {
+        background-color: #fff;
+    }
+}
+/*--------------------------------------------------------*/
+
+@media (max-width: 768px) {}

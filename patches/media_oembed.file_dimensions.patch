@@ -1,0 +1,18 @@
+--- a/media_oembed/media_oembed_old.module	Thu Jul 18 11:39:13 2013
++++ b/media_oembed/media_oembed.module	Thu Jul 18 11:39:43 2013
+@@ -145,6 +145,15 @@
+       'maxheight' => isset($file->override['height']) ? $file->override['height'] : $display['settings']['height'],
+       'wmode' => isset($file->override['wmode']) ? $file->override['wmode'] : $display['settings']['wmode'],
+     );
++
++    if (isset($file->override['attributes']['width'])) {
++      $options['maxwidth'] = $file->override['attributes']['width'];
++      $options['maxheight'] = $file->override['attributes']['height'];
++    }
++    elseif (isset($file->override['width'])) {
++      $options['maxwidth'] = $file->override['width'];
++      $options['maxheight'] = $file->override['height'];
++    }
+     if (empty($options['wmode'])) {
+       unset($options['wmode']);
+     }

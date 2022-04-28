@@ -1,0 +1,6 @@
+ID,Title,URL,Public,Domain,Access,UID,Members,Parent group
+personal1,John,john,public,,0,user2,
+personal2,Obama,obama,private,,0,user2,user1
+personal3,Abraham,lincoln,public,lincoln.local,0,user2,
+personal4,Einstein,einstein,public,,2,user2,
+personal5,Tesla,tesla,public,,0,user2,user4,department1

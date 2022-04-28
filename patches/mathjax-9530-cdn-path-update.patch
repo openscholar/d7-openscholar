@@ -1,0 +1,13 @@
+diff --git a/plugin.js b/plugin.js
+index dd5025f..f946eae 100644
+--- a/plugin.js
++++ b/plugin.js
+@@ -20,7 +20,7 @@
+ 			var cls = editor.config.mathJaxClass || 'math-tex';
+ 
+       // Hacked at this point.
+-			editor.config.mathJaxLib = '//cdn.mathjax.org/mathjax/2.6-latest/MathJax.js?config=TeX-AMS_HTML';
++			editor.config.mathJaxLib = '//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML';
+ 
+ 			if ( !editor.config.mathJaxLib ) {
+ 				CKEDITOR.error( 'mathjax-no-config' );

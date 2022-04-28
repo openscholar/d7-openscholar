@@ -1,0 +1,219 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Code for the OS links feature.
+ */
+
+include_once ('os_links.features.inc');
+
+/**
+ * Implements hook_os_app_info().
+ */
+function os_links_os_app_info() {
+  $apps = array();
+
+  $apps['os_links'] = array(
+    'path' => 'links',
+  	'nodetypes' => array(
+  	  'link',
+    ),
+    'views tabs' => array(
+      'os_links' => array('page'),
+    ),
+    'importers' => array(
+      'link' => array(
+        'csv' => 'os_links',
+      ),
+    ),
+    'browse_pages' => array(
+      'link' => array(
+        'url' => 'browse/links',
+        'title' => t('Links'),
+        'display_mode' => 'teaser',
+        'menu_item' => 'links',
+      ),
+    ),
+    'has_settings' => TRUE,
+  );
+
+  return $apps;
+}
+
+/**
+ * Implements hook_process_hook() for node.
+ *
+ * Removes the username from $submitted info on blog type nodes.
+ */
+function os_links_process_node(&$vars) {
+  if ($vars['type'] !== 'link' || (!in_array($vars['view_mode'], array('links', 'full')) && !$vars['teaser'])) {
+    return;
+  }
+
+  // Changes the title URL destination from node alias to link field URL.
+  $items = field_get_items('node', $vars['node'], 'field_links_link');
+  // Build the URL, including any url queries & fragments.
+  $vars['node_url'] = url(rawurldecode($items[0]['url']), array('query' => isset($items[0]['query']) ? $items[0]['query'] : NULL,
+    'fragment' => isset($items[0]['fragment']) ? $items[0]['fragment'] : NULL
+    )
+  );
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ *
+ * Adds a view mode that shows links as links rather than links to pages containing links
+ */
+function os_links_entity_info_alter(&$info) {
+  $info['node']['view modes']['links'] = array(
+    'label' => t('Links'),
+    'custom settings' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_os_entity_view_modes()
+ */
+function os_links_os_entity_view_modes() {
+  return array('node' =>
+    array('link' => array('links')
+  ));
+}
+
+/**
+ * Implements hook_os_add_new_links_alter()
+ *
+ * Redirects user after creating Link node from "Add new" links
+ */
+function os_links_os_add_new_links_alter(&$links) {
+  if (isset($links['link'])) {
+    $request_path = request_path();
+    $links['link']['query'] = array('destination' => $request_path);
+  }
+}
+
+/**
+ * Implements hook_vsite_og_node_type_info().
+ */
+function os_links_vsite_og_node_type_info() {
+  return array(
+    'link' => 'group content',
+  );
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function os_links_preprocess_node(&$variables) {
+  if ($variables['type'] != 'link') {
+    return;
+  }
+
+  if (($variables['field_open_link_in_new_tab'][LANGUAGE_NONE][0]['value'] == 1) &&
+      !empty($variables['field_links_link'][LANGUAGE_NONE][0]['url'])) {
+    $variables['title'] = l($variables['title'], rawurldecode($variables['field_links_link'][LANGUAGE_NONE][0]['url']), array('attributes' => array("target" => '_blank')));
+  }
+
+  if (empty($variables['sv_list']) || $variables['view_mode'] != 'full') {
+    return;
+  }
+
+  $variables['page'] = TRUE;
+  $variables['title_prefix'] = '<h1 class="node-title">' . $variables['title'] . '</h1>';
+}
+
+/**
+ * Implements hook_os_entity_view_modes_alter
+ **/
+function os_links_os_entity_view_modes_alter(&$info) {
+  $info['node']['link'] = array_diff($info['node']['link'], array('slide_teaser'));
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter
+ **/
+function os_links_form_link_node_form_alter(&$form, &$form_state) {
+  $form['field_links_link']['#element_validate'][] = '_url_encode_link_validate';
+  $form['field_links_link'][LANGUAGE_NONE][0]['#default_value']['url'] = rawurldecode($form['field_links_link'][LANGUAGE_NONE][0]['#default_value']['url']);
+}
+
+/**
+ * Callback for #element_validate for field 'field_links_link' for Link content type.
+ **/
+function _url_encode_link_validate($form, &$form_state) {
+  $url = $form_state['values']['field_links_link'][LANGUAGE_NONE][0]['url'];
+  // Extracting domain name from given URL.
+  preg_match('/(http(|s)):\/\/(.*?)\//si',  $url, $matches);
+  // If given URL has a valid domain starting with http or https.
+  if (isset($matches[0])) {
+    $domain = $matches[0];
+    $path = explode($domain, $url);
+    // Generating URL encoded string from given URL and assigning it into form_state value.
+    $form_state['values']['field_links_link'][LANGUAGE_NONE][0]['url'] = $domain . rawurlencode($path[1]);
+  }
+}
+
+/**
+ * Implements hook_preprocess_field
+ * For url decoding of link field for node / lising page html output.
+ **/
+function os_links_preprocess_field(&$variables, $hook) {
+  $element = $variables['element'];
+  if ($element['#bundle'] == 'link' && isset($element['#field_name']) && $element['#field_name'] == 'field_links_link') {
+    // Decoding URL, otherwise it would display the link as URL encoded format in title.
+    if (isset($element[0]['#theme'])) {
+      $variables['items'][0]['#element']['url'] = rawurldecode($variables['items'][0]['#element']['url']);
+      $variables['items'][0]['#element']['title'] = rawurldecode($variables['items'][0]['#element']['title']);
+      $variables['items'][0]['#element']['display_url'] = rawurldecode($variables['items'][0]['#element']['display_url']);
+    }
+    else {
+      $url = l(rawurldecode($element['#items'][0]['title']), rawurldecode($element['#items'][0]['url']), $element['#items'][0]['attributes']);
+      $variables['items'][0]['#markup'] = $url;
+    }
+  }
+}
+
+/**
+ * App-specific settings for the Links app.
+ */
+function os_links_cp_settings() {
+  $settings = array();
+
+  $spaces_features = variable_get('spaces_features');
+
+  // The app won't appear in CP menu if not enabled.
+  if (empty($spaces_features['os_links'])) {
+    return $settings;
+  }
+
+  $settings['os_links_ordering'] = array(
+     'group' => array(
+       '#id' => 'feature_os_links',
+       '#title' => t('Links'),
+       '#weight' => 3,
+       '#menu_parent' => 'app_settings',
+       '#help_link' => l(t('Learn more about links'), 'https://help.theopenscholar.com/links-app#link-app-settings', array('attributes' => array('target' => '_blank'))),
+     ),
+     'form' => array(
+       '#type' => 'radios',
+       '#default_value' => variable_get('os_links_ordering', 1),
+       '#options' => array(1 => 'Creation date, descending', 2 => 'Creation date, ascending', 3 => 'Alphanumeric, A-Z', 4 => 'Alphanumeric, Z-A'),
+       '#weight' => -1,
+       '#prefix' => '<label class="settings-form-heading">Choose how links are ordered</label>',
+     ),
+   );
+
+  return $settings;
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function os_links_views_query_alter(&$view, &$query) {
+  if ($view->name == 'os_links' && $view->current_display == 'page') {
+    $links_order = variable_get('os_links_ordering', 1);
+    $query->orderby[1]['field'] = ($links_order == 1 || $links_order == 2) ? 'node.created' : 'node.title';
+    $query->orderby[1]['direction'] = ($links_order == 1 || $links_order == 4) ? 'DESC' : 'ASC';
+  }
+}

@@ -1,0 +1,5 @@
+name = Asian Leaves
+description = A Asian Leaves of the scholor-theme-07 theme
+screenshot = screenshot.png
+
+css[] = asian_leaves.css

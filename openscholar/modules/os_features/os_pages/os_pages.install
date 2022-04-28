@@ -1,0 +1,196 @@
+<?php
+
+/**
+ * Updates all pages_pages contexts to individual page contexts
+ */
+function os_pages_update_7001(&$sandbox) {
+  $q = db_select('spaces_overrides', 'so')
+       ->fields('so')
+       ->condition('object_id', 'pages_pages:reaction:block')
+       ->execute();
+
+  $default = os_pages_context_custom('os_pages-page-1');
+
+  foreach ($q as $r) {
+    $group = $r->id;
+    $q2 = db_select('node', 'n')
+          ->fields('n', array('nid'))
+          ->condition('n.type', 'page');
+    $q2->join('og_membership', 'ogm', 'ogm.etid = n.nid AND ogm.entity_type =\'node\'');
+    $q2->condition('ogm.gid', $group);
+
+    $q2 = $q2->execute();
+    foreach ($q2 as $n) {
+      $ctx_name = 'os_pages-page-'.$n->nid;
+      $ctx = clone $r;
+      $ctx->object_id = $ctx_name.':reaction:block';
+      $ctx->value = unserialize($ctx->value);
+      $ctx->value['blocks'] = array_merge($ctx->value['blocks'], $default->reactions['block']['blocks']);
+      drupal_write_record('spaces_overrides', $ctx);
+    }
+  }
+
+  db_delete('spaces_overrides')
+  ->condition('object_id', 'pages_pages:reaction:block')
+  ->execute();
+}
+
+function os_pages_update_7002(&$sandbox) {
+  $q = db_select('spaces_overrides', 'so')
+       ->fields('so')
+       ->condition('object_id', 'os_pages-page-%', 'LIKE')
+       ->execute();
+
+  $default = os_pages_context_custom('os_pages-page-1');
+
+  foreach ($q as $r) {
+    $r->value = unserialize($r->value);
+    $r->value['blocks'] = array_merge($r->value['blocks'], $default->reactions['block']['blocks']);
+    drupal_write_record('spaces_overrides', $r, array('type', 'id', 'object_type', 'object_id'));
+  }
+}
+
+/**
+ * Prevents existing sections from having their navs moved
+ */
+function os_pages_update_7003(&$sb) {
+  $sections = os_pages_get_sections();
+
+  foreach ($sections as $s) {
+    $exists = db_select('spaces_overrides', 'so')
+      ->condition('object_id', 'os_pages-section-'.$s['bid'].':reaction:block')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    if (!$exists) {
+      $override = context_load('os_pages-section-'.$s['bid']);
+      $override->reactions['block']['blocks']['boxes-os_pages_section_nav']['region'] = 'sidebar_second';
+
+      $groups = og_get_entity_groups('node', $s['bid']);
+      $group = reset($groups['node']);
+
+      $data = (object)array(
+        'type' => 'og',
+        'id' => $group,
+        'object_type' => 'context',
+        'object_id' => 'os_pages-section-'.$s['bid'].':reaction:block',
+        'value' => $override->reactions['block']
+      );
+
+      drupal_write_record('spaces_overrides', $data);
+    }
+  }
+}
+
+/**
+ * Revert fields
+ */
+function os_pages_update_7004() {
+  features_revert(array('os_pages' => array('field_instance')));
+}
+
+/**
+ * Features revert and variable set for new Meta Description (summary) field.
+ */
+function os_pages_update_7005() {
+  // Revert for new field using features API.
+  $revert = array(
+    'os_pages' => array(
+      'field_base',
+      'field_instance',
+    ),
+  );
+  features_revert($revert);
+
+  // "Revert" just one variable value using variable API.
+  $name = 'nodeformscols_field_placements_page_default';
+  $value = variable_get($name, array());
+  $value['os_seo'] = array(
+    'region' => 'right',
+    'weight' => '7',
+    'has_required' => FALSE,
+    'title' => 'SEO',
+    'collapsed' => 1,
+    'hidden' => 0,
+  );
+  variable_set($name, $value);
+}
+
+/**
+ * Mark pages for re-index
+ */
+function os_pages_update_7006() {
+
+  if(module_exists('apachesolr')) {
+    // Mark the page content type for re-index
+    $indexer_table = apachesolr_get_indexer_table('node');
+    db_update($indexer_table)
+      ->fields(array('changed' => REQUEST_TIME, 'status' => 1))
+      ->condition('entity_type', 'node')
+      ->condition('bundle', 'page')
+      ->execute();
+  }
+}
+
+/**
+ * Features revert to remove meta description / summary from body part.
+ */
+function os_pages_update_7007() {
+  $revert = array(
+    'os_pages' => array(
+      'field_instance',
+    ),
+  );
+  features_revert($revert);
+}
+
+/**
+ * Features revert to remove page css class part.
+ */
+function os_pages_update_7008() {
+  $revert = array(
+    'os_pages' => array(
+      'field_base',
+      'field_instance',
+    ),
+  );
+  features_revert($revert);
+
+  // "Revert" just one variable value using variable API.
+  $name = 'nodeformscols_field_placements_page_default';
+  $value = variable_get($name, array());
+  $value['os_css_class_fieldset'] = array(
+    'region' => 'right',
+    'weight' => '8',
+    'has_required' => FALSE,
+    'title' => 'Apply css',
+    'collapsed' => 1,
+    'hidden' => 0,
+  );
+  variable_set($name, $value);
+}
+
+/**
+ * Revert strongarm variables to register enable_revisions setting
+ */
+function os_pages_update_7009() {
+  $revert = array(
+    'os_pages' => array(
+      'variable',
+    ),
+  );
+  features_revert($revert);
+}
+
+/**
+ * Change pages field formatter,
+ */
+function os_pages_update_7010() {
+  $revert = array(
+    'os_pages' => array(
+      'field_instance',
+    ),
+  );
+  features_revert($revert);
+}

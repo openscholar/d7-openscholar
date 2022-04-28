@@ -1,0 +1,11 @@
+name = Dataverse
+description = A dataverse is a self-contained virtual data archive, hosted by IQSS's Dataverse Network.
+core = 7.x
+package = Features
+dependencies[] = ctools
+dependencies[] = os
+features[box][] = os_dataverse_list_box
+features[box][] = os_dataverse_search_box
+features[box][] = os_dataverse_dataset_citation_box
+features[box][] = os_dataverse_dataset_box
+features[features_api][] = api:2

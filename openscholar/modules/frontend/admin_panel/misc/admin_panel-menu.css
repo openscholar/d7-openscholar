@@ -1,0 +1,446 @@
+html,
+body {
+    height: 100%;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+}
+body.page-cp {
+    overflow-x: hidden;
+}
+body.overlay {
+    overflow-x: visible;
+}
+.page-cp #branding,
+.page-cp #page {
+    width: 100%;
+    position: absolute;
+}
+#overlay .page_wrap {
+    position: relative;
+}
+.page-cp.overlay #branding,
+.page-cp.overlay #page {
+    position: relative;
+    width: auto;
+}
+/* PAGE WHEN MENU IS OPEN */
+
+.page-cp #page {
+    margin-left: 150px;
+    width: 85%;
+    transition-property: margin-left, width;
+    transition-duration: .125s;
+    transition-timing-function: ease-in-out;
+    transition-delay: .125s;
+}
+#branding,
+.page-cp #branding {
+    position: relative;
+    margin-left: 110px;
+    transition-property: margin-left;
+    transition-duration: .125s;
+    transition-timing-function: ease-in-out;
+    transition-delay: .125s;
+}
+#branding ul.primary {
+    transition-property: margin;
+    transition-duration: .125s;
+    transition-timing-function: ease-in-out;
+    transition-delay: .125s;
+    padding-right: 15%;
+}
+/* PAGE WHEN MENU IS CLOSED */
+
+.admin-menu-closed.page-cp #page {
+    margin-left: 60px;
+    width: 94%;
+}
+.admin-menu-closed.page-cp #branding {
+    margin-left: 20px;
+}
+
+.admin-menu-homeicon {
+    display: block;
+    width: 55px;
+    height: 38px;
+    position: fixed;
+    z-index: 102;
+    background: url('images/home_button.png') no-repeat 10px 1px;
+    background-color: #000;
+    text-indent: -10000px;
+    left: 0;
+    top: 0;
+}
+/* MENU SPECIFIC */
+
+#cssmenu,
+#cssmenu ul,
+#cssmenu ul li,
+#cssmenu ul li a,
+#cssmenu ul li span {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    list-style: none;
+    line-height: 0;
+    display: block;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    font-style: normal;
+}
+#cssmenu ul li a,
+#cssmenu ul li span {
+    line-height: 1;
+}
+#cssmenu *,
+.user-menu * {
+    font-family: helvetica;
+    color: #ffffff;
+    font-weight:normal;
+}
+.user-menu .clearable,
+.user-menu .no-search-result {
+    color:#444;
+}
+.user-menu .pager {
+  
+    color: #333;
+   
+}
+.user-menu .pager button {
+  
+   border:none;
+   background-color:#fff;
+  font-size:1.6em;
+   
+}
+
+#cssmenu ul {
+    z-index: 2;
+    position: relative;
+}
+#cssmenu ul ul {
+    display: none;
+    background-color: #49505a;
+}
+.align-right {
+    float: right;
+}
+#cssmenu > ul > li > span {
+    cursor: pointer;
+    z-index: 2;
+    font-size: 12px;
+    text-decoration: none;
+    color: #ffffff;
+    -webkit-transition: color .2s ease;
+    -o-transition: color .2s ease;
+    transition: color .2s ease;
+    box-shadow: inset 0 1px rgba(0, 0, 0, 0.1);
+}
+#cssmenu ul li a:hover,
+#cssmenu ul li span:hover {
+    color: #CCC;
+    text-decoration: none;
+}
+#cssmenu ul li a.active {
+    font-style: italic;
+    font-weight: bold;
+}
+#cssmenu li.heading.has-sub,
+#cssmenu li.heading.submenu {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') no-repeat 109px -1009px;
+    background-color: #444;
+}
+#cssmenu li.heading.has-sub.open,
+#cssmenu li.heading.submenu.open {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') no-repeat 109px -983px;
+    background-color: #444;
+}
+
+#cssmenu li.heading.parent,
+#cssmenu li.heading.parent.open {
+    background-color: #6C7A89;
+}
+#cssmenu ul ul li a,
+#cssmenu ul ul li div,
+#cssmenu .heading {
+    cursor: pointer;
+    z-index: 2;
+    font-size: 12px;
+    text-decoration: none;
+    color: #fff;
+    -webkit-transition: color .2s ease;
+    -o-transition: color .2s ease;
+    transition: color .2s ease;
+    box-shadow: inset 0 1px rgba(0, 0, 0, 0.1);
+        line-height: 1.1em;
+}
+[toggle-open],
+[admin-panel-directive-link] span {
+    padding: 10px !important;
+}
+#cssmenu ul ul li span.close-siblings,
+#cssmenu ul ul li a,
+#cssmenu ul ul li [admin-panel-directive-link] span {
+    box-shadow: none;
+    padding-left: 15px !important;
+}
+#cssmenu .heading {
+    padding: 0;
+    background: #444;
+}
+#cssmenu .heading.submenu {
+    padding: 0;
+}
+#cssmenu .heading a.submenu_heading {
+    background: #454545;
+}
+#cssmenu ul ul ul li a,
+#cssmenu ul ul ul li span.close-siblings,
+#cssmenu ul ul ul li [admin-panel-directive-link] span {
+    padding-left: 20px !important;
+}
+#rightMenuSlide {
+    top: 4px;
+    z-index: 101;
+}
+.topRight_Menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 10px;
+    color: white;
+    background: #6C7A89;
+    z-index: 10;
+    display: inline-block;
+    font-family: helvetica;
+    font-size: 12px;
+    cursor: pointer;
+}
+#topRightMenu {
+    background: url('images/my_account-bg.png') 12px 3px no-repeat;
+    width: 35px;
+    height: 18px;
+    background-color: #49505a;
+}
+.topRight_Menu a {
+    font-style: normal;
+}
+.topRight_subMenu {
+    margin-top: 34px;
+    font-size: 12px;
+    display: none;
+    padding: 0;
+}
+.topRight_subMenu ul {
+    margin: 0;
+    list-style-type: none;
+    background-color: #49505a;
+    width: 152px;
+}
+.topRight_subMenu li {
+    background: #6C7A89;
+}
+.topRight_subMenu ul.user-menu > li > a {
+    color: #FFF;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+}
+.user-menu .pager button,
+.topRight_subMenu li a.text_link {
+    color: #215990;
+}
+#user-name {
+    background-color: #49505a;
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 15ch;
+    margin-right: 0;
+}
+.topRight_subMenu ul.user-menu > li > a,
+#user-name,
+.my-sites-click {
+    padding: 5px 10px;
+}
+.topRight_subMenu li.slate {
+    background: #444;
+}
+.topRight_subMenu li.notifications {
+    position: relative;
+}
+.notifications-headsup .slate.alert {
+    top: 20px;
+    right: 35px;
+    border-radius: 20px;
+    height: 18px;
+    width: 12px;
+    display: block;
+    text-align: center;
+    line-height: 16px;
+    font-weight: bold;
+}
+.slate.alert {
+    background: #EF0812;
+    position: absolute;
+    top: 7px;
+    right: 52px;
+    font-size: 1em;
+    border-radius: 20px;
+    height: 18px;
+    width: 12px;
+    display: block;
+    text-align: center;
+    line-height: 16px;
+    font-weight: bold;
+}
+.alert {
+    padding: 0 4px;
+}
+.arrow-down {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 7px solid #fff;
+    z-index: 10;
+    position: absolute;
+    right: 28px;
+}
+a {
+    cursor: pointer;
+    color: #fff;
+    text-decoration: none;
+}
+/* account tab popouts */
+
+.account_tab_popout {
+    position: absolute;
+    right: 152px;
+    background-color: #FFF;
+    width: 450px;
+    color: #1e1e1e;
+    border: 1px solid #CCC;
+    -webkit-box-shadow: 3px 3px 3px 0px rgba(50, 50, 50, 0.3);
+    -moz-box-shadow: 3px 3px 3px 0px rgba(50, 50, 50, 0.3);
+    box-shadow: 3px 3px 3px 0px rgba(50, 50, 50, 0.3);
+    padding: 15px;
+}
+.new-site-link {
+    position: absolute;
+     top: 79px;
+    right: 22px;
+}
+.account_tab_popout.user_sites {
+    top: 28px;
+}
+.animated {
+    animation-duration: 0s !important;
+}
+table {
+    font-size: 1em !important;
+}
+td.site-name {
+    width: 58%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 25ch;
+}
+td.user-site-controls {
+    text-align: right;
+    position:relative;
+}
+.user_sites .site-list:nth-child(odd) {
+    background-color: #FFF;
+}
+.user_sites .site-list:nth-child(even) {
+    background-color: #F7F7F7;
+}
+.other-sites,
+.my-sites,
+.user_sites .site-list {
+    border-bottom: 1px solid #DADADA;
+    border-left: 1px solid #DADADA;
+    border-right: 1px solid #DADADA;
+}
+.my-sites {
+    border-top: 1px solid #DADADA;
+}
+.close-user-menu {
+    position: absolute;
+    top: 6px;
+    right: 2px;
+}
+/* these need to be moved to the os_common dir */
+
+.close-link {
+    background: url('/profiles/openscholar/themes/os_basetheme/images/scholarbase-sprite.png') 0 -926px no-repeat;
+    width: 20px;
+    height: 20px;
+    background-color: #49505a;
+}
+.user_sites-close {
+    margin: 0 0 2px 97%;
+    background-color: #FFF;
+}
+.text_link {
+    color: #215990;
+}
+.btton {
+    border-radius: 2px 2px 2px 2px;
+    -moz-border-radius: 2px 2px 2px 2px;
+    -webkit-border-radius: 2px 2px 2px 2px;
+    color: #FFF;
+    padding: 7px 8px;
+}
+.btton.add {
+    background-color: #458C00;
+}
+.btton.remove {
+    background-color: #FF3E00;
+}
+.btton:visited {
+    color: #FFF;
+}
+/* Table styling*/
+
+table.table-shading {
+    width: 100%;
+    border: none;
+    color: #444;
+    margin-bottom: 0;
+}
+table.table-shading tr {
+    height:60px;
+}
+table.table-shading td {
+    vertical-align:middle;
+}
+.header-row {
+    background-color: #EAEAEA;
+    padding: 6px 0 6px 8px;
+    color: #444;
+    font-weight: bold;
+}
+.search-vsite-textfield {
+    margin: 0px 0px 5px 0px;
+}
+.no-search-result{
+    padding: 5px 8px;
+}
+.clearable{
+     background: url(images/clear_site_search.gif) no-repeat right 6px center;
+    border: 1px solid #999;
+    padding: 7px 8px;
+    border-radius: 2px;
+    transition: background 0.4s;
+    width: 200px;
+}
+a.search-clear {
+    position: relative;
+    left: -13px;
+    color: transparent;
+}

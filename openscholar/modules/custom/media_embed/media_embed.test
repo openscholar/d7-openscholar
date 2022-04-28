@@ -1,0 +1,104 @@
+<?php
+
+/**
+ * @file
+ * Tests for Media Embed
+ */
+
+class MediaEmbedTest extends OSProfileTestCase {
+
+  //protected $profile = 'openscholar';
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Media Embed',
+      'description' => 'Tests for the embedding of iframes from a whitelisted domain',
+      'group' => 'Media',
+      'dependencies' => array('media_embed'),
+    );
+  }
+
+  /**
+   * Adds a fake domain to the whitelist
+   * @see DrupalWebTestCase::setUp()
+   */
+  public function setUp() {
+    parent::setUp(array('media_embed'));
+    $whitelist = variable_get('media_embed_whitelist', array());
+    $whitelist[] = 'test.com';
+    variable_set('media_embed_whitelist', $whitelist);
+  }
+
+  /**
+   * Tests to ensure URLs can be valid
+   */
+  public function testURLValid() {
+    $iframe = '<iframe width="420" height="315" src="http://test.com/embed/bD0vcmhmaCY" frameborder="0" allowfullscreen></iframe>';
+    $iframeSub = '<iframe width="420" height="315" src="http://anything.subdomain.test.com/embed/bD0vcmhmaCY" frameborder="0" allowfullscreen></iframe>';
+
+    $this->assertTrue(media_embed_check_src($iframe), "Iframe with no subdomain.");
+    $this->assertTrue(media_embed_check_src($iframeSub), "Iframe with a subdomain.");
+  }
+
+  /**
+   * Tests to ensure invalid URLs are treated as such
+   */
+  public function testURLInvalid() {
+    $iframe = '<iframe width="420" height="315" src="http://fail.com/embed/bD0vcmhmaCY" frameborder="0" allowfullscreen></iframe>';
+    $iframeSub = '<iframe width="420" height="315" src="http://anything.subdomain.fail.com/embed/bD0vcmhmaCY" frameborder="0" allowfullscreen></iframe>';
+    $iframeNotURL = '<iframe width="420" height="315" src="this_is_not_a_url" frameborder="0" allowfullscreen></iframe>';
+
+    $this->assertFalse(media_embed_check_src($iframe), "Iframe with no subdomain.");
+    $this->assertFalse(media_embed_check_src($iframeSub), "Iframe with a subdomain.");
+    $this->assertFalse(media_embed_check_src($iframeNotURL), "Iframe with bad url");
+  }
+
+  /**
+   * Tests URL validation in non-iframe tags.
+   */
+  public function testURLsInOtherThings() {
+    $object = '<object width="420" height="315"><param name="movie" value="http://www.test.com/v/bD0vcmhmaCY?version=3&amp;hl=en_US"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"><embed src="http://www.test.com/v/bD0vcmhmaCY?version=3&amp;hl=en_US" type="application/x-shockwave-flash" width="420" height="315" allowscriptaccess="always" allowfullscreen="true"></embed></object>';
+    $script = '<script src="http://www.test.com/v/bD0someotherstuff" type="text/javascript"></script>';
+
+    $this->assertTrue(media_embed_check_src($object), "Object/param/embed tags.");
+    $this->assertTrue(media_embed_check_src($script), "Script tags");
+  }
+
+  /**
+   * Tests that our file entity can return the right text when being called through the filter
+   */
+  function testFilterOutput() {
+    $code = '<iframe width="420" height="315" src="http://test.com/embed/bD0vcmhmaCY" frameborder="0" allowfullscreen></iframe>';
+    $handler = new MediaInternetEmbedHandler($code);
+    $file = $handler->save();
+
+    $tag = array(
+      'type' => 'media',
+      'view_mode' => 'media_original',
+      'fid' => $file->fid,
+      'attributes' => array(
+        'class' => 'media-image',
+        'typeof' => 'foaf:Image',
+      ),
+    );
+    $text = '[['.drupal_json_encode($tag).']]';
+    $fulltext = 'lorem ipsum '.$text.' some other stuff';
+    $filtered = media_filter($fulltext);
+
+    $expected = $file->field_html_code['und'][0]['value'];
+
+    $this->assertTrue(strpos($filtered, $expected) !== FALSE);
+  }
+
+  /**
+   * Removes our dummy domain from the whitelist.
+   * @see DrupalWebTestCase::tearDown()
+   */
+  public function tearDown() {
+    parent::tearDown();
+    $whitelist = variable_get('media_embed_whitelist', array());
+    $whitelist = array_diff($whitelist, array('test.com'));
+    variable_set('media_embed_whitelist', $whitelist);
+  }
+
+}

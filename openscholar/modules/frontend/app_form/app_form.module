@@ -1,0 +1,50 @@
+<?php
+
+function app_form_library() {
+  $libs = array();
+
+  $path = drupal_get_path('module', 'app_form');
+
+  $libs['module'] = array(
+    'name' => 'Angular Apps Form',
+    'version' => '0.1',
+    'js' => array(
+      $path . '/app_form.module.js' => array(),
+      0 => array(
+        'type' => 'setting',
+        'data' => array(
+          'versions' => array(
+            'app_form' => '0.1'
+          ),
+          'paths' => array(
+            'app_form' => url(drupal_get_path('module', 'app_form'), array('alias' => true)),
+          )
+        )
+      )
+    ),
+    'css' => array(
+      $path . '/app_form.style.css',
+    ),
+    'dependencies' => array(
+      array('os_common', 'angularjs'),
+      array('os_common', 'buttonSpinner'),
+    )
+  );
+
+  return $libs;
+}
+
+function app_form_library_alter(&$libs) {
+  if (isset($libs['admin_panel'])) {
+    $libs['admin_panel']['dependencies'][] = array('app_form', 'module');
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function app_form_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'restful') {
+    return 'plugins/' . $plugin;
+  }
+}

@@ -1,0 +1,5 @@
+name = Mesh
+description = A Mesh of the scholor-theme-07 theme
+screenshot = screenshot.png
+
+css[] = mesh.css

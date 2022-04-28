@@ -1,0 +1,15 @@
+<?php 
+
+/**
+ * Perform any needed search setup functions
+ */
+function os_search_db_install(){
+
+  // Set node as the default search module
+  variable_set('search_active_modules', array(
+  'node'
+      ));
+
+  // Set node as the default search module
+  variable_set('search_default_module', 'node');
+}
