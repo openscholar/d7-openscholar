@@ -299,6 +299,7 @@ projects[oembed][patch][] = "https://raw.githubusercontent.com/openscholar/opens
 projects[oembed][patch][] = "https://raw.githubusercontent.com/openscholar/openscholar-libraries/bf967967e18b992a9c2c8aaa8bcd83308dc916d2/d7patches/oembed.16779.youtube-embed-title.patch"
 projects[oembed][patch][] = "https://www.drupal.org/files/issues/2020-11-19/oembed-sec_fix_sa_contrib_2020_036-3183485-3.patch"
 projects[oembed][patch][] = "https://www.drupal.org/files/issues/2020-12-17/oembed-update_youtube_provider_endpoint_to_use_https-3188850-2.patch"
+projects[oembed][patch][] = "https://www.drupal.org/files/oembed-2021015-1.patch"
 
 projects[og][subdir] = "contrib"
 projects[og][version] = 2.9
@@ -354,6 +355,7 @@ projects[purl][patch][] = "http://drupal.org/files/1473502-purl-init-2_0.patch"
 projects[purl][patch][] = "http://drupal.org/files/1982198-purl-cache-set-1.patch"
 projects[purl][patch][] = "http://drupal.org/files/729862-9-purl-inbound-alter-modifies-q.patch"
 projects[purl][patch][] = "http://drupal.org/files/issues/purl-integrate_redirect_keep_options-1735266-4.patch"
+projects[purl][patch][] = "https://raw.githubusercontent.com/openscholar/openscholar-libraries/7c23e1b93d708335a01535c2937c3a8c843edd9c/d7patches/purl_fix-redirect-failures.patch"
 
 projects[recaptcha][subdir] = "contrib"
 projects[recaptcha][version] = 2.2
@@ -376,7 +378,7 @@ projects[restful][patch][] = "https://raw.githubusercontent.com/openscholar/open
 
 projects[redirect][subdir] = "contrib"
 projects[redirect][version] = 1.0-rc1
-projects[redirect][patch][] = "https://raw.githubusercontent.com/openscholar/openscholar-libraries/baed338248cc88fc174675b40fec6aba9c2dbe9a/d7patches/redirect-9589-enable-redirection.patch"
+projects[redirect][patch][] = "https://raw.githubusercontent.com/openscholar/openscholar-libraries/01c080be3ea5572f34f744156f4b07d887427506/d7patches/redirect-9589-enable-redirection.patch"
 
 projects[robotstxt][subdir] = "contrib"
 projects[robotstxt][version] = "1.1"
@@ -397,6 +399,7 @@ projects[spaces][revision] = "eac3a7e"
 projects[spaces][patch][] = "http://drupal.org/files/1470434-spaces-og-28.patch"
 projects[spaces][patch][] = "http://drupal.org/files/spaces_ui-show_disabled-1662918-1.patch"
 projects[spaces][patch][] = "https://raw.githubusercontent.com/openscholar/openscholar-libraries/baed338248cc88fc174675b40fec6aba9c2dbe9a/d7patches/spaces.disabled_features.patch"
+projects[spaces][patch][] = "https://raw.githubusercontent.com/openscholar/openscholar-libraries/61a3280f4bb1bd76dae3b229e859a94233620ec2/d7patches/spaces_og-dont-delete-purl-early.patch"
 projects[spaces][download][type] = git
 projects[spaces][download][branch] = 7.x-3.x
 projects[spaces][download][revision] = eac3a7e

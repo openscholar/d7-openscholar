@@ -68,6 +68,10 @@ class OsNodeRestfulBase extends RestfulEntityBaseNode {
       'property' => 'sticky',
     );
 
+    $public_fields['changed'] = array(
+      'property' => 'changed',
+    );
+
     return $public_fields;
   }
 
@@ -188,6 +192,32 @@ class OsNodeRestfulBase extends RestfulEntityBaseNode {
     $node = $wrapper->value();
 
     return $node->uid;
+  }
+
+  /**
+   * Overrides \RestfulEntityBase::getQueryForList().
+   *
+   * Fetch updated nodes in the listing.
+   */
+  public function getQueryForList() {
+    $query = parent::getQueryForList();
+    if (!empty($this->request['changed'])) {
+      $query->propertyCondition('changed', $this->request['changed'], '>=');
+    }
+    return $query;
+  }
+
+  /**
+   * Overrides \RestfulEntityBase::getQueryCount().
+   *
+   * Fetch updated nodes count.
+   */
+  public function getQueryCount() {
+    $query = parent::getQueryCount();
+    if (!empty($this->request['changed'])) {
+      $query->propertyCondition('changed', $this->request['changed'], '>=');
+    }
+    return $query->count();
   }
 
   /**

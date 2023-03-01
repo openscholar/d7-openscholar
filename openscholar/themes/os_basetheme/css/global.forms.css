@@ -122,6 +122,10 @@ fieldset legend {
     color: #444;
     font-size: 1.1em;
 }
+/* Work around for bug introduced in Chrome 103 */
+fieldset.collapsible .fieldset-legend {
+    z-index: 1;
+}
 html.js fieldset.collapsed {
     background: transparent;
     padding-top: 5px;

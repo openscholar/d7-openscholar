@@ -65,12 +65,25 @@ class OsTaxonomyTerm extends OsRestfulEntityCacheableBase {
       //throw new \RestfulBadRequestException(t('You need to provide a vsite.'));
     }
 
-    if (!$vsite = vsite_get_vsite($this->request['vsite'])) {
+    if ((!$vsite = vsite_get_vsite($this->request['vsite'])) && empty($this->request['vsiteid'])) {
       return;
     }
 
     module_load_include('inc', 'vsite_vocab', 'includes/taxonomy');
-    $vocabData = vsite_vocab_get_vocabularies($vsite);
+    $vocabData = array();
+    if ($this->request['vsite']) {
+      $vocabData = vsite_vocab_get_vocabularies($vsite);
+    }
+    elseif ($this->request['vsiteid']) {
+      foreach ($this->request['vsiteid'] as $key => $vsiteid) {
+        $vsite = vsite_get_vsite($vsiteid);
+        if (!empty($vsite)) {
+          $data = vsite_vocab_get_vocabularies($vsite);
+          $vocabData = $vocabData + $data;
+        }
+      }
+    }
+
     $requested = array();
     $badVocabs = array();
 

@@ -164,7 +164,7 @@ class citation_distribute_service_repec extends citation_distribute_service {
   }
 
   /*
-   * Themes data into format appropriate for this service
+   * themes data into format appropriate for this service
    */
   public function render($metadata){
     //Copy from array to string of 'key: value' format

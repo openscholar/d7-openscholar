@@ -154,12 +154,27 @@ class OsVocabulary extends OsRestfulEntityCacheableBase {
       //throw new \RestfulBadRequestException(t('You need to provide a vsite.'));
     }
 
-    if (!$vsite = vsite_get_vsite($this->request['vsite'])) {
+    if ((!$vsite = vsite_get_vsite($this->request['vsite'])) && empty($this->request['vsiteid'])) {
       return;
     }
 
     module_load_include('inc', 'vsite_vocab', 'includes/taxonomy');
-    $vocabs = array_keys(vsite_vocab_get_vocabularies($vsite));
+    // $vocabs = array_keys(vsite_vocab_get_vocabularies($vsite));
+    $vocabs = array();
+    if ($this->request['vsite']) {
+      $vocabs = array_keys(vsite_vocab_get_vocabularies($vsite));
+    }
+    elseif ($this->request['vsiteid']) {
+      $vocabs_data = array();
+      foreach ($this->request['vsiteid'] as $key => $vsiteid) {
+        $vsite = vsite_get_vsite($vsiteid);
+        if (!empty($vsite)) {
+          $data = array_keys(vsite_vocab_get_vocabularies($vsite));
+          $vocabs_data = array_merge($vocabs_data, $data);
+        }
+      }
+     $vocabs = $vocabs_data;
+    }
 
     if (!empty($this->request['entity_type']) && !empty($this->request['bundle'])) {
 

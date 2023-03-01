@@ -42,7 +42,7 @@ abstract class citation_distribute_service {
 	abstract public function map_metadata($nid);
 
 	/**
-	 * Themes data into format appropriate for this service
+	 * themes data into format appropriate for this service
 	 *
 	 * @param array $metadata
 	 *   associative array of metadata keys and values to map.

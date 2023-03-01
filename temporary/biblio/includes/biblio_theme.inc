@@ -1040,7 +1040,7 @@ function theme_biblio_alpha_line($variables) {
 }
 
 /**
- * Themes the author editing form
+ * themes the author editing form
  *
  * @param $form
  * @return rendered form

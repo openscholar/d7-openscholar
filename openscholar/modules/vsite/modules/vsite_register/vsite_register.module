@@ -157,12 +157,12 @@ function vsite_register_block_view($delta = '') {
 
   switch ($delta) {
     case 'get_your_site_block':
-      $path = 'site/register';
+      $path = variable_get('vsite_register_path', 'https://huit.harvard.edu/website-requests');
       if (user_access('access administration pages')) {
-        $text = t('Create Your Site Here');
+        $text = t('Inquire with your school/unit');
       }
       elseif (vsite_vsite_exists_access()) {
-        $text = variable_get('vsite_register_get_site_text', t('Create Your Site Here'));
+        $text = variable_get('vsite_register_get_site_text', t('Inquire with your school/unit'));
       }
       elseif (isset($vsites) && user_is_logged_in()) {
         if (count($vsites) > 1) {

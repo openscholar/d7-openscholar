@@ -156,10 +156,12 @@ function os_pages_block_view($delta) {
 function os_pages_block_view_alter(&$render, $block) {
   if ($block->delta == 'os_pages_section_nav' && !empty($render['content'])) {
     $node = menu_get_object();
-    $render['content']['#contextual_links']['section'] = array(
-      'os/pages',
-      array($node->book['bid']),
-    );
+    if (is_array($render['content'])) {
+      $render['content']['#contextual_links']['section'] = array(
+        'os/pages',
+        array($node->book['bid']),
+      );
+    }
   }
   elseif ($block->delta == 'main_content') {
     // make sure this block has contextual links users can access

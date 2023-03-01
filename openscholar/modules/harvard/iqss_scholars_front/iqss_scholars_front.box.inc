@@ -58,8 +58,7 @@ function iqss_scholars_front_default_box() {
   $box->options = array(
     'body' => array(
       'value' => '<div class="os-leftcol">
-  
-  Hosted by <a href="http://hwp.harvard.edu/">Harvard Web Publishing</a>, and powered by <a href="http://theopenscholar.org/">OpenScholar</a> software, <a href="http://openscholar.harvard.edu/">OpenScholar@Harvard</a> offers you the next generation scholarly web site. With it, you can easily create and manage a highly dynamic, powerful, and customizable site, with an easy-to-use interface and a look and feel that is uniquely yours.
+  Hosted by Harvard Web Publishing, and powered by OpenScholar software, OpenScholar @ Harvard offers you the next generation scholarly web site. With it, you can easily create and manage a highly dynamic, powerful, and customizable site, with an easy-to-use interface and a look and feel that is uniquely yours.
 <ul><li><a href="profiles/openscholar/themes/custom/scholars_harvard/Info-sheet-Scholars-at-Harvard-H-2011.03.17.pdf">Fact Sheet (PDF)</a></li>
 <li><a href="http://player.vimeo.com/video/9887585?title=0&amp;byline=0&amp;portrait=0">Video Intro</a></li>
 </ul></div>
@@ -80,7 +79,7 @@ function iqss_scholars_front_default_box() {
   $box->options = array(
     'body' => array(
       'value' => '<div class="os-rightcol">
-<p class="os-leadin">OpenScholar@Harvard is a free web site building tool available to faculty, graduate students and visiting scholars at Harvard.</p>
+<p class="os-leadin">OpenScholar @ Harvard is a web site building tool available to faculty, graduate students and visiting scholars at Harvard.</p>
 <ul>
 <li><span>Create a beautiful academic web site in seconds.</span></li>
 <li><span>Receive more web visibility.</span></li>
@@ -106,8 +105,7 @@ function iqss_scholars_front_default_box() {
   $box->description = 'HWP Option Info text';
   $box->options = array(
     'body' => array(
-      'value' => '<div align="center"><span>or</span><div class="hwp_option"><a href="http://faculty.hwp.harvard.edu/">Engage Harvard Web Publishing</a> for custom
-content organization and design services</div><div><a href="https://hwp.harvard.edu/terms-use" target="_blank">OpenScholar Terms of Use</a></div></div>',
+      'value' => '',
       'format' => 'filtered_html',
     ),
     'additional_classes' => '',

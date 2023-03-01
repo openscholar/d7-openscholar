@@ -28,7 +28,7 @@ function hwpi_strongarm() {
   $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
   $strongarm->api_version = 1;
   $strongarm->name = 'site_access';
-  $strongarm->value = 'http://accessibility.harvard.edu/';
+  $strongarm->value = 'https://accessibility.harvard.edu/';
   $export['site_access'] = $strongarm;
 
   $strongarm = new stdClass();
@@ -56,7 +56,7 @@ function hwpi_strongarm() {
   $strongarm->disabled = FALSE; /* Edit this to true to make a default strongarm disabled initially */
   $strongarm->api_version = 1;
   $strongarm->name = 'copyright_infring';
-  $strongarm->value = 'http://www.harvard.edu/reporting-copyright-infringements';
+  $strongarm->value = 'https://www.harvard.edu/copyright-issue/';
   $export['copyright_infring'] = $strongarm;
 
   $strongarm = new stdClass();

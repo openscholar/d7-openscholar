@@ -184,15 +184,15 @@ function iqss_projects_front_infoblock_content() {
   }else{
     //Create a site
     $items[] = array(
-      '#title' => ((count($vsites) >= 1) ? t('Create a site') : t('Get your website!')),
-      '#href' => 'site/register',
+      '#title' => ((count($vsites) >= 1) ? t('Inquire with your school/unit') : t('Inquire with your school/unit')),
+      '#href' => 'https://huit.harvard.edu/website-requests',
       '#type' => 'link',
     );
   }
 
   $image = theme('image', array('path' => drupal_get_path('theme', 'projects_harvard') . '/images/top_image.png'));
   // Create the link.
-  $text = t('<strong>Projects at Harvard</strong> is a free web site building tool available to groups at Harvard wishing to create a site for their project. It is one of two main Harvard installations of <strong>OpenScholar</strong> and a creation of Harvard’s <em>Institute for Quantitative Social Science.</em><br><br><strong>Projects at Harvard</strong> (and the personal site-oriented <strong>Scholars at Harvard</strong>) provide simple web site creation and management with a suite of features tailored to the particular needs of academics.');
+  $text = t('<strong>Projects at Harvard</strong> is a web site building tool available to groups at Harvard wishing to create a site for their project. It is one of two main Harvard installations of <strong>OpenScholar</strong> and a creation of Harvard’s <em>Institute for Quantitative Social Science.</em><br><br><strong>Projects at Harvard</strong> (and the personal site-oriented <strong>Scholars at Harvard</strong>) provide simple web site creation and management with a suite of features tailored to the particular needs of academics.');
   $block_button = drupal_render($items);
 
   // Setup the content.
@@ -211,31 +211,6 @@ function iqss_projects_front_navblock_content() {
   $items[] = array(
     '#title' => $user -> uid ? 'Log out' : 'Log in',
     '#href' =>  $user -> uid ? 'user/logout' : 'user',
-    '#type' => 'link',
-  );
-
-  $vsites = vsite_get_vsite_by_owner($user->uid);
-  if (!vsite_vsite_exists_access($vsites)) {
-    if ($vsites) {
-      $items[] = array(
-        '#title' => ((count($vsites) > 1) ? 'Go to your sites' : "Go to your site"),
-        '#href' => ((count($vsites) > 1) ? 'user' : $vsites[0]->get_absolute_url()),
-        '#type' => 'link',
-      );
-    } //No sites or ablility to create one
-  }
-  else {
-    //Create a site
-    $items[] = array(
-      '#title' => ((count($vsites) >= 1) ? 'Create a site' : 'Get your website!'),
-      '#href' => 'site/register',
-      '#type' => 'link',
-    );
-  }
-
-  $items[] = array(
-    '#title' => t('Need a Personal Site?'),
-    '#href' => 'http://scholar.harvard.edu',
     '#type' => 'link',
   );
 

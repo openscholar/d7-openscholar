@@ -237,7 +237,7 @@ class OsRestfulPurl extends \RestfulBase implements \RestfulDataProviderInterfac
       // Applying the theme
       if($this->request['themeKey']){
         $theme_key = $this->request['themeKey'];
-        // Themes will be structured like 'hwpi_classic-os_featured_flavor-classic_indigo'
+        // themes will be structured like 'hwpi_classic-os_featured_flavor-classic_indigo'
         // Where 'hwpi_classic' is the theme key and 'classic_indigo' is the flavor
         if (strpos($theme_key, '-os_featured_flavor-') !== FALSE) {
           list($theme_default, $theme_flavor) = explode('-os_featured_flavor-', $theme_key);

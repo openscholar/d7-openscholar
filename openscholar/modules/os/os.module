@@ -220,7 +220,7 @@ function os_in_readonly_mode($page) {
 
   global $user;
 
-  if (variable_get('os_readonly_mode', FALSE) && $user->uid != 1) {
+  if (variable_get('os_readonly_mode', FALSE) && $user->uid != 1  && empty($_GET['os_bypass'])) {
     // Read-only mode is active.
     return variable_get('os_readonly_mode_message', OS_READONLY_MODE_MESSAGE);
   }

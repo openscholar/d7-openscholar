@@ -342,7 +342,6 @@ class vsite extends space_og {
       'private_site',
       'help/*',
       'site/register',
-      'welcome',
       'admin',
       'admin/*',
       'pinserver/auth',

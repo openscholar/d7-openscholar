@@ -467,7 +467,7 @@ class OsFilesResource extends OsRestfulEntityCacheableBase {
       }
     }
     elseif (module_exists('vsite')) {
-      $query->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', 0, '<>');
+      //$query->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', 0, '<>');
     }
     // Make getting private files explicit
     // Private files currently require PIN authentication before they can even be access checked
@@ -477,6 +477,16 @@ class OsFilesResource extends OsRestfulEntityCacheableBase {
     // Only get private files. Nothing else.
     elseif ($this->request['private'] == 'only') {
       $query->propertyCondition('uri', 'private://%', 'LIKE');
+    }
+
+    // Add filter to get updated content only if parameter is set.
+    if (!empty($this->request['changed'])) {
+      $query->propertyCondition('changed', $this->request['changed'], '>=');
+    }
+    
+    // Filter with multiple Vsite ids.
+    if (!empty($this->request['vsiteid'])) {
+      $query->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', $this->request['vsiteid'], "IN");
     }
   }
 

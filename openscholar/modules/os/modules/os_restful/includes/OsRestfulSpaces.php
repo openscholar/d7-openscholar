@@ -57,7 +57,7 @@ abstract class OsRestfulSpaces extends \OsRestfulDataProvider {
    * {@inheritdoc}
    */
   public function publicFieldsInfo() {
-    return $this->simpleFieldsInfo(array('type', 'id', 'object_id', 'object_type', 'value'));
+    return $this->simpleFieldsInfo(array('type', 'id', 'object_id', 'object_type', 'value', 'changed'));
   }
 
   /**
@@ -87,6 +87,11 @@ abstract class OsRestfulSpaces extends \OsRestfulDataProvider {
       $query->condition('object_type', $this->objectType);
     }
 
+    // To make filter using multiple vsite ids.
+    if (!empty($this->request['vsiteid'])) {
+      $query->condition('id', $this->request['vsiteid'], 'IN');
+    }
+
     if (!empty($this->request['vsite'])) {
       $query->condition('id', $_GET['vsite']);
       if (!empty($this->request['widget_id'])) {
@@ -106,6 +111,10 @@ abstract class OsRestfulSpaces extends \OsRestfulDataProvider {
       $length = strlen($plugin_type);
       $string = "s:{$length}:\"{$plugin_type}\"";
       $query->condition('value', '%' . $string . '%', 'LIKE');
+    }
+    if (!empty($this->request['changed'])) {
+      $datetime = date('Y-m-d H:i:s', $this->request['changed']);
+      $query->condition('changed', $datetime, '>=');
     }
   }
 

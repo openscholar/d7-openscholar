@@ -1447,7 +1447,7 @@ function _os_publications_handle_import($node) {
 /**
  * @function theme_os_publications_biblio_year_row
  *
- * Themes biblio years during preprocessing.  Changes the link title to the biblio year text,
+ * themes biblio years during preprocessing.  Changes the link title to the biblio year text,
  * but does not change the link to the numerical year.
  */
 function theme_os_publications_biblio_year_row(&$vars) {

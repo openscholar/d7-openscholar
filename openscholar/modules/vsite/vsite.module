@@ -542,14 +542,14 @@ function vsite_node_delete($node) {
   }
 
   // Invalidate the VSite from Purl's cache.
-  $cache = cache_get('purl_modifiers_' . $language->language);
-  if (!empty($cache->data) && !empty($cache->data['vsite_path'][$node->purl])) {
-    db_delete('purl')
-      ->condition('id', $node->nid)
-      ->execute();
-
-    purl_modifiers(NULL, TRUE);
-  }
+//  $cache = cache_get('purl_modifiers_' . $language->language);
+//  if (!empty($cache->data) && !empty($cache->data['vsite_path'][$node->purl])) {
+//    db_delete('purl')
+//      ->condition('id', $node->nid)
+//      ->execute();
+//
+//    purl_modifiers(NULL, TRUE);
+//  }
 
   if (!variable_get('og_use_queue', FALSE)) {
     // Queue isn't used.
@@ -613,7 +613,7 @@ function vsite_form_os_settings_form_alter(&$form, &$form_state, $form_id){
  */
 function vsite_group_default_homepage_value($entity_type, $entity, $field, $instance, $langcode){
 
-  list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
+  [$id, $vid, $bundle] = entity_extract_ids($entity_type, $entity);
   // Is this a group node
   if (og_is_group_type($entity_type, $bundle) && isset($entity->purl)) {
     // When a site is first created it does not have a domain provider, use the
@@ -1995,6 +1995,10 @@ function vsite_mail_alter(&$message){
   global $base_url;
 
   if ($vsite = spaces_get_space()) {
+    // If email is handled by another module, skip this process.
+    if (!empty($message['params']['vsite_email_processed'])) {
+      return;
+    }
     $site_owner = user_load($vsite->group->uid);
     if ($site_owner->field_first_name['und'][0]['value']) {
       $site_owner_first_name = $site_owner->field_first_name['und'][0]['value'];
@@ -3114,7 +3118,7 @@ function _vsite_form_alias_validate($entity_type, $entity, $path) {
   $entity->path = $path;
   $entity->add_prefix = FALSE;
 
-  list($id) = entity_extract_ids($entity_type, $entity);
+  [$id] = entity_extract_ids($entity_type, $entity);
   if ($id) {
     // Get entity source path, e.g 'node/23'.
     $uri = entity_uri($entity_type, $entity);
@@ -3197,7 +3201,7 @@ function vsite_pathauto_alias_alter(&$alias, $context) {
   $alias = vsite_get_entity_alias($entity_type, $entity, $alias);
 
   // The alias is in the form <purl>/<path>.
-  list($purl, $path) = explode('/', $alias, 2);
+  [$purl, $path] = explode('/', $alias, 2);
   if (!_vsite_alias_exists($purl, $path, $context['source'])) {
     return;
   }
@@ -3279,7 +3283,7 @@ function vsite_get_entity_alias($entity_type, $entity, $alias = NULL) {
   }
 
   if ($entity_type == 'node') {
-    list(,, $bundle) = entity_extract_ids($entity_type, $entity);
+    [,, $bundle] = entity_extract_ids($entity_type, $entity);
     if (!og_is_group_content_type($entity_type, $bundle)) {
       // Not a group content.
       return $alias;
@@ -3350,6 +3354,23 @@ function vsite_redirect_load_by_source_alter(&$redirects, $source, $context) {
     // Otherwise, outside a vsite, any group ID value means it's a mismatch.
     else if ($vsite === FALSE && $gid !== FALSE) {
       $vsite_mismatch = TRUE;
+
+      if ($redirect->source == '*') {
+      // Match PURL in case site is deleted.
+        $purl = purl_load(['id' => $gid, 'provider' => 'spaces_og']);
+        $path_parts = array_filter(explode('/', $source));
+        if ($purl && count($path_parts) && $purl['value'] == $path_parts[0]) {
+          // Path is matched.
+          $vsite_mismatch = FALSE;
+        }
+
+        $purl_domain = purl_load(['id' => $gid, 'provider' => 'vsite_domain']);
+        $host = preg_replace('~https?://~', '', $_SERVER['HTTP_HOST']);
+        if ($purl_domain && $purl_domain['value'] == $host) {
+          // Path is matched.
+          $vsite_mismatch = FALSE;
+        }
+      }
     }
 
     // Removes this redirect if it's mismatched (prevents the redirect).
@@ -3879,7 +3900,7 @@ function _vsite_metatag_get_cid_parts($vsite) {
   $entity_type = 'node';
   $view_mode = 'full';
   $entity = $vsite->group;
-  list($entity_id, $revision_id, $bundle) = entity_extract_ids($entity_type, $entity);
+  [$entity_id, $revision_id, $bundle] = entity_extract_ids($entity_type, $entity);
   $cid_parts = array(
     'instance' => "{$entity_type}:{$bundle}",
     'entity_type' => $entity_type,

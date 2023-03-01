@@ -1262,3 +1262,17 @@ function os_update_7065() {
     watchdog('os', t('!field_name already exists.', array('!field_name' => $field_name)));
   }
 }
+
+/**
+ * Add new column changed to spaces_overrides.
+ */
+function os_update_7066() {
+  db_query('ALTER TABLE {spaces_overrides} ADD changed TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP');
+}
+
+/**
+ * Enable the match_redirect module new limitation in redierct module.
+ */
+function os_update_7067() {
+  module_enable(array('match_redirect'));
+}

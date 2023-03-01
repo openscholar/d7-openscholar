@@ -94,6 +94,15 @@ class OsRestfulUser extends \RestfulEntityBaseUser {
   }
 
   /**
+   * Filter files by vsite
+   */
+  protected function queryForListFilter(EntityFieldQuery $query) {
+    if (!empty($this->request['vsiteid'])) {
+      $query->fieldCondition(OG_AUDIENCE_FIELD, 'target_id', $this->request['vsiteid'], 'IN');
+    }
+  }
+
+  /**
    * Get user password.
    */
   protected function getPassword($user_wrapper) {
@@ -447,6 +456,39 @@ class OsRestfulUser extends \RestfulEntityBaseUser {
     }
 
     return $output;
+  }
+
+  /**
+   * Overrides \RestfulEntityBase::getQueryForList().
+   *
+   * Fetch updated users in the listing.
+   */
+  public function getQueryForList() {
+    $query = parent::getQueryForList();
+    if (!empty($this->request['changed'])) {
+      $query->propertyCondition('changed', $this->request['changed'], '>=');
+    }
+    if (!empty($this->request['vsiteid'])) {
+      $query->fieldCondition('og_user_node', 'target_id', $this->request['vsiteid'], 'IN');
+    }
+    return $query;
+  }
+
+  /**
+   * Overrides \RestfulEntityBase::getQueryCount().
+   *
+   * Fetch updated user count.
+   */
+  public function getQueryCount() {
+    $query = parent::getQueryCount();
+    if (!empty($this->request['changed'])) {
+      $query->propertyCondition('changed', $this->request['changed'], '>=');
+    }
+    if (!empty($this->request['vsiteid'])) {
+      $query->fieldCondition('og_user_node', 'target_id', $this->request['vsiteid'], 'IN');
+    }
+
+    return $query->count();
   }
 
   /**

@@ -1356,7 +1356,7 @@ ul.action-links li a:focus {
   border-bottom-color: #ccc;
 }
 
-/* Themes list */
+/* themes list */
 .system-themes-list h2 {
   margin:1em 0 0;
 }
@@ -1538,7 +1538,7 @@ ul.action-links li a:focus {
   padding-left: 7px;
 }
 
-/* Themes list */
+/* themes list */
 .theme-selector .screenshot, .theme-selector .no-screenshot,
 .system-themes-list-enabled .theme-selector .screenshot,
 .system-themes-list-enabled .theme-selector .no-screenshot,

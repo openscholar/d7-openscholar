@@ -1163,6 +1163,11 @@ html.js .form-region-right fieldset.collapsible .fieldset-legend
     /* background-color: #f1f1f1; */
 }
 
+fieldset.collapsible .fieldset-legend {
+    /* Work around for bug introduced in Chrome 103 */
+    z-index: 1;
+}
+
 html.js fieldset.collapsible .fieldset-legend {
     background-image: none;
 }
