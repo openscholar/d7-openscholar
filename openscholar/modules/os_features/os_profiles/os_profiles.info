@@ -12,7 +12,6 @@ dependencies[] = field_redirection
 dependencies[] = filefield_paths
 dependencies[] = imagefield_crop
 dependencies[] = link
-dependencies[] = match_redirect
 dependencies[] = media
 dependencies[] = media_draggable
 dependencies[] = os_app_base
